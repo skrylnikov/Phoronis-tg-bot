@@ -16,6 +16,11 @@ export const execute = async ({ normalizedTokenList }: IExecuteProps) =>{
   const cityResponse = await got.post<any>(url, {
     body: JSON.stringify({
       query: last(normalizedTokenList),
+      locations: [
+        {
+            country: "*"
+        }
+    ]
     }),
     headers: {
       "Content-Type": "application/json",
@@ -25,8 +30,10 @@ export const execute = async ({ normalizedTokenList }: IExecuteProps) =>{
     responseType: 'json',
    });
 
-   const city = cityResponse.body.suggestions[0]?.data?.city;
-   const country = cityResponse.body.suggestions[0]?.data?.country;
+   const findedCity = cityResponse.body.suggestions.find((x: any) => x.data?.city);
+   
+   const city = findedCity?.data?.city;
+   const country = findedCity?.data?.country;
     
    if(!city){
      return 'Я не смогла тебя найти :(';
