@@ -103,13 +103,16 @@ export const processTextMessage = async (ctx: Context) => {
   result.forEach((action) => {
     switch (action.type) {
       case Actions.sendMessage:{
-        ctx.reply(action.payload, { reply_to_message_id: action.meta?.reply ? ctx.message?.message_id : undefined, parse_mode: 'Markdown', });
+        ctx.reply(action.payload, { 
+          reply_to_message_id: action.meta?.reply ? ctx.message?.message_id : undefined, 
+          parse_mode: 'MarkdownV2',
+        });
         return;
       }
       case Actions.sendMessageWithDelay: {
         setTimeout(() =>{
           try {
-            ctx.reply(action.payload, { parse_mode: 'Markdown', });
+            ctx.reply(action.payload, { parse_mode: 'MarkdownV2', });
           } catch (e) {
             console.error(e);
           }
