@@ -1,5 +1,8 @@
 import { last } from 'ramda';
 
+
+import { sendMessage } from '../../bl/actions';
+
 import { IExecuteProps } from './types';
 
 import { dadataToken, openWeatherToken } from '../../config';
@@ -10,17 +13,17 @@ export const config = {
   activateList: [['погода']],
 };
 
-export const execute = async ({ normalizedTokenList }: IExecuteProps) =>{
+export const execute = async ({ normalizedTokenList }: IExecuteProps) => {
   const url = `https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address`;
-  
+
   const cityResponse = await got.post<any>(url, {
     body: JSON.stringify({
       query: last(normalizedTokenList),
       locations: [
         {
-            country: "*"
+          country: "*"
         }
-    ]
+      ]
     }),
     headers: {
       "Content-Type": "application/json",
@@ -28,25 +31,28 @@ export const execute = async ({ normalizedTokenList }: IExecuteProps) =>{
       Authorization: 'Token ' + dadataToken,
     },
     responseType: 'json',
-   });
+  });
 
-   const findedCity = cityResponse.body.suggestions.find((x: any) => x.data?.city);
-   
-   const city = findedCity?.data?.city;
-   const country = findedCity?.data?.country;
-    
-   if(!city){
-     return 'Я не смогла тебя найти :(';
-   }
+  const findedCity = cityResponse.body.suggestions.find((x: any) => x.data?.city);
 
-   console.log(city);
-   
+  const city = findedCity?.data?.city;
+  const country = findedCity?.data?.country;
 
-   const weatherResponse = await got.get<any>(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${openWeatherToken}&lang=ru&units=metric`, {responseType: 'json' });
+  if (!city) {
+    return [
+      sendMessage('Я не смогла тебя найти :('),
+    ];
+  }
 
-   const weather = weatherResponse.body;
+  console.log(city);
 
-   return `
+
+  const weatherResponse = await got.get<any>(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${openWeatherToken}&lang=ru&units=metric`, { responseType: 'json' });
+
+  const weather = weatherResponse.body;
+
+  return [
+    sendMessage(`
 *${weather.name}, ${country}
 
 ${weather.weather[0].description}
@@ -54,5 +60,6 @@ ${weather.weather[0].description}
 Чувствуется как: ${weather.main.feels_like}°C
 Относительная влажность: ${weather.main.humidity}%
 Cкорость ветра: ${weather.wind.speed} км/ч*
-`;
+`, { reply: true}),
+  ];
 }

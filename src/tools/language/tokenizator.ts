@@ -6,7 +6,7 @@ export const sentenceTokenize = (text: string) => text
 
 export const wordTokenize = (text: string) => text
   .toLowerCase()
-  .split(/\s|\.|,|!|\?|[0-9]/)
+  .split(/\s|\.|,|!|\?/)
   .filter((x) => x.length !== 0);
 
 export const tokenize = pipe(
