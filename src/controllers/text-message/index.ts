@@ -74,14 +74,19 @@ export const processTextMessage = async (ctx: Context) => {
   let canRestrictMembers = false;
   
   if(ctx.chat){
-    const adminList = await ctx.telegram.getChatAdministrators(ctx.chat.id);
-
-    canRestrictMembers = adminList
+    try {
+      
+      const adminList = await ctx.telegram.getChatAdministrators(ctx.chat.id);
+      
+      canRestrictMembers = adminList
       .filter((x) => x.can_restrict_members || x.status === 'creator')
       .map((x) => x.user.id)
       .includes(ctx.from.id);
-    if(replyUser){
-      replyUser.isAdmin = adminList.map((x) => x.user.id).includes(replyUser.id);
+      if(replyUser){
+        replyUser.isAdmin = adminList.map((x) => x.user.id).includes(replyUser.id);
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -105,14 +110,14 @@ export const processTextMessage = async (ctx: Context) => {
       case Actions.sendMessage:{
         ctx.reply(action.payload, { 
           reply_to_message_id: action.meta?.reply ? ctx.message?.message_id : undefined, 
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'Markdown',
         });
         return;
       }
       case Actions.sendMessageWithDelay: {
         setTimeout(() =>{
           try {
-            ctx.reply(action.payload, { parse_mode: 'MarkdownV2', });
+            ctx.reply(action.payload, { parse_mode: 'Markdown', });
           } catch (e) {
             console.error(e);
           }
