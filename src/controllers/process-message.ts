@@ -17,7 +17,7 @@ export const processMessageController = async (ctx: Context) => {
     const { text } = message;
     
     if (text) {
-      processTextMessage(ctx);
+      await processTextMessage(ctx);
     }
   } catch (e) {
     console.error(e);

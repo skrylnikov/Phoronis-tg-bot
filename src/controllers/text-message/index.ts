@@ -9,6 +9,7 @@ import { Language } from '../../tools';
 import { activateWordList } from '../../config';
 
 import * as Weather from './weather';
+import * as Translate from './translate';
 
 import { Actions } from '../../bl/actions';
 import { IUser } from '../../bl/types';
@@ -22,6 +23,7 @@ const rawConfig = [
   About, 
   Ping,
   Restriction,
+  Translate,
 ];
 
 const executorList = rawConfig.map((c) => ({
@@ -101,6 +103,7 @@ export const processTextMessage = async (ctx: Context) => {
       canRestrictMembers,
       username,
       messageId: ctx.message.message_id,
+      ctx,
     }),
     ctx.replyWithChatAction('typing'),
   ]);
