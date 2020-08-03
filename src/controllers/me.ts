@@ -7,8 +7,9 @@ export const meController = (ctx: Context) => {
       const text = ctx.message.text.replace('/me', '').trim();
       
       const username = `[${ctx.from.first_name || ctx.from.last_name || ctx.from.username || 'Неопознаный космонавт'}](tg://user?id=${ctx.from.id})`
-      
-      ctx.reply(`${username} *${text}*`, { parse_mode: 'MarkdownV2'});
+      const result = `${username} *${text}*`;
+
+      ctx.reply(result, { parse_mode: 'Markdown'});
       ctx.deleteMessage(ctx.message.message_id);
     }
     

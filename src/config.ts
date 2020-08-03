@@ -10,6 +10,7 @@ const showError = (msg: string) => {
 export const token = process.env.TOKEN || showError('token not found in .env');
 export const openWeatherToken = process.env.OPEN_WEATHER_TOKEN || showError('token not found in .env');
 export const dadataToken = process.env.DADATA_TOKEN || showError('token not found in .env');
+export const yandexCloudToken = process.env.YANDEX_CLOUD_TOKEN || showError('token not found in .env');
 
 export const activateWordList = ['ио', 'форонида'];
 

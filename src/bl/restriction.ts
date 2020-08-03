@@ -1,6 +1,5 @@
 import { pipe } from 'fp-ts/lib/pipeable';
 import * as O from 'fp-ts/lib/Option';
-import * as R from 'fp-ts/lib/ReaderEither';
 import * as E from 'fp-ts/lib/Either';
 import { PorterStemmerRu } from 'natural';
 
@@ -65,10 +64,8 @@ export const execute = async ({ replyUser, canRestrictMembers, username, message
   pipe(
     replyUser,
     E.fromOption(() => 'Ой, кажется я не смогла найти кого тут нужно забанить :('),
-    E.map((user) => canRestrictMembers ? E.right(user) : E.left('Кажется ты не можешь банить участников :(')),
-    E.flatten,
-    E.map((user) => !user.isAdmin ? E.right(user) : E.left('Ой, я не могу банить админов :(')),
-    E.flatten,
+    E.chain((user) => canRestrictMembers ? E.right(user) : E.left('Кажется ты не можешь банить участников :(')),
+    E.chain((user) => !user.isAdmin ? E.right(user) : E.left('Ой, я не могу банить админов :(')),
     E.chain((user) => pipe(
       getRestrictTime(normalizedTokenList),
       E.map((value) => [
