@@ -22,8 +22,8 @@ interface ITranslateResult {
 export const execute = async ({ normalizedTokenList, ctx }: IExecuteProps) => {
 
   const replyMessage = ctx.message?.reply_to_message;
-
-  const replyText = replyMessage?.text;
+  
+  const replyText = replyMessage?.text || replyMessage?.caption;
 
   if(!replyText){
     return [];

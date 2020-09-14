@@ -17,6 +17,7 @@ bot.start(startController);
 bot.command('/me', meController);
 
 bot.on('voice', voiceController);
+bot.on('video_note', voiceController);
 
 bot.on('new_chat_members', newChatMembersController);
 
