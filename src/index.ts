@@ -25,5 +25,5 @@ bot.on('message', processMessageController);
 
 
 
-bot.launch();
+bot.launch().catch((e) => console.error(e));
 
