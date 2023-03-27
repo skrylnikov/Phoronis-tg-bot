@@ -40,6 +40,8 @@ console.log(executorList);
 
 
 export const processTextMessage = async (ctx: Context) => {
+  console.log('processTextMessage');
+  
   const text = ctx.message?.text;
 
   if(!text || !ctx.from || !ctx.message){

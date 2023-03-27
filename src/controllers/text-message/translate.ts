@@ -20,6 +20,8 @@ interface ITranslateResult {
 }
 
 export const execute = async ({ normalizedTokenList, ctx }: IExecuteProps) => {
+  console.log('Translate');
+  
 
   const replyMessage = ctx.message?.reply_to_message;
   

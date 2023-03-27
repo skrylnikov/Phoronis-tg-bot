@@ -14,6 +14,8 @@ export const config = {
 };
 
 export const execute = async ({ normalizedTokenList }: IExecuteProps) => {
+  console.log('Weather');
+  
   const url = `https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address`;
 
   const cityResponse = await got.post<any>(url, {

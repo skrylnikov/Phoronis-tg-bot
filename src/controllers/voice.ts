@@ -33,6 +33,8 @@ interface Check {
 
 export const voiceController = async (ctx: Context) => {
   try {
+    console.log('voiceController');
+    
     const info = ctx.message?.voice || ctx.message?.video_note;
 
     if (!info || !ctx.message) {

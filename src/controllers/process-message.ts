@@ -8,6 +8,8 @@ import { processTextMessage } from './text-message';
 
 export const processMessageController = async (ctx: Context) => {
   try {
+    console.log('processMessageController');
+    
     if (!ctx.from || !ctx.from.id || !ctx.chat || !ctx.chat.id || !ctx.message || ctx.message.forward_from) {
       return;
     }
