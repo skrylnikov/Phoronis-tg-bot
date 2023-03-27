@@ -28,3 +28,11 @@ bot.on('message', processMessageController);
 bot.launch().catch((e) => console.error(e));
 
 bot.catch((e) => console.error(e));
+
+process.on('uncaughtException', function(err) {
+  console.log('Caught exception: ' + err);
+});
+
+process.on('unhandledRejection', function(err) {
+  console.log('Caught rejection: ' + err);
+});
