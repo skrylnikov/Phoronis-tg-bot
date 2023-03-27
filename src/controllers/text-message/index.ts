@@ -10,6 +10,7 @@ import { activateWordList } from '../../config';
 
 import * as Weather from './weather';
 import * as Translate from './translate';
+import {askAI} from './ai';
 
 import { Actions } from '../../bl/actions';
 import { IUser } from '../../bl/types';
@@ -62,6 +63,15 @@ export const processTextMessage = async (ctx: Context) => {
   const comand = executorList.find((x) => x.config.activateTokenList.some((x) => x.every((y) => normalizedTokenList.includes(y))));
 
   if(!comand){
+    if(text.endsWith('?')){
+      ctx.replyWithChatAction('typing');
+      const result = await askAI(text);
+      if(result){
+        ctx.reply(result, { reply_to_message_id: ctx.message?.message_id });
+        return;
+      }
+    }
+
     ctx.reply('Я тут', { reply_to_message_id: ctx.message?.message_id });
     return;
   }

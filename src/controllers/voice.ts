@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 import got from 'got';
 import ffmpeg from 'ffmpeg.js';
-import AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 import { yandexCloudToken, yandexS3ID, yandexS3Secret } from '../config';
 
@@ -10,22 +10,24 @@ interface IResult {
   result: string;
 }
 
-const s3 = new AWS.S3({
+const s3 = new S3Client({
   endpoint: 'https://storage.yandexcloud.net',
-  accessKeyId: yandexS3ID,
-  secretAccessKey: yandexS3Secret,
   region: 'us-east-1',
-  httpOptions: {
-    timeout: 10000,
-    connectTimeout: 10000
-  }
+  // httpOptions: {
+  //   timeout: 10000,
+  //   connectTimeout: 10000
+  // }
+  credentials: {
+    accessKeyId: yandexS3ID,
+    secretAccessKey: yandexS3Secret,
+  },
 });
 
 interface Check {
   id: string;
   done: boolean;
   response: {
-    chunks: any;
+    chunks: unknown[];
   }
 }
 
@@ -67,17 +69,12 @@ export const voiceController = async (ctx: Context) => {
 
       ctx.reply(result.body.result, { reply_to_message_id: ctx.message.message_id });
     } else {
-      const uploadResult: AWS.S3.ManagedUpload.SendData = await new Promise(function (resolve, reject) {
-        s3.upload({
-          Bucket: 'bot-voic',
-          Key: 'phoronis/' + file_id,
-          Body: file,
-        }, (err, data) => {
-          if (err) return reject(err);
-          return resolve(data);
-        });
-      });
-      
+      await s3.send(new PutObjectCommand({
+        Bucket: 'bot-voic',
+        Key: 'phoronis/' + file_id,
+        Body: file,
+      }));
+
       const task = await got.post<Check>('https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize', {
         json: {
           config: {
@@ -86,7 +83,7 @@ export const voiceController = async (ctx: Context) => {
             }
           },
           audio: {
-            uri: uploadResult.Location,
+            uri: `https://storage.yandexcloud.net/bot-voic/phoronis/${file_id}`,
           }
         },
         headers: {
@@ -94,6 +91,7 @@ export const voiceController = async (ctx: Context) => {
         },
         responseType: 'json',
       });
+      await new Promise((res) => setTimeout(res, duration / 60 * 10 * 1000));
 
       const id = task.body.id;
 
@@ -109,13 +107,13 @@ export const voiceController = async (ctx: Context) => {
 
         result = body;
         
-        await new Promise((res) => setTimeout(res, 1000));
+        await new Promise((res) => setTimeout(res, 200));
         if(counter++ > 300){
           break;
         }
       }
-
-      const text = result?.response?.chunks?.map(({alternatives}: any) => alternatives?.[0]?.text).join('  ')
+      
+      const text = result?.response?.chunks?.map(({alternatives}: any) => alternatives?.[0]?.text).join('. ')
 
       if(!text){
         console.error(result);
