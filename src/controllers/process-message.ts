@@ -2,9 +2,7 @@ import { Context, } from 'telegraf';
 import { pipe, intersection } from 'ramda';
 import got from 'got';
 
-import { activateWordList, openWeatherToken } from '../config';
-
-import { processTextMessage } from './text-message';
+import { processTextMessage } from './text-message/index.js';
 
 export const processMessageController = async (ctx: Context) => {
   try {

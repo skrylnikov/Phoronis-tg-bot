@@ -1,24 +1,24 @@
 import { Context } from 'telegraf';
 import { pipe, intersection, without, flatten } from 'ramda';
-import { PorterStemmerRu } from 'natural';
-import * as O from 'fp-ts/lib/Option';
+import natural from 'natural';
+import * as O from 'fp-ts/lib/Option.js';
 import { addSeconds } from 'date-fns';
 
-import { Language } from '../../tools';
+import { Language } from '../../tools/index.js';
 
-import { activateWordList } from '../../config';
+import { activateWordList } from '../../config.js';
 
-import * as Weather from './weather';
-import * as Translate from './translate';
-import {askAI} from './ai';
+import * as Weather from './weather.js';
+import * as Translate from './translate.js';
+import {askAI} from './ai.js';
 
-import { Actions } from '../../bl/actions';
-import { IUser } from '../../bl/types';
+import { Actions } from '../../bl/actions.js';
+import { IUser } from '../../bl/types.js';
 
-import * as About from '../../bl/about';
-import * as Ping from '../../bl/ping';
-import * as Restriction from '../../bl/restriction';
-
+import * as About from '../../bl/about.js';
+import * as Ping from '../../bl/ping.js';
+import * as Restriction from '../../bl/restriction.js';
+const { PorterStemmerRu } = natural;
 const rawConfig = [
   Weather, 
   About, 

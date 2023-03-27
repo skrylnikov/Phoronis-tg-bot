@@ -1,10 +1,10 @@
 import got from 'got';
 
-import { sendMessage } from '../../bl/actions';
+import { sendMessage } from '../../bl/actions.js';
 
-import { yandexCloudToken } from '../../config';
+import { yandexCloudToken } from '../../config.js';
 
-import { IExecuteProps } from './types';
+import { IExecuteProps } from './types.js';
 
 
 export const config = {

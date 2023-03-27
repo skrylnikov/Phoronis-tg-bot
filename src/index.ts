@@ -1,14 +1,14 @@
 
 import Telegraf from 'telegraf';
 
-import { token } from './config';
+import { token } from './config.js';
 import {
   processMessageController,
   startController,
   newChatMembersController,
   meController,
   voiceController
-} from './controllers';
+} from './controllers/index.js';
 
 const bot = new Telegraf(token);
 

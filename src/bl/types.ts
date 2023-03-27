@@ -1,4 +1,4 @@
-import * as O from 'fp-ts/lib/Option';
+import * as O from 'fp-ts/lib/Option.js';
 
 export interface IUser {
   id: number;

@@ -3,7 +3,7 @@ import got from 'got';
 import ffmpeg from 'ffmpeg.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-import { yandexCloudToken, yandexS3ID, yandexS3Secret } from '../config';
+import { yandexCloudToken, yandexS3ID, yandexS3Secret } from '../config.js';
 
 
 interface IResult {

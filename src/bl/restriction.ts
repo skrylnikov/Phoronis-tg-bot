@@ -1,15 +1,16 @@
-import { pipe } from 'fp-ts/lib/pipeable';
-import * as O from 'fp-ts/lib/Option';
-import * as E from 'fp-ts/lib/Either';
-import { PorterStemmerRu } from 'natural';
+import { pipe } from 'fp-ts/lib/pipeable.js';
+import * as O from 'fp-ts/lib/Option.js';
+import * as E from 'fp-ts/lib/Either.js';
+import natural from 'natural';
 
-import { IExecuteProps, IUser } from './types';
-import { IActionTypes, sendMessage, sendMessageWithDelay, deleteMessage, restrictUser } from './actions';
+import { IExecuteProps, IUser } from './types.js';
+import { IActionTypes, sendMessage, sendMessageWithDelay, deleteMessage, restrictUser } from './actions.js';
 
 export const config = {
   activateList: [['бан'], ['забань']],
 };
 
+const { PorterStemmerRu } = natural;
 
 const getResult = <T>(value: T | T[]): T[] => Array.isArray(value) ? value : [value];
 

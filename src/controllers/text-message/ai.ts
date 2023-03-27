@@ -1,6 +1,6 @@
 // import { Configuration, OpenAIApi } from "openai";
 
-import { openAIToken } from '../../config'
+import { openAIToken } from '../../config.js'
 
 // const configuration = new Configuration({
 //     // organization: "YOUR_ORG_ID",

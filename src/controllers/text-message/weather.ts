@@ -1,11 +1,11 @@
 import { last } from 'ramda';
 
 
-import { sendMessage } from '../../bl/actions';
+import { sendMessage } from '../../bl/actions.js';
 
-import { IExecuteProps } from './types';
+import { IExecuteProps } from './types.js';
 
-import { dadataToken, openWeatherToken } from '../../config';
+import { dadataToken, openWeatherToken } from '../../config.js';
 
 import got from 'got';
 

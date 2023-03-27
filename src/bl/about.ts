@@ -1,6 +1,6 @@
-import { IExecuteProps } from './types';
+import { IExecuteProps } from './types.js';
 
-import { sendMessage } from './actions';
+import { sendMessage } from './actions.js';
 
 export const config = {
   activateList: [

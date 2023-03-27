@@ -1,5 +1,5 @@
-import { IExecuteProps } from './types';
-import { sendMessage, IActionTypes } from './actions';
+import { IExecuteProps } from './types.js';
+import { sendMessage, IActionTypes } from './actions.js';
 
 export const config = {
   activateList: [['ping'], ['пинг']],
