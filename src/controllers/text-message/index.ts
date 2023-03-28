@@ -10,7 +10,7 @@ import { activateWordList } from '../../config.js';
 
 import * as Weather from './weather.js';
 import * as Translate from './translate.js';
-import {askAI} from './ai.js';
+import * as AI from './ai.js';
 
 import { Actions } from '../../bl/actions.js';
 import { IUser } from '../../bl/types.js';
@@ -25,6 +25,7 @@ const rawConfig = [
   Ping,
   Restriction,
   Translate,
+  AI,
 ];
 
 const executorList = rawConfig.map((c) => ({
@@ -67,11 +68,18 @@ export const processTextMessage = async (ctx: Context) => {
   if(!comand){
     if(text.endsWith('?')){
       ctx.replyWithChatAction('typing');
-      const result = await askAI(text);
-      if(result){
-        ctx.reply(result, { reply_to_message_id: ctx.message?.message_id });
-        return;
-      }
+      const result = await AI.execute({text, ctx, normalizedTokenList, tokenList});
+      result.forEach((action) => {
+        switch (action.type) {
+          case Actions.sendMessage:{
+            ctx.reply(action.payload, { 
+              reply_to_message_id: action.meta?.reply ? ctx.message?.message_id : undefined, 
+              parse_mode: 'Markdown',
+            });
+            return;
+          }
+        }
+      });
     }
 
     ctx.reply('Я тут', { reply_to_message_id: ctx.message?.message_id });
@@ -116,6 +124,7 @@ export const processTextMessage = async (ctx: Context) => {
       username,
       messageId: ctx.message.message_id,
       ctx,
+      text,
     }),
     ctx.replyWithChatAction('typing'),
   ]);
