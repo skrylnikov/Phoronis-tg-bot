@@ -26,7 +26,7 @@ bot.on('message', processMessageController);
 
 
 bot.launch({polling: {
-  limit: 1,
+  limit: 5,
 }}).catch((e) => console.error(e));
 
 bot.catch((e) => console.error(e));

@@ -50,10 +50,11 @@ export const processTextMessage = async (ctx: Context) => {
   }
 
   const isReply = ctx.message.reply_to_message?.from?.id === ctx.botInfo?.id;
-
+  
   if(isReply){
     const key = `${ctx.message.reply_to_message?.message_id}:${ctx.message?.chat?.id}`;
-
+    console.log(key);
+    
     if(AI.cache.has(key)){
       ctx.replyWithChatAction('typing');
       await AI.execute({text, ctx, normalizedTokenList: [], tokenList: []});

@@ -12,7 +12,7 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 export const config = {
-  activateList: [['расскажи'], ['напиши'], ['почему'], ['как'], ['что'], ['если'], ['помоги'], ['зачем'], ['придумай'], ['скажи']],
+  activateList: [['расскажи'], ['напиши'], ['почему'], ['как'], ['что'], ['если'], ['помоги'], ['зачем'], ['придумай'], ['скажи'], ['опиши']],
 };
 
 const defaultMessages = {
@@ -26,9 +26,12 @@ export const cache = new LRUCache<string, ChatCompletionRequestMessage[]>({
 });
 
 export const execute = async ({text, ctx}: IExecuteProps) => {
+  console.log('execute');
+  
   const key = `${ctx.message?.reply_to_message?.message_id}:${ctx.message?.chat?.id}`;
   const messages = cache.has(key) ? [...cache.get(key)!] : [defaultMessages];
-
+  console.log(key);
+  
   messages.push({
     role: 'user',
     content: text.replace('ио', '').trim(),
@@ -53,7 +56,8 @@ export const execute = async ({text, ctx}: IExecuteProps) => {
     });
 
     const newKey = `${message?.message_id}:${ctx.message?.chat?.id}`;
-
+    console.log(newKey);
+    
     cache.set(newKey, messages);
   }
 
