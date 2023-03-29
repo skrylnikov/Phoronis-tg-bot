@@ -52,7 +52,7 @@ export const processTextMessage = async (ctx: Context) => {
   const isReply = ctx.message.reply_to_message?.from?.id === ctx.botInfo?.id;
 
   if(isReply){
-    const key = `${ctx.message.reply_to_message?.from?.id}:${ctx.message?.chat?.id}`;
+    const key = `${ctx.message.reply_to_message?.message_id}:${ctx.message?.chat?.id}`;
 
     if(AI.cache.has(key)){
       ctx.replyWithChatAction('typing');

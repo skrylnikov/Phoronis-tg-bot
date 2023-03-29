@@ -26,7 +26,7 @@ export const cache = new LRUCache<string, ChatCompletionRequestMessage[]>({
 });
 
 export const execute = async ({text, ctx}: IExecuteProps) => {
-  const key = `${ctx.message?.reply_to_message?.from?.id}:${ctx.message?.chat?.id}`;
+  const key = `${ctx.message?.reply_to_message?.message_id}:${ctx.message?.chat?.id}`;
   const messages = cache.has(key) ? [...cache.get(key)!] : [defaultMessages];
 
   messages.push({
@@ -52,7 +52,7 @@ export const execute = async ({text, ctx}: IExecuteProps) => {
       content: resultMessage,
     });
 
-    const newKey = `${message?.from?.id}:${ctx.message?.chat?.id}`;
+    const newKey = `${message?.message_id}:${ctx.message?.chat?.id}`;
 
     cache.set(newKey, messages);
   }
