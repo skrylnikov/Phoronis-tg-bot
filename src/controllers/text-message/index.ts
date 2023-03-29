@@ -49,6 +49,19 @@ export const processTextMessage = async (ctx: Context) => {
     return;
   }
 
+  const isReply = ctx.message.reply_to_message?.from?.id === ctx.botInfo?.id;
+
+  if(isReply){
+    const key = `${ctx.message.reply_to_message?.from?.id}:${ctx.message?.chat?.id}`;
+
+    if(AI.cache.has(key)){
+      ctx.replyWithChatAction('typing');
+      await AI.execute({text, ctx, normalizedTokenList: [], tokenList: []});
+    }
+
+    return;
+  }
+
   const tokenList = pipe(
     Language.clean,
     Language.tokenize,
@@ -68,18 +81,7 @@ export const processTextMessage = async (ctx: Context) => {
   if(!comand){
     if(text.endsWith('?')){
       ctx.replyWithChatAction('typing');
-      const result = await AI.execute({text, ctx, normalizedTokenList, tokenList});
-      result.forEach((action) => {
-        switch (action.type) {
-          case Actions.sendMessage:{
-            ctx.reply(action.payload, { 
-              reply_to_message_id: action.meta?.reply ? ctx.message?.message_id : undefined, 
-              parse_mode: 'Markdown',
-            });
-            return;
-          }
-        }
-      });
+      await AI.execute({text, ctx, normalizedTokenList, tokenList});
       return;
     }
 
