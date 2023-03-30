@@ -15,6 +15,6 @@ export const yandexS3ID = process.env.YANDEX_S3_ID || showError('token not found
 export const yandexS3Secret = process.env.YANDEX_S3_SECRET || showError('token not found in .env');
 export const openAIToken = process.env.OPENAI_API_KEY || showError('token not found in .env');
 
-export const activateWordList = ['ио', 'форонида'];
+export const activateWordList = ['ио', 'форонида', 'io', 'иа'];
 
 
