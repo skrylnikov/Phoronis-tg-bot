@@ -23,11 +23,7 @@ bot.on("new_chat_members", newChatMembersController);
 bot.on("message", processMessageController);
 
 bot
-  .launch({
-    polling: {
-      limit: 5,
-    },
-  })
+  .launch()
   .catch((e) => console.error(e));
 
 bot.catch((e: unknown) => console.error(e));
