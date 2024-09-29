@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import Telegraf from "telegraf";
 import { token } from "./config.js";
 import { processMessageController, startController, newChatMembersController, meController, voiceController, } from "./controllers/index.js";
 const bot = new Telegraf(token);
@@ -9,11 +9,7 @@ bot.on("video_note", voiceController);
 bot.on("new_chat_members", newChatMembersController);
 bot.on("message", processMessageController);
 bot
-    .launch({
-    polling: {
-        limit: 5,
-    },
-})
+    .launch()
     .catch((e) => console.error(e));
 bot.catch((e) => console.error(e));
 process.on("uncaughtException", function (err) {

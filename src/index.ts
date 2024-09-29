@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import Telegraf from "telegraf";
 
 import { token } from "./config.js";
 import {
