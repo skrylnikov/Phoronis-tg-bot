@@ -106,7 +106,7 @@ export const processTextMessage = async (ctx: Context) => {
       const adminList = await ctx.telegram.getChatAdministrators(ctx.chat.id);
       
       canRestrictMembers = adminList
-      .filter((x) => x.can_restrict_members || x.status === 'creator')
+      .filter((x) => x.status === 'administrator' || x.status === 'creator')
       .map((x) => x.user.id)
       .includes(ctx.from.id);
       if(replyUser){

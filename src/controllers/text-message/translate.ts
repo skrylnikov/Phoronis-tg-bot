@@ -1,14 +1,18 @@
-import got from 'got';
+import got from "got";
 
-import { sendMessage } from '../../bl/actions.js';
+import { sendMessage } from "../../bl/actions.js";
 
-import { yandexCloudToken } from '../../config.js';
+import { yandexCloudToken } from "../../config.js";
 
-import { IExecuteProps } from './types.js';
-
+import { IExecuteProps } from "./types.js";
 
 export const config = {
-  activateList: [['перевод'], ['переведи'], ['по', 'русски'], ['на', 'русском']],
+  activateList: [
+    ["перевод"],
+    ["переведи"],
+    ["по", "русски"],
+    ["на", "русском"],
+  ],
 };
 
 interface ITranslate {
@@ -20,37 +24,48 @@ interface ITranslateResult {
 }
 
 export const execute = async ({ normalizedTokenList, ctx }: IExecuteProps) => {
-  console.log('Translate');
-  
-
   const replyMessage = ctx.message?.reply_to_message;
-  
-  const replyText = replyMessage?.text || replyMessage?.caption;
 
-  if(!replyText){
+  if (!replyMessage) {
     return [];
   }
 
-  const result = await got.post<ITranslateResult>('https://translate.api.cloud.yandex.net/translate/v2/translate', {
-    json: {
-      texts: [replyText],
-      targetLanguageCode: 'ru',
-    }, 
-    headers: {
-      'Authorization': `Api-Key ${yandexCloudToken}`
-    },
-    responseType: 'json',
-  });
-  
+  const replyText =
+    "text" in replyMessage
+      ? replyMessage.text
+      : "caption" in replyMessage
+      ? replyMessage.caption
+      : "";
+
+  if (!replyText) {
+    return [];
+  }
+
+  const result = await got.post<ITranslateResult>(
+    "https://translate.api.cloud.yandex.net/translate/v2/translate",
+    {
+      json: {
+        texts: [replyText],
+        targetLanguageCode: "ru",
+      },
+      headers: {
+        Authorization: `Api-Key ${yandexCloudToken}`,
+      },
+      responseType: "json",
+    }
+  );
+
   const translate = result.body.translations[0];
 
-  if(translate.detectedLanguageCode === 'ru') {
+  if (translate.detectedLanguageCode === "ru") {
     return [
-      sendMessage(`Но ведь это сообщение и так написанно на русском языке`, { reply: true}),
+      sendMessage(`Но ведь это сообщение и так написанно на русском языке`, {
+        reply: true,
+      }),
     ];
   }
-  
-  ctx.reply(translate.text, { reply_to_message_id: replyMessage?.message_id});
+
+  ctx.reply(translate.text, { reply_to_message_id: replyMessage?.message_id });
 
   return [];
-}
+};

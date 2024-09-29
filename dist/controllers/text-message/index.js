@@ -6,7 +6,7 @@ import { Language } from '../../tools/index.js';
 import { activateWordList } from '../../config.js';
 import * as Weather from './weather.js';
 import * as Translate from './translate.js';
-import { askAI } from './ai.js';
+import * as AI from './ai.js';
 import { Actions } from '../../bl/actions.js';
 import * as About from '../../bl/about.js';
 import * as Ping from '../../bl/ping.js';
@@ -18,6 +18,7 @@ const rawConfig = [
     Ping,
     Restriction,
     Translate,
+    AI,
 ];
 const executorList = rawConfig.map((c) => ({
     ...c,
@@ -33,6 +34,16 @@ export const processTextMessage = async (ctx) => {
     if (!text || !ctx.from || !ctx.message) {
         return;
     }
+    const isReply = ctx.message.reply_to_message?.from?.id === ctx.botInfo?.id;
+    if (isReply) {
+        const key = `${ctx.message.reply_to_message?.message_id}:${ctx.message?.chat?.id}`;
+        console.log(key);
+        if (AI.cache.has(key)) {
+            ctx.replyWithChatAction('typing');
+            await AI.execute({ text, ctx, normalizedTokenList: [], tokenList: [], activationWord: '' });
+        }
+        return;
+    }
     const tokenList = pipe(Language.clean, Language.tokenize, Language.findActivate(activateWordList))(text);
     if (!tokenList || tokenList.length === 0) {
         return;
@@ -43,11 +54,8 @@ export const processTextMessage = async (ctx) => {
     if (!comand) {
         if (text.endsWith('?')) {
             ctx.replyWithChatAction('typing');
-            const result = await askAI(text);
-            if (result) {
-                ctx.reply(result, { reply_to_message_id: ctx.message?.message_id });
-                return;
-            }
+            await AI.execute({ text, ctx, normalizedTokenList, tokenList, activationWord: text.toLowerCase().startsWith('иа') ? 'иа' : '' });
+            return;
         }
         ctx.reply('Я тут', { reply_to_message_id: ctx.message?.message_id });
         return;
@@ -63,7 +71,7 @@ export const processTextMessage = async (ctx) => {
         try {
             const adminList = await ctx.telegram.getChatAdministrators(ctx.chat.id);
             canRestrictMembers = adminList
-                .filter((x) => x.can_restrict_members || x.status === 'creator')
+                .filter((x) => x.status === 'administrator' || x.status === 'creator')
                 .map((x) => x.user.id)
                 .includes(ctx.from.id);
             if (replyUser) {
@@ -84,6 +92,8 @@ export const processTextMessage = async (ctx) => {
             username,
             messageId: ctx.message.message_id,
             ctx,
+            text,
+            activationWord: text.toLowerCase().startsWith('иа') ? 'иа' : '',
         }),
         ctx.replyWithChatAction('typing'),
     ]);
