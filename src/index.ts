@@ -1,4 +1,4 @@
-import Telegraf from "telegraf";
+import { Bot } from "grammy";
 
 import { token } from "./config.js";
 import {
@@ -9,22 +9,20 @@ import {
   voiceController,
 } from "./controllers/index.js";
 
-const bot = new Telegraf(token);
+const bot = new Bot(token);
 
-bot.start(startController);
+bot.command('start',startController);
 
-bot.command("/me", meController);
+bot.command("me", meController);
 
-bot.on("voice", voiceController);
-bot.on("video_note", voiceController);
+bot.on(":voice", voiceController);
+bot.on(":video_note", voiceController);
 
-bot.on("new_chat_members", newChatMembersController);
+bot.on(":new_chat_members", newChatMembersController);
 
 bot.on("message", processMessageController);
 
-bot
-  .launch()
-  .catch((e) => console.error(e));
+bot.start().catch((e) => console.error(e));
 
 bot.catch((e: unknown) => console.error(e));
 

@@ -1,3 +1,3 @@
-import { Context } from 'telegraf';
+import { Context } from 'grammy';
 
 export const startController = (ctx: Context) => ctx.reply('Я жив')

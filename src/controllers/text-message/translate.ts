@@ -1,4 +1,4 @@
-import got from "got";
+import axios from "axios";
 
 import { sendMessage } from "../../bl/actions.js";
 
@@ -41,13 +41,13 @@ export const execute = async ({ normalizedTokenList, ctx }: IExecuteProps) => {
     return [];
   }
 
-  const result = await got.post<ITranslateResult>(
+  const result = await axios.post<ITranslateResult>(
     "https://translate.api.cloud.yandex.net/translate/v2/translate",
     {
-      json: {
-        texts: [replyText],
-        targetLanguageCode: "ru",
-      },
+      texts: [replyText],
+      targetLanguageCode: "ru",
+    },
+    {
       headers: {
         Authorization: `Api-Key ${yandexCloudToken}`,
       },
@@ -55,7 +55,7 @@ export const execute = async ({ normalizedTokenList, ctx }: IExecuteProps) => {
     }
   );
 
-  const translate = result.body.translations[0];
+  const translate = result.data.translations[0];
 
   if (translate.detectedLanguageCode === "ru") {
     return [

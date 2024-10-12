@@ -1,4 +1,4 @@
-import { Context } from 'telegraf';
+import { Context } from 'grammy';
 
 export const meController = (ctx: Context) => {
   try {
@@ -10,7 +10,7 @@ export const meController = (ctx: Context) => {
       const result = `${username} *${text}*`;
 
       ctx.reply(result, { parse_mode: 'Markdown'});
-      ctx.deleteMessage(ctx.message.message_id);
+      ctx.api.deleteMessage(ctx.message.chat.id, ctx.message.message_id);
     }
     
   } catch (e) {

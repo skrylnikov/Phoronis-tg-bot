@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi, ChatCompletionRequestMessage } from "openai";
-import LRUCache from 'lru-cache'
+import {LRUCache} from 'lru-cache'
 
 import { IExecuteProps } from './types.js';
 
