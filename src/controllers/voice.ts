@@ -1,7 +1,7 @@
-import { Context } from "grammy";
 import axios from "axios";
 import ffmpeg from "ffmpeg.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { fmt, blockquote } from "@grammyjs/parse-mode";
 
 import {
   token,
@@ -9,7 +9,10 @@ import {
   yandexS3ID,
   yandexS3Secret,
 } from "../config.js";
-import { writeFile } from "fs/promises";
+
+import { prisma } from "../db";
+import { openai } from "../openai";
+import { BotContext } from "../bot";
 
 interface IResult {
   result: string;
@@ -28,6 +31,7 @@ const s3 = new S3Client({
   },
 });
 
+
 interface Check {
   id: string;
   done: boolean;
@@ -36,7 +40,7 @@ interface Check {
   };
 }
 
-export const voiceController = async (ctx: Context) => {
+export const voiceController = async (ctx: BotContext) => {
   try {
     console.log("voiceController");
 
@@ -75,14 +79,10 @@ export const voiceController = async (ctx: Context) => {
           "output.ogg",
         ],
       });
-      writeFile("output.ogg", Buffer.from(result.MEMFS[0].data));
       file = Buffer.from(result.MEMFS[0].data);
     }
 
-    if (
-      (file.length < 1024 * 1024 && duration < 30) &&
-      !ctx.message.video_note
-    ) {
+    if (file.length < 1024 * 1024 && duration < 30 && !ctx.message.video_note) {
       const result = await axios.post<IResult>(
         "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize",
         file,
@@ -163,8 +163,45 @@ export const voiceController = async (ctx: Context) => {
           reply_to_message_id: ctx.message.message_id,
         });
       } else {
+        let summary: string | null = null;
+
+        if (text.length > 256) {
+          const result = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content: "Суммарицируй текст до пары коротких предложений",
+              },
+              { role: "user", content: text },
+            ],
+          });
+
+          summary = result.choices[0].message.content;
+        }
+
+        await prisma.message.create({
+          data: {
+            id: ctx.msg!.message_id,
+            chatId: ctx.chatId!,
+            senderId: ctx.from!.id,
+            sentAt: new Date(ctx.msg!.date * 1000),
+            messageType: "VOICE",
+            text,
+            summary,
+          },
+        });
         console.log(`recognize voice result: ${text}`);
-        ctx.reply(text, { reply_to_message_id: ctx.message.message_id });
+
+        const quote = blockquote(text);
+        quote.entities[0].type = "expandable_blockquote";
+
+        ctx.replyFmt(
+          fmt`${summary || ""}
+
+${quote}`,
+          { reply_to_message_id: ctx.message.message_id }
+        );
       }
     }
   } catch (e) {

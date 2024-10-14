@@ -1,4 +1,4 @@
-import { pipe, map } from 'ramda';
+import { piped, map } from 'remeda';
 
 export const sentenceTokenize = (text: string) => text
   .toLowerCase()
@@ -9,7 +9,7 @@ export const wordTokenize = (text: string) => text
   .split(/\s|\.|,|!|\?/)
   .filter((x) => x.length !== 0);
 
-export const tokenize = pipe(
+export const tokenize = piped(
   sentenceTokenize,
   map(wordTokenize),
 );

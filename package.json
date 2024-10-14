@@ -7,6 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsx ./src/index.ts",
+    "db:generate": "prisma generate",
+    "db:deploy": "prisma migrate deploy",
     "dev": "tsx watch ./src/index.ts"
   },
   "author": "",
@@ -16,14 +18,17 @@
   },
   "packageManager": "pnpm@9.12.1",
   "devDependencies": {
+    "@grammyjs/types": "^3.14.0",
     "@types/ffmpeg.js": "^3.1.6",
     "@types/node": "^22.7.5",
-    "@types/ramda": "^0.27.11",
+    "prisma": "^5.20.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",
+    "@grammyjs/parse-mode": "^1.10.0",
+    "@prisma/client": "5.20.0",
     "axios": "^1.7.7",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
@@ -32,7 +37,7 @@
     "grammy": "^1.30.0",
     "lru-cache": "^11.0.1",
     "natural": "^8.0.1",
-    "openai": "^3.2.1",
-    "ramda": "^0.27.0"
+    "openai": "^4.67.3",
+    "remeda": "^2.15.0"
   }
 }

@@ -1,29 +1,40 @@
-import { Context } from "grammy";
+import { Composer } from "grammy";
 
-import { processTextMessage } from "./text-message/index.js";
+import { saveChat, saveUser } from "../shared";
+import { prisma } from "../db";
+import { BotContext } from "../bot";
+import { aiController } from "../ai";
 
-export const processMessageController = async (ctx: Context) => {
-  try {
-    console.log("processMessageController");
+export const processMessageController = new Composer<BotContext>();
 
-    if (
-      !ctx.from ||
-      !ctx.from.id ||
-      !ctx.chat ||
-      !ctx.chat.id ||
-      !ctx.message ||
-      ctx.message.from
-    ) {
-      return;
-    }
-    const message = ctx.message;
+processMessageController.on(":text", async (ctx) => {
+  console.log("processMessageController");
+  await Promise.all([
+    saveChat(ctx.chat),
+    saveUser(ctx.from!),
+    saveUser(ctx.me),
+  ]);
 
-    const { text } = message;
+  const chat = await prisma.chat.findUnique({
+    where: {
+      id: ctx.chatId,
+    },
+  });
 
-    if (text) {
-      await processTextMessage(ctx);
-    }
-  } catch (e) {
-    console.error(e);
+  if (chat?.greeting) {
+    await prisma.message.create({
+      data: {
+        id: ctx.msg.message_id,
+        chatId: ctx.chatId,
+        senderId: ctx.from!.id,
+        sentAt: new Date(ctx.msg.date * 1000),
+        text: ctx.msg.text,
+        messageType: "TEXT",
+      },
+    });
   }
-};
+
+  if (ctx.msg.text.toLowerCase().startsWith("ио")) {
+    await aiController(ctx);
+  }
+});

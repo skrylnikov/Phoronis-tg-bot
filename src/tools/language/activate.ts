@@ -1,5 +1,3 @@
-import { curry } from "ramda";
-
 export const findActivate =
   (activateWordList: string[]) => (tokenListList: string[][]) =>
     tokenListList
