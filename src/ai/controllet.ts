@@ -74,23 +74,36 @@ export const aiController = async (ctx: BotContext) => {
           msg.senderId === BigInt(ctx.me.id)
             ? ("assistant" as const)
             : ("user" as const),
-        content: `${[
-          msg.sender.firstName,
-          msg.sender.lastName,
-          msg.sender.userName,
-        ]
-          .filter(Boolean)
-          .join(" ")}:${msg.summary || msg.text!}`,
+        content: msg.summary || msg.text!,
+
+        ...(msg.senderId === BigInt(ctx.me.id)
+          ? ({
+              name: msg.sender.userName,
+            } as any)
+          : {}),
       }))
     );
   }
 
   messages.push({
     role: "user",
-    content: `${[ctx.from?.first_name, ctx.from?.last_name, ctx.from?.username]
-      .filter(Boolean)
-      .join(" ")}:${text}`,
+    content: text,
+    name: ctx.from?.username,
   });
+
+  const userList = await prisma.user.findMany({
+    where: {
+      userName: {
+        in: messages
+          .filter((x) => x.role === "user" && x.name)
+          .map((x) => (x as any).name),
+      },
+    },
+  });
+
+  messages[0].content += `\nСписок пользователей:\n${userList
+    .map((x) => `${x.userName} ${x.firstName} ${x.lastName}`)
+    .join("\n")}`;
 
   console.log(messages);
 
