@@ -10,7 +10,7 @@ import { prisma } from "../db";
 const defaultMessages = {
   role: "system",
   content:
-    "Ты умный помошник. Ты назван в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии. Отвечай кратко и по делу. Будь полезным и старайся помочь. В ответах если это уместно используй имя собеседника. Не отправляй пользователю метаинформацию: messageId, replyToMessageId и т.д.",
+    "Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии. Отвечай кратко и по делу. Будь полезной и старайся помочь. В ответах если это уместно используй имя собеседника",
 } as OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
@@ -74,33 +74,22 @@ export const aiController = async (ctx: BotContext) => {
           msg.senderId === BigInt(ctx.me.id)
             ? ("assistant" as const)
             : ("user" as const),
-        content: `messageId:${msg.id};replyToMessageId:${
-          msg.replyToMessageId
-        };username:${[
+        content: `${[
           msg.sender.firstName,
           msg.sender.lastName,
           msg.sender.userName,
-          Number(msg.senderId),
         ]
           .filter(Boolean)
-          .join(" ")};message:${msg.summary || msg.text!}`,
+          .join(" ")}:${msg.summary || msg.text!}`,
       }))
     );
   }
 
-
   messages.push({
     role: "user",
-    content: `messageId:${ctx.msg.message_id};replyToMessageId:${
-      ctx.msg.reply_to_message?.message_id
-    };username:${[
-      ctx.from?.first_name,
-      ctx.from?.last_name,
-      ctx.from?.username,
-      ctx.from?.id,
-    ]
+    content: `${[ctx.from?.first_name, ctx.from?.last_name, ctx.from?.username]
       .filter(Boolean)
-      .join(" ")};message:${text}`,
+      .join(" ")}:${text}`,
   });
 
   console.log(messages);
