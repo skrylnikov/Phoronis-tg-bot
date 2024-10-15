@@ -27,6 +27,7 @@ processMessageController.on(":text", async (ctx) => {
         id: ctx.msg.message_id,
         chatId: ctx.chatId,
         senderId: ctx.from!.id,
+        replyToMessageId: ctx.msg?.reply_to_message?.message_id,
         sentAt: new Date(ctx.msg.date * 1000),
         text: ctx.msg.text,
         messageType: "TEXT",
@@ -34,7 +35,10 @@ processMessageController.on(":text", async (ctx) => {
     });
   }
 
-  if (ctx.msg.text.toLowerCase().startsWith("ио")) {
+  if (
+    ctx.msg.text.toLowerCase().startsWith("ио") ||
+    ctx.msg.reply_to_message?.from?.id === ctx.me.id
+  ) {
     await aiController(ctx);
   }
 });

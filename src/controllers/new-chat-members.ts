@@ -10,8 +10,18 @@ export const newChatMembersController = async (ctx: Context) => {
   });
 
   if (chat?.greeting) {
-    return ctx.reply(chat.greeting, {
+    const reply = await ctx.reply(chat.greeting, {
       reply_to_message_id: ctx.message?.message_id,
+    });
+    await prisma.message.create({
+      data: {
+        id: reply.message_id,
+        chatId: ctx.chatId!,
+        senderId: reply.from!.id,
+        sentAt: new Date(reply.date * 1000),
+        messageType: "TEXT",
+        text: chat.greeting,
+      },
     });
   }
 };

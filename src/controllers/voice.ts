@@ -51,7 +51,7 @@ export const voiceController = async (ctx: BotContext) => {
     }
 
     const { duration, file_id, file_size = 0 } = info;
-    ctx.replyWithChatAction("typing");
+    await ctx.replyWithChatAction("typing");
     const fileLink = await ctx.api.getFile(file_id);
 
     const rawFile = await axios.get(
@@ -189,6 +189,7 @@ export const voiceController = async (ctx: BotContext) => {
             messageType: "VOICE",
             text,
             summary,
+            replyToMessageId: ctx.msg?.reply_to_message?.message_id,
           },
         });
         console.log(`recognize voice result: ${text}`);
@@ -196,12 +197,26 @@ export const voiceController = async (ctx: BotContext) => {
         const quote = blockquote(text);
         quote.entities[0].type = "expandable_blockquote";
 
-        ctx.replyFmt(
+        const reply = await ctx.replyFmt(
           fmt`${summary || ""}
 
 ${quote}`,
           { reply_to_message_id: ctx.message.message_id }
         );
+
+
+        await prisma.message.create({
+          data: {
+            id: reply.message_id,
+            chatId: ctx.chatId!,
+            senderId: reply.from!.id,
+            sentAt: new Date(reply.date * 1000),
+            messageType: "VOICE",
+            text,
+            summary,
+            replyToMessageId: ctx.message.message_id,
+          },
+        });
       }
     }
   } catch (e) {

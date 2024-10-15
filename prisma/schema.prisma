@@ -46,7 +46,7 @@ enum MessageType {
 }
 
 model Message {
-  id BigInt @id
+  id BigInt
 
   chatId BigInt
   chat   Chat   @relation(fields: [chatId], references: [id])
@@ -55,7 +55,7 @@ model Message {
   sender   User   @relation(fields: [senderId], references: [id])
 
   replyToMessageId BigInt?
-  replyToMessage   Message? @relation("replies", fields: [replyToMessageId], references: [id])
+  replyToMessage   Message? @relation("replies", fields: [replyToMessageId, chatId], references: [id, chatId])
 
   messageType MessageType
 
@@ -64,4 +64,6 @@ model Message {
   summary String?
   sentAt  DateTime
   Replies Message[] @relation("replies")
+
+  @@id([chatId, id])
 }
