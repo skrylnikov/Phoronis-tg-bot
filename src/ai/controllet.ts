@@ -102,7 +102,7 @@ export const aiController = async (ctx: BotContext) => {
   });
 
   messages[0].content += `\nСписок пользователей:\n${userList
-    .map((x) => `${x.userName} ${x.firstName} ${x.lastName}`)
+    .map((x) => `userName:${x.userName}; firstName:${x.firstName}; lastName:${x.lastName}`)
     .join("\n")}`;
 
   console.log(messages);
