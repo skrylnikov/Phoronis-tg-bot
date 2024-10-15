@@ -6,6 +6,7 @@ import { openWeatherToken } from "../config";
 import { BotContext } from "../bot";
 import { openai } from "../openai";
 import { prisma } from "../db";
+import { unique } from "remeda";
 
 const defaultMessages = {
   role: "system",
@@ -94,15 +95,20 @@ export const aiController = async (ctx: BotContext) => {
   const userList = await prisma.user.findMany({
     where: {
       userName: {
-        in: messages
-          .filter((x) => x.role === "user" && x.name)
-          .map((x) => (x as any).name),
+        in: unique(
+          messages
+            .filter((x) => x.role === "user" && x.name)
+            .map((x) => (x as any).name)
+        ),
       },
     },
   });
 
   messages[0].content += `\nСписок пользователей:\n${userList
-    .map((x) => `userName:${x.userName}; firstName:${x.firstName}; lastName:${x.lastName}`)
+    .map(
+      (x) =>
+        `userName:${x.userName}; firstName:${x.firstName}; lastName:${x.lastName}`
+    )
     .join("\n")}`;
 
   console.log(messages);
