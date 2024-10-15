@@ -191,7 +191,7 @@ export const aiController = async (ctx: BotContext) => {
   if (result) {
     const reply = await ctx.reply(result, {
       reply_to_message_id: ctx.message?.message_id,
-      parse_mode: "MarkdownV2",
+      // parse_mode: "Markdown",
     });
 
     await prisma.message.create({
