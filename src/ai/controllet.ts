@@ -11,7 +11,7 @@ import { unique } from "remeda";
 const defaultMessages = {
   role: "system",
   content:
-    "Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии. Отвечай кратко и по делу. Будь полезной и старайся помочь. В ответах если это уместно используй имя собеседника",
+    "Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии. Отвечай кратко и по делу. Будь полезной и старайся помочь. В ответах если это уместно используй имя собеседника. Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение",
 } as OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
@@ -61,55 +61,75 @@ export const aiController = async (ctx: BotContext) => {
 
   const text = ctx.msg.text;
 
-  const messages = [defaultMessages];
+  const messages = [{ ...defaultMessages }];
+
+  let list: Awaited<ReturnType<typeof getThread>> = [];
 
   if (ctx.msg.reply_to_message) {
-    const list = await getThread(
+    list = await getThread(
       ctx.chatId!,
       BigInt(ctx.msg.reply_to_message.message_id)
     );
-
-    messages.push(
-      ...list.map((msg) => ({
-        role:
-          msg.senderId === BigInt(ctx.me.id)
-            ? ("assistant" as const)
-            : ("user" as const),
-        content: msg.summary || msg.text!,
-
-        ...(msg.senderId === BigInt(ctx.me.id)
-          ? ({
-              name: msg.sender.userName,
-            } as any)
-          : {}),
-      }))
-    );
   }
-
   messages.push({
     role: "user",
-    content: text,
-    name: ctx.from?.username,
+    content: JSON.stringify([
+      ...list.map((x) => ({
+        id: Number(x.id),
+        replyToMessageId: x.replyToMessageId
+          ? Number(x.replyToMessageId)
+          : undefined,
+        sender: x.sender.userName,
+        text: x.text,
+      })),
+      {
+        id: ctx.msg.message_id,
+        replyToMessageId: ctx.msg.reply_to_message?.message_id,
+        sender: ctx.from?.username,
+        text: ctx.msg.text,
+      },
+    ]),
   });
+
+  //   messages.push(
+  //     ...list.map((msg) => ({
+  //       role:
+  //         msg.senderId === BigInt(ctx.me.id)
+  //           ? ("assistant" as const)
+  //           : ("user" as const),
+  //       content: msg.summary || msg.text!,
+
+  //       ...(msg.senderId === BigInt(ctx.me.id)
+  //         ? ({
+  //             name: msg.sender.userName,
+  //           } as any)
+  //         : {}),
+  //     }))
+  //   );
+  // }
+
+  // messages.push({
+  //   role: "user",
+  //   content: text,
+  //   name: ctx.from?.username,
+  // });
 
   const userList = await prisma.user.findMany({
     where: {
       userName: {
-        in: unique(
-          messages
-            .filter((x) => x.role === "user" && x.name)
-            .map((x) => (x as any).name)
-        ),
+        in: unique([...list.map((x) => x.sender.userName!), ctx.me.username, ctx.from?.username!]),
       },
     },
   });
 
-  messages[0].content += `\nСписок пользователей:\n${userList
-    .map(
-      (x) =>
-        `userName:${x.userName}; firstName:${x.firstName}; lastName:${x.lastName}`
-    )
-    .join("\n")}`;
+  messages[0].content += `\nСписок пользователей:\n${JSON.stringify(
+    userList.map((x) => ({
+      id: Number(x.id),
+      firstName: x.firstName,
+      lastName: x.lastName,
+      userName: x.userName,
+    }))
+  )}`;
 
   console.log(messages);
 
@@ -193,6 +213,8 @@ export const aiController = async (ctx: BotContext) => {
   });
 
   const result = await runner.finalContent();
+
+  console.log(result);
 
   if (result) {
     const reply = await ctx.reply(result, {
