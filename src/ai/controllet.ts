@@ -71,24 +71,38 @@ export const aiController = async (ctx: BotContext) => {
       BigInt(ctx.msg.reply_to_message.message_id)
     );
   }
+
+  const photos = list
+    .filter((x) => x.media)
+    .flatMap((x) => JSON.parse(x.media!))
+    .map((x) => ({type: 'image_url' as const, image_url: {
+      url: x,
+    }}));
+
   messages.push({
     role: "user",
-    content: JSON.stringify([
-      ...list.map((x) => ({
-        id: Number(x.id),
-        replyToMessageId: x.replyToMessageId
-          ? Number(x.replyToMessageId)
-          : undefined,
-        sender: x.sender.userName,
-        text: x.text,
-      })),
+    content: [
       {
-        id: ctx.msg.message_id,
-        replyToMessageId: ctx.msg.reply_to_message?.message_id,
-        sender: ctx.from?.username,
-        text: ctx.msg.text,
+        type: "text",
+        text: JSON.stringify([
+          ...list.map((x) => ({
+            id: Number(x.id),
+            replyToMessageId: x.replyToMessageId
+              ? Number(x.replyToMessageId)
+              : undefined,
+            sender: x.sender.userName,
+            text: x.text,
+          })),
+          {
+            id: ctx.msg.message_id,
+            replyToMessageId: ctx.msg.reply_to_message?.message_id,
+            sender: ctx.from?.username,
+            text: ctx.msg.text,
+          },
+        ]),
       },
-    ]),
+      ...photos,
+    ],
   });
 
   //   messages.push(
@@ -117,7 +131,11 @@ export const aiController = async (ctx: BotContext) => {
   const userList = await prisma.user.findMany({
     where: {
       userName: {
-        in: unique([...list.map((x) => x.sender.userName!), ctx.me.username, ctx.from?.username!]),
+        in: unique([
+          ...list.map((x) => x.sender.userName!),
+          ctx.me.username,
+          ctx.from?.username!,
+        ]),
       },
     },
   });
