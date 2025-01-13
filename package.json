@@ -37,6 +37,7 @@
     "grammy": "^1.34.0",
     "lru-cache": "^11.0.2",
     "openai": "^4.78.1",
-    "remeda": "^2.19.1"
+    "remeda": "^2.19.1",
+    "telegramify-markdown": "^1.2.2"
   }
 }

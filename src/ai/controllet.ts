@@ -1,17 +1,23 @@
 import { OpenAI } from "openai";
 import axios from "axios";
 import { Message, User } from "@prisma/client";
+import { unique } from "remeda";
+import MD from 'telegramify-markdown'
 
 import { openWeatherToken } from "../config";
 import { BotContext } from "../bot";
 import { openai } from "../openai";
 import { prisma } from "../db";
-import { unique } from "remeda";
 
 const defaultMessages = {
   role: "system",
   content:
-    "Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии. Отвечай кратко и по делу. Будь полезной и старайся помочь. В ответах если это уместно используй имя собеседника. Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение",
+    `Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии.
+    Отвечай кратко и по делу. Будь полезной и старайся помочь.
+    Отвечай в стиле собеседника, если захочешь предложи пообщаться на интересные пользователю темы.
+    В ответах если это уместно, иногда используй имя собеседника.
+    
+    Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение`,
 } as OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
@@ -146,6 +152,7 @@ export const aiController = async (ctx: BotContext) => {
       firstName: x.firstName,
       lastName: x.lastName,
       userName: x.userName,
+      metaInfo: x.metaInfo || {}
     }))
   )}`;
 
@@ -235,9 +242,9 @@ export const aiController = async (ctx: BotContext) => {
   console.log(result);
 
   if (result) {
-    const reply = await ctx.reply(result, {
+    const reply = await ctx.reply(MD(result, 'remove'), {
       reply_to_message_id: ctx.message?.message_id,
-      // parse_mode: "Markdown",
+      parse_mode: "MarkdownV2",
     });
 
     await prisma.message.create({

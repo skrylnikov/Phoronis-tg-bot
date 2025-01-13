@@ -4,9 +4,36 @@ import { saveChat, saveUser } from "../shared";
 import { prisma } from "../db";
 import { BotContext } from "../bot";
 import { aiController } from "../ai";
+import { analyzeUserMetaInfo } from "../tools/user/meta-analyzer";
 import { token } from "../config";
 
 export const processMessageController = new Composer<BotContext>();
+
+const analyzer = async (ctx: BotContext) => {
+  // Подсчитываем общее количество сообщений пользователя
+  const messageCount = await prisma.message.count({
+    where: {
+      chatId: ctx.chatId,
+      senderId: ctx.from!.id,
+    },
+  });
+
+  // Если это десятое сообщение (или кратное 10), анализируем последние 10
+  if (messageCount % 10 === 0) {
+    const lastMessages = await prisma.message.findMany({
+      where: {
+        chatId: ctx.chatId,
+        senderId: ctx.from!.id,
+      },
+      orderBy: {
+        sentAt: "desc",
+      },
+      take: 10,
+    });
+
+    await analyzeUserMetaInfo(BigInt(ctx.from!.id), lastMessages.reverse());
+  }
+};
 
 processMessageController.on(":text", async (ctx) => {
   try {
@@ -35,6 +62,8 @@ processMessageController.on(":text", async (ctx) => {
           messageType: "TEXT",
         },
       });
+
+      analyzer(ctx);
     }
 
     if (

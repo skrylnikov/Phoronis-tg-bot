@@ -19,6 +19,7 @@ model User {
   firstName String?
   lastName  String?
   userName  String?
+  metaInfo Json? @default("{}")
 
   Message Message[]
 }
