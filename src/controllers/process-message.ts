@@ -23,7 +23,7 @@ processMessageController.on(":text", async (ctx) => {
       },
     });
 
-    if (chat?.greeting) {
+    if (chat?.greeting || ctx.chat.type === "private") {
       await prisma.message.create({
         data: {
           id: ctx.msg.message_id,
@@ -39,7 +39,8 @@ processMessageController.on(":text", async (ctx) => {
 
     if (
       ctx.msg.text.toLowerCase().startsWith("ио") ||
-      ctx.msg.reply_to_message?.from?.id === ctx.me.id
+      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
+      ctx.chat.type === "private"
     ) {
       await aiController(ctx);
     }
@@ -71,7 +72,7 @@ processMessageController.on(":photo", async (ctx) => {
       }) || []
     );
 
-    if (chat?.greeting) {
+    if (chat?.greeting || ctx.chat.type === "private") {
       await prisma.message.create({
         data: {
           id: ctx.msg.message_id,
