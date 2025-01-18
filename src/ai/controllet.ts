@@ -237,7 +237,7 @@ export const aiController = async (ctx: BotContext) => {
 
   consola.debug(
     `AI request for user ${JSON.stringify(
-      userList[0]
+      {...userList[0], id: Number(userList[0].id)},
     )} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
       messages
     )} \n response: "${result}"`
