@@ -236,9 +236,10 @@ export const aiController = async (ctx: BotContext) => {
   const result = await runner.finalContent();
 
   logger.debug(
-    `AI request for user ${JSON.stringify(
-      {...userList[0], id: Number(userList[0].id)},
-    )} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
+    `AI request for user ${JSON.stringify({
+      ...userList[0],
+      id: Number(userList[0].id),
+    })} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
       messages
     )} \n response: "${result}"`
   );
@@ -250,12 +251,24 @@ export const aiController = async (ctx: BotContext) => {
     });
 
     try {
+      const replyToMessage = await prisma.message.findUnique({
+        where: {
+          chatId_id: {
+            chatId: ctx.chatId!,
+            id: ctx.msg?.message_id!,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
       await prisma.message.create({
         data: {
           id: reply.message_id,
           chatId: ctx.chatId!,
           senderId: reply.from!.id,
-          replyToMessageId: ctx.msg?.message_id,
+          replyToMessageId: replyToMessage ? replyToMessage.id : null,
           sentAt: new Date(reply.date * 1000),
           messageType: "TEXT",
           text: result,
