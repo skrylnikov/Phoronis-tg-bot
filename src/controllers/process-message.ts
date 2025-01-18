@@ -1,5 +1,5 @@
 import { Composer } from "grammy";
-import { consola } from "consola";
+import { logger } from '../logger'
 
 import { saveChat, saveUser } from "../shared";
 import { prisma } from "../db";
@@ -74,7 +74,7 @@ processMessageController.on(":text", async (ctx) => {
       await aiController(ctx);
     }
   } catch (error) {
-    consola.error(error);
+    logger.error(error);
   }
 });
 
@@ -115,6 +115,6 @@ processMessageController.on(":photo", async (ctx) => {
       });
     }
   } catch (error) {
-    consola.error(error);
+    logger.error(error);
   }
 });

@@ -1,5 +1,5 @@
 import { Message } from "@prisma/client";
-import { consola } from "consola";
+import { logger } from '../../logger';
 
 import { openai } from "../../openai";
 import { prisma } from "../../db";
@@ -42,7 +42,7 @@ ${messages.map((m) => m.text).join("\n")}`,
     const metaInfo = completion.choices[0].message.content!;
     const updatedMeta = JSON.parse(metaInfo);
 
-    consola.debug(`Update metadata for user ${JSON.stringify(user)}`, JSON.stringify(updatedMeta));
+    logger.debug(`Update metadata for user ${JSON.stringify(user)}`, JSON.stringify(updatedMeta));
 
     await prisma.user.update({
       where: { id: userId },
@@ -53,7 +53,7 @@ ${messages.map((m) => m.text).join("\n")}`,
 
     return updatedMeta;
   } catch (error) {
-    consola.error("Error analyzing user meta info:", error);
+    logger.error("Error analyzing user meta info:", error);
     return null;
   }
 }
@@ -79,7 +79,7 @@ export async function updateUserMetaInfo(
 
     return updatedMeta;
   } catch (error) {
-    consola.error("Error updating user meta info:", error);
+    logger.error("Error updating user meta info:", error);
     return null;
   }
 }

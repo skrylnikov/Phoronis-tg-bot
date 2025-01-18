@@ -1,5 +1,5 @@
 import { GrammyError, HttpError } from "grammy";
-import { consola } from 'consola';
+import { logger } from './logger'
 
 import { controllers } from "./controllers";
 import { prisma } from './db'
@@ -9,33 +9,33 @@ bot.use(controllers);
 
 bot.catch((err) => {
   const ctx = err.ctx;
-  consola.error(`Error while handling update ${ctx.update.update_id}:`);
+  logger.error(`Error while handling update ${ctx.update.update_id}:`);
   const e = err.error;
   if (e instanceof GrammyError) {
-    consola.error("Error in request:", e.description);
+    logger.error("Error in request:", e.description);
   } else if (e instanceof HttpError) {
-    consola.error("Could not contact Telegram:", e);
+    logger.error("Could not contact Telegram:", e);
   } else {
-    consola.error(err);
-    consola.error("Unknown error:", e);
+    logger.error(err);
+    logger.error("Unknown error:", e);
   }
 });
 
 
-bot.start().catch((e) => consola.error(e));
+bot.start().catch((e) => logger.error(e));
 
-consola.info("Bot started");
+logger.info("Bot started");
 
 process.on("uncaughtException", function (err) {
-  consola.error("Caught exception: " + err);
+  logger.error("Caught exception: " + err);
 });
 
 process.on("unhandledRejection", function (err) {
-  consola.error("Caught rejection: " + err);
+  logger.error("Caught rejection: " + err);
 });
 
 const shutdown = () => {
-  consola.info("Shutting down the bot");
+  logger.info("Shutting down the bot");
   return Promise.all([bot.stop(), prisma.$disconnect()]);
 };
 

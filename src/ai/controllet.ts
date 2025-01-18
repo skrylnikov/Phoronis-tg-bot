@@ -3,7 +3,7 @@ import axios from "axios";
 import { Message, User } from "@prisma/client";
 import { unique } from "remeda";
 import MD from "telegramify-markdown";
-import { consola } from "consola";
+import { logger } from "../logger";
 
 import { openWeatherToken } from "../config";
 import { BotContext } from "../bot";
@@ -235,7 +235,7 @@ export const aiController = async (ctx: BotContext) => {
 
   const result = await runner.finalContent();
 
-  consola.debug(
+  logger.debug(
     `AI request for user ${JSON.stringify(
       {...userList[0], id: Number(userList[0].id)},
     )} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
@@ -262,8 +262,8 @@ export const aiController = async (ctx: BotContext) => {
         },
       });
     } catch (error) {
-      consola.error(error);
-      consola.debug({
+      logger.error(error);
+      logger.debug({
         id: reply.message_id,
         chatId: ctx.chatId!,
         senderId: reply.from!.id,

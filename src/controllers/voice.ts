@@ -2,7 +2,7 @@ import axios from "axios";
 import ffmpeg from "ffmpeg.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fmt, blockquote } from "@grammyjs/parse-mode";
-import { consola } from "consola";
+import { logger } from '../logger'
 
 import {
   token,
@@ -58,8 +58,8 @@ export const voiceController = async (ctx: BotContext) => {
       { responseType: "arraybuffer" }
     );
 
-    consola.log(
-      `start recognoze voice message from ${ctx.from} in ${ctx.chat} ${Math.round(
+    logger.debug(
+      `start recognoze voice message from ${JSON.stringify(ctx.from)} in ${JSON.stringify(ctx.chat)} ${Math.round(
         file_size / 1024
       )}Kb ${duration}сек`
     );
@@ -94,7 +94,7 @@ export const voiceController = async (ctx: BotContext) => {
         }
       );
 
-      consola.log(`recognize voice result from ${ctx.from} in ${ctx.chat} : ${result.data.result}`);
+      logger.debug(`recognize voice result from ${JSON.stringify(ctx.from)} in ${JSON.stringify(ctx.chat)} : ${result.data.result}`);
 
       ctx.reply(result.data.result, {
         reply_to_message_id: ctx.message.message_id,
@@ -157,7 +157,7 @@ export const voiceController = async (ctx: BotContext) => {
         .join(". ");
 
       if (!text) {
-        consola.error(result);
+        logger.error(result);
         ctx.reply("Не получилось распознать этот войс :(", {
           reply_to_message_id: ctx.message.message_id,
         });
@@ -191,7 +191,7 @@ export const voiceController = async (ctx: BotContext) => {
             replyToMessageId: ctx.msg?.reply_to_message?.message_id,
           },
         });
-        consola.log(`recognize voice result: ${text}`);
+        logger.debug(`recognize voice result: ${text}`);
 
         const quote = blockquote(text);
         quote.entities[0].type = "expandable_blockquote";
@@ -219,6 +219,6 @@ ${quote}`,
       }
     }
   } catch (e) {
-    consola.error(e);
+    logger.error(e);
   }
 };
