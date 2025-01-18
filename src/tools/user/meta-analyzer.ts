@@ -53,7 +53,8 @@ ${messages.map((m) => m.text).join("\n")}`,
 
     return updatedMeta;
   } catch (error) {
-    logger.error("Error analyzing user meta info:", error);
+    logger.error("Error analyzing user meta info:",);
+    logger.error(error);
     return null;
   }
 }
