@@ -1,4 +1,5 @@
 import { Composer } from "grammy";
+import { consola } from "consola";
 
 import { saveChat, saveUser } from "../shared";
 import { prisma } from "../db";
@@ -37,7 +38,6 @@ const analyzer = async (ctx: BotContext) => {
 
 processMessageController.on(":text", async (ctx) => {
   try {
-    console.log("processMessageController text");
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from!),
@@ -74,13 +74,12 @@ processMessageController.on(":text", async (ctx) => {
       await aiController(ctx);
     }
   } catch (error) {
-    console.error(error);
+    consola.error(error);
   }
 });
 
 processMessageController.on(":photo", async (ctx) => {
   try {
-    console.log("processMessageController photo");
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from!),
@@ -116,6 +115,6 @@ processMessageController.on(":photo", async (ctx) => {
       });
     }
   } catch (error) {
-    console.error(error);
+    consola.error(error);
   }
 });

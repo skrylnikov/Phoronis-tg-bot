@@ -2,6 +2,7 @@ import axios from "axios";
 import ffmpeg from "ffmpeg.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fmt, blockquote } from "@grammyjs/parse-mode";
+import { consola } from "consola";
 
 import {
   token,
@@ -42,8 +43,6 @@ interface Check {
 
 export const voiceController = async (ctx: BotContext) => {
   try {
-    console.log("voiceController");
-
     const info = ctx.message?.voice || ctx.message?.video_note;
 
     if (!info || !ctx.message) {
@@ -59,8 +58,8 @@ export const voiceController = async (ctx: BotContext) => {
       { responseType: "arraybuffer" }
     );
 
-    console.log(
-      `start recognoze voice message ${Math.round(
+    consola.log(
+      `start recognoze voice message from ${ctx.from} in ${ctx.chat} ${Math.round(
         file_size / 1024
       )}Kb ${duration}сек`
     );
@@ -95,7 +94,7 @@ export const voiceController = async (ctx: BotContext) => {
         }
       );
 
-      console.log(`recognize voice result: ${result.data.result}`);
+      consola.log(`recognize voice result from ${ctx.from} in ${ctx.chat} : ${result.data.result}`);
 
       ctx.reply(result.data.result, {
         reply_to_message_id: ctx.message.message_id,
@@ -158,7 +157,7 @@ export const voiceController = async (ctx: BotContext) => {
         .join(". ");
 
       if (!text) {
-        console.error(result);
+        consola.error(result);
         ctx.reply("Не получилось распознать этот войс :(", {
           reply_to_message_id: ctx.message.message_id,
         });
@@ -192,7 +191,7 @@ export const voiceController = async (ctx: BotContext) => {
             replyToMessageId: ctx.msg?.reply_to_message?.message_id,
           },
         });
-        console.log(`recognize voice result: ${text}`);
+        consola.log(`recognize voice result: ${text}`);
 
         const quote = blockquote(text);
         quote.entities[0].type = "expandable_blockquote";
@@ -220,6 +219,6 @@ ${quote}`,
       }
     }
   } catch (e) {
-    console.error(e);
+    consola.error(e);
   }
 };

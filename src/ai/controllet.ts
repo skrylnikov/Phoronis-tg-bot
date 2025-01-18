@@ -2,23 +2,39 @@ import { OpenAI } from "openai";
 import axios from "axios";
 import { Message, User } from "@prisma/client";
 import { unique } from "remeda";
-import MD from 'telegramify-markdown'
+import MD from "telegramify-markdown";
+import { consola } from "consola";
 
 import { openWeatherToken } from "../config";
 import { BotContext } from "../bot";
 import { openai } from "../openai";
 import { prisma } from "../db";
 
-const defaultMessages = {
-  role: "system",
-  content:
-    `Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии.
-    Отвечай кратко и по делу. Будь полезной и старайся помочь.
-    Отвечай в стиле собеседника, если захочешь предложи пообщаться на интересные пользователю темы.
-    В ответах если это уместно, иногда используй имя собеседника.
+const defaultMessagesCreate = () => {
+  const isHelpful = Math.random() < 0.3;
+  const isUseUsername = Math.random() < 0.2;
+  const isInterests = Math.random() < 0.1;
+
+  return {
+    role: "system",
+    content: `Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии.
+    Отвечай кратко и по делу. ${
+      isHelpful ? "Будь полезной и старайся помочь." : ""
+    }
+    Отвечай в стиле собеседника. ${
+      isInterests
+        ? "Иногда предлагай пообщаться на интересные пользователю темы."
+        : ""
+    }
+    ${
+      isUseUsername
+        ? "В ответах если это уместно, иногда используй имя собеседника."
+        : ""
+    }
     
     Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение`,
-} as OpenAI.Chat.Completions.ChatCompletionMessageParam;
+  } as OpenAI.Chat.Completions.ChatCompletionMessageParam;
+};
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
   const result: Array<Message & { sender: User }> = [];
@@ -67,6 +83,8 @@ export const aiController = async (ctx: BotContext) => {
 
   const text = ctx.msg.text;
 
+  const defaultMessages = defaultMessagesCreate();
+
   const messages = [{ ...defaultMessages }];
 
   let list: Awaited<ReturnType<typeof getThread>> = [];
@@ -81,9 +99,12 @@ export const aiController = async (ctx: BotContext) => {
   const photos = list
     .filter((x) => x.media)
     .flatMap((x) => JSON.parse(x.media!))
-    .map((x) => ({type: 'image_url' as const, image_url: {
-      url: x,
-    }}));
+    .map((x) => ({
+      type: "image_url" as const,
+      image_url: {
+        url: x,
+      },
+    }));
 
   messages.push({
     role: "user",
@@ -111,37 +132,14 @@ export const aiController = async (ctx: BotContext) => {
     ],
   });
 
-  //   messages.push(
-  //     ...list.map((msg) => ({
-  //       role:
-  //         msg.senderId === BigInt(ctx.me.id)
-  //           ? ("assistant" as const)
-  //           : ("user" as const),
-  //       content: msg.summary || msg.text!,
-
-  //       ...(msg.senderId === BigInt(ctx.me.id)
-  //         ? ({
-  //             name: msg.sender.userName,
-  //           } as any)
-  //         : {}),
-  //     }))
-  //   );
-  // }
-
-  // messages.push({
-  //   role: "user",
-  //   content: text,
-  //   name: ctx.from?.username,
-  // });
-
   const userList = await prisma.user.findMany({
     where: {
       userName: {
         in: unique([
+          ctx.from?.username!,
           ...list.map((x) => x.sender.userName!),
           ctx.me.username,
-          ctx.from?.username!,
-        ]),
+        ]).filter(Boolean),
       },
     },
   });
@@ -152,11 +150,9 @@ export const aiController = async (ctx: BotContext) => {
       firstName: x.firstName,
       lastName: x.lastName,
       userName: x.userName,
-      metaInfo: x.metaInfo || {}
+      metaInfo: x.metaInfo || {},
     }))
   )}`;
-
-  console.log(messages);
 
   const runner = openai.beta.chat.completions.runTools({
     model: "gpt-4o-mini",
@@ -239,16 +235,35 @@ export const aiController = async (ctx: BotContext) => {
 
   const result = await runner.finalContent();
 
-  console.log(result);
+  consola.debug(
+    `AI request for user ${JSON.stringify(
+      userList[0]
+    )} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
+      messages
+    )} \n response: "${result}"`
+  );
 
   if (result) {
-    const reply = await ctx.reply(MD(result, 'remove'), {
-      reply_to_message_id: ctx.message?.message_id,
+    const reply = await ctx.reply(MD(result, "remove"), {
+      reply_to_message_id: ctx.msg?.message_id,
       parse_mode: "MarkdownV2",
     });
 
-    await prisma.message.create({
-      data: {
+    try {
+      await prisma.message.create({
+        data: {
+          id: reply.message_id,
+          chatId: ctx.chatId!,
+          senderId: reply.from!.id,
+          replyToMessageId: ctx.msg?.message_id,
+          sentAt: new Date(reply.date * 1000),
+          messageType: "TEXT",
+          text: result,
+        },
+      });
+    } catch (error) {
+      consola.error(error);
+      consola.debug({
         id: reply.message_id,
         chatId: ctx.chatId!,
         senderId: reply.from!.id,
@@ -256,7 +271,7 @@ export const aiController = async (ctx: BotContext) => {
         sentAt: new Date(reply.date * 1000),
         messageType: "TEXT",
         text: result,
-      },
-    });
+      });
+    }
   }
 };
