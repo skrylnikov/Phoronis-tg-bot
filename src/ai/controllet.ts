@@ -96,25 +96,59 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
     );
   }
 
+  // Группируем последовательные сообщения
+  let currentMessages: typeof list = [];
+  let currentRole: "assistant" | "user" | null = null;
 
+  const pushMessages = () => {
+    if (currentMessages.length === 0) return;
+    
+    messages.push({
+      role: currentRole!,
+      content: [
+        {
+          type: "text",
+          text: currentRole === 'assistant' ? currentMessages[0].summary || currentMessages[0].text! : JSON.stringify(
+            currentMessages.map((msg) => ({
+              // id: Number(msg.id),
+              // replyToMessageId: msg.replyToMessageId
+              //   ? Number(msg.replyToMessageId)
+              //   : undefined,
+              sender: msg.sender.userName,
+              text: msg.summary || msg.text,
+            }))
+          ),
+        },
+      ],
+    });
+    currentMessages = [];
+  };
 
+  // Обрабатываем сообщения из истории
+  list.forEach((msg) => {
+    const role = msg.sender.userName === ctx.me.username ? "assistant" : "user";
+    
+    if (role !== currentRole) {
+      pushMessages();
+      currentRole = role;
+    }
+    
+    currentMessages.push(msg);
+  });
+  
+  // Добавляем оставшиеся сообщения из истории
+  pushMessages();
+
+  // Добавляем текущее сообщение пользователя
   messages.push({
     role: "user",
     content: [
       {
         type: "text",
         text: JSON.stringify([
-          ...list.map((x) => ({
-            id: Number(x.id),
-            replyToMessageId: x.replyToMessageId
-              ? Number(x.replyToMessageId)
-              : undefined,
-            sender: x.sender.userName,
-            text: x.summary || x.text,
-          })),
           {
-            id: ctx.msg.message_id,
-            replyToMessageId: ctx.msg.reply_to_message?.message_id,
+            // id: ctx.msg.message_id,
+            // replyToMessageId: ctx.msg.reply_to_message?.message_id,
             sender: ctx.from?.username,
             text,
           },
@@ -137,7 +171,7 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
 
   messages[0].content += `\nСписок пользователей:\n${JSON.stringify(
     userList.map((x) => ({
-      id: Number(x.id),
+      // id: Number(x.id),
       firstName: x.firstName,
       lastName: x.lastName,
       userName: x.userName,

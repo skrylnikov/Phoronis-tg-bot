@@ -20,10 +20,10 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
           content: `Ты - аналитик, который анализирует сообщения пользователя и объединяет существующую и новую метаинформацию.
           Твоя задача - создать обновленное описание пользователя, объединив существующие данные с новыми наблюдениями.
           Верни ответ в формате JSON с полями:
-          - interests: массив интересов (объедини существующие и новые, удали дубликаты, сохрани все релевантные, не более 10)
+          - interests: массив интересов (объедини существующие и новые, удали дубликаты, сохрани все релевантные, не более 7)
           - communication_style: массив стилей общения (обнови на основе новых сообщений, если есть изменения, не более 3)
-          - notable_traits: заметные черты (объедини существующие и новые наблюдения, не более 15)
-          - topics: основные темы обсуждений (добавь новые темы к существующим, не более 20)
+          - notable_traits: заметные черты (объедини существующие и новые наблюдения, не более 10)
+          - topics: основные темы обсуждений (добавь новые темы к существующим, не более 10)
           
           Анализируй внимательно и сохраняй всю важную историческую информацию, дополняя её новыми наблюдениями.`,
         },
@@ -42,7 +42,7 @@ ${messages.map((m) => m.text).join("\n")}`,
     const metaInfo = completion.choices[0].message.content!;
     const updatedMeta = JSON.parse(metaInfo);
 
-    logger.debug(`Update metadata for user ${JSON.stringify(user)}`, JSON.stringify(updatedMeta));
+    logger.debug(`Update metadata for user ${JSON.stringify({...user, id: Number(user?.id)})}`, JSON.stringify(updatedMeta));
 
     await prisma.user.update({
       where: { id: userId },
