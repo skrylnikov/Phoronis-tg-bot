@@ -152,6 +152,47 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
       {
         type: "function",
         function: {
+          name: "reasoning",
+          description: "Использовать для глубокого анализа и рассуждений над сложными вопросами",
+          parameters: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "Вопрос или тема для размышления",
+              },
+            },
+          },
+          function: async (parameters: { query: string }) => {
+            const completion = await openai.chat.completions.create({
+              model: "o1-mini",
+              messages: [
+                {
+                  role: "system",
+                  content: "Ты - модель для глубокого анализа и рассуждений. Твоя задача - тщательно обдумать заданный вопрос и предоставить структурированный, логичный ответ.",
+                },
+                {
+                  role: "user",
+                  content: parameters.query,
+                },
+              ],
+            });
+
+            const response = completion.choices[0].message.content;
+            logger.debug(
+              `Reasoning response for "${parameters.query}": ${response}`
+            );
+
+            return {
+              reasoning: response,
+            };
+          },
+          parse: JSON.parse,
+        },
+      },
+      {
+        type: "function",
+        function: {
           name: "get_whether",
           description: "Get the weather for a location",
           parameters: {
