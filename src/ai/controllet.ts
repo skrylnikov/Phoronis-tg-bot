@@ -153,7 +153,7 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
         type: "function",
         function: {
           name: "reasoning",
-          description: "Использовать для глубокого анализа и рассуждений над сложными вопросами",
+          description: "Использовать для глубокого анализа и рассуждений над сложными вопросами или если пользователь просит подумать",
           parameters: {
             type: "object",
             properties: {
