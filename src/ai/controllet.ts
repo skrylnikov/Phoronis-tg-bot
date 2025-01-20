@@ -75,13 +75,13 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
   return result;
 };
 
-export const aiController = async (ctx: BotContext) => {
-  if (!ctx.msg?.text) {
+export const aiController = async (ctx: BotContext, _text?: string) => {
+  if (!ctx.msg?.text && !_text || !ctx.msg) {
     return;
   }
   await ctx.replyWithChatAction("typing");
 
-  const text = ctx.msg.text;
+  const text = _text || ctx.msg.text;
 
   const defaultMessages = defaultMessagesCreate();
 
@@ -96,15 +96,7 @@ export const aiController = async (ctx: BotContext) => {
     );
   }
 
-  const photos = list
-    .filter((x) => x.media)
-    .flatMap((x) => JSON.parse(x.media!))
-    .map((x) => ({
-      type: "image_url" as const,
-      image_url: {
-        url: x,
-      },
-    }));
+
 
   messages.push({
     role: "user",
@@ -118,17 +110,16 @@ export const aiController = async (ctx: BotContext) => {
               ? Number(x.replyToMessageId)
               : undefined,
             sender: x.sender.userName,
-            text: x.text,
+            text: x.summary || x.text,
           })),
           {
             id: ctx.msg.message_id,
             replyToMessageId: ctx.msg.reply_to_message?.message_id,
             sender: ctx.from?.username,
-            text: ctx.msg.text,
+            text,
           },
         ]),
       },
-      ...photos,
     ],
   });
 

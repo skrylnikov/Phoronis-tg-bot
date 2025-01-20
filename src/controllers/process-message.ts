@@ -1,5 +1,5 @@
 import { Composer } from "grammy";
-import { logger } from '../logger'
+import { logger } from "../logger";
 
 import { saveChat, saveUser } from "../shared";
 import { prisma } from "../db";
@@ -7,6 +7,7 @@ import { BotContext } from "../bot";
 import { aiController } from "../ai";
 import { analyzeUserMetaInfo } from "../tools/user/meta-analyzer";
 import { token } from "../config";
+import { openai } from "../openai";
 
 export const processMessageController = new Composer<BotContext>();
 
@@ -100,6 +101,31 @@ processMessageController.on(":photo", async (ctx) => {
       }) || []
     );
 
+    // Get image description from OpenAI
+    const description = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Опиши что изображено на этой фотографии. Сделай это максимально точно и подробно, так чтобы ты сама могла понять что изображено на фотографии",
+            },
+            ...media.map((media) => ({
+              type: "image_url" as const,
+              image_url: { url: media, detail: "high" as const },
+            })),
+          ],
+        },
+      ],
+      max_tokens: 500,
+    });
+
+    const imageDescription = description.choices[0]?.message?.content || "";
+
+    logger.debug(`Image description: ${imageDescription}`);
+
     if (chat?.greeting || ctx.chat.type === "private") {
       await prisma.message.create({
         data: {
@@ -111,8 +137,17 @@ processMessageController.on(":photo", async (ctx) => {
           text: ctx.msg.caption,
           messageType: "MEDIA",
           media: JSON.stringify(media),
+          summary: imageDescription,
         },
       });
+    }
+
+    if (
+      ctx.msg.text?.toLowerCase().startsWith("ио") ||
+      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
+      ctx.chat.type === "private"
+    ) {
+      await aiController(ctx, imageDescription);
     }
   } catch (error) {
     logger.error(error);
