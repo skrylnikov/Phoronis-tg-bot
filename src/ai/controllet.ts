@@ -152,14 +152,14 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
       {
         type: "function",
         function: {
-          name: "reasoning",
-          description: "Использовать для глубокого анализа и рассуждений над сложными вопросами или если пользователь просит подумать",
+          name: "thinking",
+          description: "Обработать запрос более умной llm. Вызывать в случае если пользователь попросил подумать, либо ты ошиблась в ответе",
           parameters: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "Вопрос или тема для размышления",
+                description: "Вопрос",
               },
             },
           },
@@ -167,10 +167,6 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
             const completion = await openai.chat.completions.create({
               model: "o1-mini",
               messages: [
-                {
-                  role: "system",
-                  content: "Ты - модель для глубокого анализа и рассуждений. Твоя задача - тщательно обдумать заданный вопрос и предоставить структурированный, логичный ответ.",
-                },
                 {
                   role: "user",
                   content: parameters.query,
