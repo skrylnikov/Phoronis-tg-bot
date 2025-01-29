@@ -64,7 +64,7 @@ processMessageController.on(":text", async (ctx) => {
         },
       });
 
-      analyzer(ctx);
+      // analyzer(ctx);
     }
 
     if (
