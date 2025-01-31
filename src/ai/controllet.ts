@@ -199,7 +199,7 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
           },
           function: async (parameters: { query: string }) => {
             const completion = await openai.chat.completions.create({
-              model: "o1-mini",
+              model: "o3-mini",
               messages: [
                 {
                   role: "user",

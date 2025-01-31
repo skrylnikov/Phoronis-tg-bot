@@ -114,7 +114,7 @@ processMessageController.on(":photo", async (ctx) => {
             },
             ...media.map((media) => ({
               type: "image_url" as const,
-              image_url: { url: media, detail: "high" as const },
+              image_url: { url: media },
             })),
           ],
         },
