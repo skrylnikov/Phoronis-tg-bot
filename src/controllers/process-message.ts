@@ -93,40 +93,40 @@ processMessageController.on(":photo", async (ctx) => {
       },
     });
 
-    const media = await Promise.all(
-      ctx.msg.photo?.map(async (photo) => {
-        const fileLink = await ctx.api.getFile(photo.file_id);
-
-        return `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
-      }) || []
-    );
-
-    // Get image description from OpenAI
-    const description = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Опиши что изображено на этой фотографии. Сделай это максимально точно и подробно, так чтобы ты сама могла понять что изображено на фотографии",
-            },
-            ...media.map((media) => ({
-              type: "image_url" as const,
-              image_url: { url: media },
-            })),
-          ],
-        },
-      ],
-      max_tokens: 500,
-    });
-
-    const imageDescription = description.choices[0]?.message?.content || "";
-
-    logger.debug(`Image description: ${imageDescription}`);
-
     if (chat?.greeting || ctx.chat.type === "private") {
+      const media = await Promise.all(
+        ctx.msg.photo?.map(async (photo) => {
+          const fileLink = await ctx.api.getFile(photo.file_id);
+
+          return `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
+        }) || []
+      );
+
+      // Get image description from OpenAI
+      const description = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Опиши что изображено на этой фотографии. Сделай это максимально точно и подробно, так чтобы ты сама могла понять что изображено на фотографии",
+              },
+              ...media.map((media) => ({
+                type: "image_url" as const,
+                image_url: { url: media },
+              })),
+            ],
+          },
+        ],
+        max_tokens: 500,
+      });
+
+      const imageDescription = description.choices[0]?.message?.content || "";
+
+      logger.debug(`Image description: ${imageDescription}`);
+
       await prisma.message.create({
         data: {
           id: ctx.msg.message_id,
@@ -140,15 +140,16 @@ processMessageController.on(":photo", async (ctx) => {
           summary: imageDescription,
         },
       });
+
+      if (
+        ctx.msg.text?.toLowerCase().startsWith("ио") ||
+        ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
+        ctx.chat.type === "private"
+      ) {
+        await aiController(ctx, imageDescription);
+      }
     }
 
-    if (
-      ctx.msg.text?.toLowerCase().startsWith("ио") ||
-      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === "private"
-    ) {
-      await aiController(ctx, imageDescription);
-    }
   } catch (error) {
     logger.error(error);
   }
