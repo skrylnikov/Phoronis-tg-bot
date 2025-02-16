@@ -20,8 +20,8 @@ const analyzer = async (ctx: BotContext) => {
     },
   });
 
-  // Если это десятое сообщение (или кратное 10), анализируем последние 10
-  if (messageCount % 10 === 0) {
+  // Если это тридцатое сообщение (или кратное 30), анализируем последние 30
+  if (messageCount % 30 === 0) {
     const lastMessages = await prisma.message.findMany({
       where: {
         chatId: ctx.chatId,
@@ -30,7 +30,7 @@ const analyzer = async (ctx: BotContext) => {
       orderBy: {
         sentAt: "desc",
       },
-      take: 10,
+      take: 30,
     });
 
     await analyzeUserMetaInfo(BigInt(ctx.from!.id), lastMessages.reverse());
@@ -64,7 +64,7 @@ processMessageController.on(":text", async (ctx) => {
         },
       });
 
-      // analyzer(ctx);
+      analyzer(ctx);
     }
 
     if (

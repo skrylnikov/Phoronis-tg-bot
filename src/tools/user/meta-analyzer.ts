@@ -20,11 +20,11 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
           content: `Ты - аналитик, который анализирует сообщения пользователя и объединяет существующую и новую метаинформацию.
           Твоя задача - создать обновленное описание пользователя, объединив существующие данные с новыми наблюдениями.
           Верни ответ в формате JSON с полями:
-          - interests: массив интересов (объедини существующие и новые, удали дубликаты, сохрани все релевантные, не более 7)
+          - interests: массив интересов (объедини существующие и новые, удали дубликаты, сохрани все релевантные, не более 5)
           - communication_style: массив стилей общения (обнови на основе новых сообщений, если есть изменения, не более 3)
-          - notable_traits: заметные черты (объедини существующие и новые наблюдения, не более 10)
-          - topics: основные темы обсуждений (добавь новые темы к существующим, не более 10)
-          
+          - notable_traits: заметные черты (объедини существующие и новые наблюдения, не более 5)
+          - topics: основные темы обсуждений (добавь новые темы к существующим, не более 5)
+          - notes: любые другие наблюдения, которые могут быть полезны для общения с пользователем (не более 5)
           Анализируй внимательно и сохраняй всю важную историческую информацию, дополняя её новыми наблюдениями.`,
         },
         {
@@ -41,6 +41,12 @@ ${messages.map((m) => m.text).join("\n")}`,
 
     const metaInfo = completion.choices[0].message.content!;
     const updatedMeta = JSON.parse(metaInfo);
+
+    updatedMeta.interests = updatedMeta?.interests?.slice(0, 5) || [];
+    updatedMeta.communication_style = updatedMeta?.communication_style?.slice(0, 3) || [];
+    updatedMeta.notable_traits = updatedMeta?.notable_traits?.slice(0, 5) || [];
+    updatedMeta.topics = updatedMeta?.topics?.slice(0, 5) || [];
+    updatedMeta.notes = updatedMeta?.notes?.slice(0, 5) || [];
 
     logger.debug(`Update metadata for user ${JSON.stringify({...user, id: Number(user?.id)})}`, JSON.stringify(updatedMeta));
 
