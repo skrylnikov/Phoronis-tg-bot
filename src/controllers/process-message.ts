@@ -7,7 +7,11 @@ import { BotContext } from "../bot";
 import { aiController } from "../ai";
 import { analyzeUserMetaInfo } from "../tools/user/meta-analyzer";
 import { token } from "../config";
-import { openai } from "../openai";
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { langfuse, langfuseHandler } from "../ai/langfuse";
+import axios from "axios";
+import { Buffer } from "buffer";
 
 export const processMessageController = new Composer<BotContext>();
 
@@ -79,6 +83,12 @@ processMessageController.on(":text", async (ctx) => {
   }
 });
 
+async function downloadImage(url: string): Promise<Buffer> {
+  console.log("downloadImage", url);
+  const response = await axios.get(url, { responseType: "arraybuffer" });
+  return Buffer.from(response.data);
+}
+
 processMessageController.on(":photo", async (ctx) => {
   try {
     await Promise.all([
@@ -97,33 +107,50 @@ processMessageController.on(":photo", async (ctx) => {
       const media = await Promise.all(
         ctx.msg.photo?.map(async (photo) => {
           const fileLink = await ctx.api.getFile(photo.file_id);
-
-          return `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
+          const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
+          const imageBuffer = await downloadImage(url);
+          return {
+            url,
+            buffer: imageBuffer.toString("base64"),
+            mimeType: "image/jpeg",
+          };
         }) || []
       );
 
-      // Get image description from OpenAI
-      const description = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Опиши что изображено на этой фотографии. Сделай это максимально точно и подробно, так чтобы ты сама могла понять что изображено на фотографии",
-              },
-              ...media.map((media) => ({
-                type: "image_url" as const,
-                image_url: { url: media },
-              })),
-            ],
-          },
-        ],
-        max_tokens: 500,
+      const gemma3 = new ChatOpenAI({
+        model: "gemma-3-12b-it@q3_k_l",
+        configuration: {
+          baseURL: "http://lamas-station:1234/v1",
+        },
       });
 
-      const imageDescription = description.choices[0]?.message?.content || "";
+      const prompt = await langfuse.getPrompt("image-description");
+
+      const systemPrompt = prompt.compile();
+
+      const response = await gemma3.invoke(
+        [
+          new SystemMessage(systemPrompt),
+          new HumanMessage({
+            content: media.map((m) => ({
+              type: "image_url",
+              image_url: { url: "data:image/jpeg;base64," + m.buffer },
+            })),
+          }),
+        ],
+        {
+          callbacks: [langfuseHandler],
+        }
+      );
+
+      const imageDescription =
+        typeof response.content === "string"
+          ? response.content
+          : Array.isArray(response.content)
+          ? response.content
+              .map((c) => (typeof c === "string" ? c : ""))
+              .join("")
+          : "";
 
       logger.debug(`Image description: ${imageDescription}`);
 
@@ -136,7 +163,7 @@ processMessageController.on(":photo", async (ctx) => {
           sentAt: new Date(ctx.msg.date * 1000),
           text: ctx.msg.caption,
           messageType: "MEDIA",
-          media: JSON.stringify(media),
+          media: JSON.stringify(media.map((m) => m.url)),
           summary: imageDescription,
         },
       });
@@ -149,7 +176,6 @@ processMessageController.on(":photo", async (ctx) => {
         await aiController(ctx, imageDescription);
       }
     }
-
   } catch (error) {
     logger.error(error);
   }
