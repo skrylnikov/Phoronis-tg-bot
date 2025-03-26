@@ -179,6 +179,18 @@ export const voiceController = async (ctx: BotContext) => {
           summary = result.choices[0].message.content;
         }
 
+        const replyToMessage = await prisma.message.findUnique({
+          where: {
+            chatId_id: {
+              chatId: ctx.chatId!,
+              id: ctx.msg?.message_id!,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
         await prisma.message.create({
           data: {
             id: ctx.msg!.message_id,
@@ -188,7 +200,7 @@ export const voiceController = async (ctx: BotContext) => {
             messageType: "VOICE",
             text,
             summary,
-            replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+            replyToMessageId: replyToMessage?.id,
           },
         });
         logger.debug(`recognize voice result: ${text}`);

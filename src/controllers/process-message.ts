@@ -12,6 +12,13 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { langfuse, langfuseHandler } from "../ai/langfuse";
 import axios from "axios";
 import { Buffer } from "buffer";
+import { PhotoSize } from "@grammyjs/types";
+
+interface Media {
+  url: string;
+  buffer: string;
+  mimeType: string;
+}
 
 export const processMessageController = new Composer<BotContext>();
 
@@ -56,12 +63,26 @@ processMessageController.on(":text", async (ctx) => {
     });
 
     if (chat?.greeting || ctx.chat.type === "private") {
+      const replyToMessage = ctx.msg?.reply_to_message?.message_id
+        ? await prisma.message.findUnique({
+            where: {
+              chatId_id: {
+                chatId: ctx.chatId,
+                id: ctx.msg?.reply_to_message?.message_id,
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        : null;
+
       await prisma.message.create({
         data: {
           id: ctx.msg.message_id,
           chatId: ctx.chatId,
           senderId: ctx.from!.id,
-          replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+          replyToMessageId: replyToMessage?.id,
           sentAt: new Date(ctx.msg.date * 1000),
           text: ctx.msg.text,
           messageType: "TEXT",
@@ -89,7 +110,23 @@ async function downloadImage(url: string): Promise<Buffer> {
   return Buffer.from(response.data);
 }
 
-processMessageController.on(":photo", async (ctx) => {
+function selectOptimalPhoto(photos: PhotoSize[]): any {
+  const MAX_SIZE = 896;
+  let optimalPhoto = photos[0];
+  let maxSize = 0;
+
+  for (const photo of photos) {
+    const size = Math.min(photo.width, photo.height);
+    if (size <= MAX_SIZE && size > maxSize) {
+      maxSize = size;
+      optimalPhoto = photo;
+    }
+  }
+
+  return optimalPhoto;
+}
+
+processMessageController.on("msg", async (ctx) => {
   try {
     await Promise.all([
       saveChat(ctx.chat),
@@ -104,18 +141,21 @@ processMessageController.on(":photo", async (ctx) => {
     });
 
     if (chat?.greeting || ctx.chat.type === "private") {
-      const media = await Promise.all(
-        ctx.msg.photo?.map(async (photo) => {
-          const fileLink = await ctx.api.getFile(photo.file_id);
-          const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
-          const imageBuffer = await downloadImage(url);
-          return {
+      let media: Media[] = [];
+
+      if (ctx.msg.photo) {
+        const optimalPhoto = selectOptimalPhoto(ctx.msg.photo);
+        const fileLink = await ctx.api.getFile(optimalPhoto.file_id);
+        const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
+        const imageBuffer = await downloadImage(url);
+        media = [
+          {
             url,
             buffer: imageBuffer.toString("base64"),
             mimeType: "image/jpeg",
-          };
-        }) || []
-      );
+          },
+        ];
+      }
 
       const gemma3 = new ChatOpenAI({
         model: "gemma-3-12b-it@q3_k_l",
@@ -154,12 +194,24 @@ processMessageController.on(":photo", async (ctx) => {
 
       logger.debug(`Image description: ${imageDescription}`);
 
+      const replyToMessage = await prisma.message.findUnique({
+        where: {
+          chatId_id: {
+            chatId: ctx.chatId!,
+            id: ctx.msg?.message_id!,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
       await prisma.message.create({
         data: {
           id: ctx.msg.message_id,
           chatId: ctx.chatId,
           senderId: ctx.from!.id,
-          replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+          replyToMessageId: replyToMessage?.id,
           sentAt: new Date(ctx.msg.date * 1000),
           text: ctx.msg.caption,
           messageType: "MEDIA",

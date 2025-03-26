@@ -79,8 +79,12 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
   return result;
 };
 
-export const aiController = async (ctx: BotContext, _text?: string) => {
-  if ((!ctx.msg?.text && !_text) || !ctx.msg) {
+export const aiController = async (
+  ctx: BotContext,
+  imageDescription?: string
+) => {
+  console.log(ctx.msg);
+  if (!ctx.msg?.text && !ctx.msg?.caption) {
     return;
   }
 
@@ -91,7 +95,7 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
   try {
     await ctx.replyWithChatAction("typing");
 
-    const text = _text || ctx.msg.text;
+    const text = ctx.msg.text || ctx.msg.caption;
 
     // const defaultMessages = defaultMessagesCreate();
 
@@ -125,7 +129,10 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
             currentMessages.map((msg) => ({
               type: msg.messageType,
               sender: msg.sender.userName,
-              text: msg.summary || msg.text,
+              text:
+                msg.messageType === "MEDIA"
+                  ? "Пользователь прислал фотографию, описание которой: "
+                  : "" + (msg.summary || msg.text),
             }))
           ),
         });
@@ -154,6 +161,17 @@ export const aiController = async (ctx: BotContext, _text?: string) => {
     rawMessages.push({
       role: "user",
       content: JSON.stringify([
+        ...(imageDescription
+          ? [
+              {
+                type: "image",
+                sender: ctx.from?.username,
+                image:
+                  "Пользователь прислал фотографию, описание которой: " +
+                  imageDescription,
+              },
+            ]
+          : []),
         {
           type: "text",
           sender: ctx.from?.username,
