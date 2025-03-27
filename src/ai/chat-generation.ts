@@ -10,11 +10,12 @@ import { langfuseHandler } from "./langfuse";
 import { openRouterToken } from "../config";
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.0-flash-001",
+  model: "google/gemini-2.0-flash-lite-001",
   apiKey: openRouterToken,
   configuration: {
     baseURL: "https://openrouter.ai/api/v1",
   },
+  temperature: 1,
 });
 
 const weatherTool = new DynamicTool({
