@@ -11,6 +11,8 @@ import { langfuse } from "./langfuse";
 import { chatGeneration } from "./chat-generation";
 import { getTopUserMetaInfo } from "../tools/user/meta-analyzer";
 
+import { sessionIdGenerator } from "../config";
+
 const defaultMessagesCreate = () => {
   const isHelpful = Math.random() < 0.3;
   const isUseUsername = Math.random() < 0.2;
@@ -79,6 +81,38 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
   return result;
 };
 
+const getThreadBySessionId = async (
+  chatId: number,
+  messageId: bigint | null,
+  sessionId: string
+) => {
+  const result: Array<Message & { sender: User }> = [];
+  const messages = await prisma.message.findMany({
+    where: {
+      chatId,
+      sessionId,
+    },
+    include: {
+      sender: true,
+    },
+    take: 10,
+  });
+
+  let lastId: bigint | null = messageId;
+  while (lastId) {
+    const message = messages.find((x) => x.id === lastId);
+    if (!message) {
+      break;
+    }
+    result.push(message);
+    lastId = message.replyToMessageId;
+  }
+
+  result.reverse();
+
+  return result;
+};
+
 export const aiController = async (
   ctx: BotContext,
   imageDescription?: string
@@ -103,11 +137,34 @@ export const aiController = async (
 
     let list: Awaited<ReturnType<typeof getThread>> = [];
 
+    const replyToMessage = await prisma.message.findUnique({
+      where: {
+        chatId_id: {
+          chatId: ctx.chatId!,
+          id: ctx.msg?.message_id!,
+        },
+      },
+      select: {
+        id: true,
+        sessionId: true,
+      },
+    });
+
+    const sessionId = replyToMessage?.sessionId || sessionIdGenerator();
+
     if (ctx.msg.reply_to_message) {
-      list = await getThread(
-        ctx.chatId!,
-        BigInt(ctx.msg.reply_to_message.message_id)
-      );
+      if (replyToMessage?.sessionId) {
+        list = await getThreadBySessionId(
+          ctx.chatId!,
+          BigInt(ctx.msg.reply_to_message.message_id),
+          replyToMessage.sessionId
+        );
+      } else {
+        list = await getThread(
+          ctx.chatId!,
+          BigInt(ctx.msg.reply_to_message.message_id)
+        );
+      }
     }
 
     // Группируем последовательные сообщения
@@ -193,6 +250,22 @@ export const aiController = async (
 
     const prompt = await langfuse.getPrompt("chat-generation");
 
+    const trace = langfuse.trace({
+      name: "chat-generation",
+      sessionId,
+      userId: ctx.from?.id?.toString() || null,
+      metadata: {
+        userName: [
+          ctx.from?.username ? "@" + ctx.from?.username : null,
+          ctx.from?.first_name,
+          ctx.from?.last_name,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      },
+    });
+
+
     const isHelpful = Math.random() < 0.3;
     const isUseUsername = Math.random() < 0.2;
     const isInterests = Math.random() < 0.1;
@@ -209,7 +282,7 @@ export const aiController = async (
         }))
       ),
       rules: [
-        '- Используй tools когда это нужно',
+        "- Используй tools когда это нужно",
         isShort && "- Отвечай кратко",
         isHelpful && "- Будь полезной и старайся помочь",
         isInterests &&
@@ -232,7 +305,7 @@ export const aiController = async (
       ...rawMessages,
     ];
 
-    const result = await chatGeneration(messages);
+    const result = await chatGeneration(messages, trace);
 
     console.info(result);
 
@@ -253,18 +326,6 @@ export const aiController = async (
       });
 
       try {
-        const replyToMessage = await prisma.message.findUnique({
-          where: {
-            chatId_id: {
-              chatId: ctx.chatId!,
-              id: ctx.msg?.message_id!,
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
-
         await prisma.message.create({
           data: {
             id: reply.message_id,

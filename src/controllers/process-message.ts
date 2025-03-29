@@ -6,7 +6,7 @@ import { prisma } from "../db";
 import { BotContext } from "../bot";
 import { aiController } from "../ai";
 import { analyzeUserMetaInfo } from "../tools/user/meta-analyzer";
-import { token } from "../config";
+import { openRouterToken, token } from "../config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { langfuse, langfuseHandler } from "../ai/langfuse";
@@ -16,7 +16,7 @@ import { PhotoSize } from "@grammyjs/types";
 
 interface Media {
   url: string;
-  buffer: string;
+  // buffer: string;
   mimeType: string;
 }
 
@@ -126,6 +126,15 @@ function selectOptimalPhoto(photos: PhotoSize[]): any {
   return optimalPhoto;
 }
 
+const geminiFlash2 = new ChatOpenAI({
+  model: "google/gemini-2.0-flash-lite-001",
+  apiKey: openRouterToken,
+  configuration: {
+    baseURL: "https://openrouter.ai/api/v1",
+  },
+  temperature: 0,
+});
+
 processMessageController.on("msg", async (ctx) => {
   try {
     await Promise.all([
@@ -147,34 +156,34 @@ processMessageController.on("msg", async (ctx) => {
         const optimalPhoto = selectOptimalPhoto(ctx.msg.photo);
         const fileLink = await ctx.api.getFile(optimalPhoto.file_id);
         const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
-        const imageBuffer = await downloadImage(url);
+        // const imageBuffer = await downloadImage(url);
         media = [
           {
             url,
-            buffer: imageBuffer.toString("base64"),
+            // buffer: imageBuffer.toString("base64"),
             mimeType: "image/jpeg",
           },
         ];
       }
 
-      const gemma3 = new ChatOpenAI({
-        model: "gemma-3-12b-it@q3_k_l",
-        configuration: {
-          baseURL: "http://lamas-station:1234/v1",
-        },
-      });
+      // const gemma3 = new ChatOpenAI({
+      //   model: "gemma-3-12b-it@q3_k_l",
+      //   configuration: {
+      //     baseURL: "http://lamas-station:1234/v1",
+      //   },
+      // });
 
       const prompt = await langfuse.getPrompt("image-description");
 
       const systemPrompt = prompt.compile();
 
-      const response = await gemma3.invoke(
+      const response = await geminiFlash2.invoke(
         [
           new SystemMessage(systemPrompt),
           new HumanMessage({
             content: media.map((m) => ({
               type: "image_url",
-              image_url: { url: "data:image/jpeg;base64," + m.buffer },
+              image_url: { url: m.url },
             })),
           }),
         ],

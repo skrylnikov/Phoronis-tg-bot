@@ -2,9 +2,10 @@ import axios from "axios";
 import ffmpeg from "ffmpeg.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { fmt, blockquote } from "@grammyjs/parse-mode";
-import { logger } from '../logger'
+import { logger } from "../logger";
 
 import {
+  openRouterToken,
   token,
   yandexCloudToken,
   yandexS3ID,
@@ -12,8 +13,10 @@ import {
 } from "../config.js";
 
 import { prisma } from "../db";
-import { openai } from "../openai";
 import { BotContext } from "../bot";
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { langfuseHandler } from "../ai/langfuse";
 
 interface IResult {
   result: string;
@@ -32,6 +35,14 @@ const s3 = new S3Client({
   },
 });
 
+const geminiFlash2 = new ChatOpenAI({
+  model: "google/gemini-2.0-flash-lite-001",
+  apiKey: openRouterToken,
+  configuration: {
+    baseURL: "https://openrouter.ai/api/v1",
+  },
+  temperature: 0,
+});
 
 interface Check {
   id: string;
@@ -59,7 +70,9 @@ export const voiceController = async (ctx: BotContext) => {
     );
 
     logger.debug(
-      `start recognoze voice message from ${JSON.stringify(ctx.from)} in ${JSON.stringify(ctx.chat)} ${Math.round(
+      `start recognoze voice message from ${JSON.stringify(
+        ctx.from
+      )} in ${JSON.stringify(ctx.chat)} ${Math.round(
         file_size / 1024
       )}Kb ${duration}сек`
     );
@@ -94,7 +107,11 @@ export const voiceController = async (ctx: BotContext) => {
         }
       );
 
-      logger.debug(`recognize voice result from ${JSON.stringify(ctx.from)} in ${JSON.stringify(ctx.chat)} : ${result.data.result}`);
+      logger.debug(
+        `recognize voice result from ${JSON.stringify(
+          ctx.from
+        )} in ${JSON.stringify(ctx.chat)} : ${result.data.result}`
+      );
 
       ctx.reply(result.data.result, {
         reply_to_message_id: ctx.message.message_id,
@@ -165,18 +182,34 @@ export const voiceController = async (ctx: BotContext) => {
         let summary: string | null = null;
 
         if (text.length > 256) {
-          const result = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content: "Суммарицируй текст до пары коротких предложений",
-              },
-              { role: "user", content: text },
+          const result = await geminiFlash2.invoke(
+            [
+              new SystemMessage(
+                "Суммарицируй текст до пары коротких предложений"
+              ),
+              new HumanMessage(text),
             ],
-          });
+            {
+              callbacks: [langfuseHandler],
+            }
+          );
+          // const result = await openai.chat.completions.create({
+          //   model: "gpt-4o-mini",
+          //   messages: [
+          //     {
+          //       role: "system",
+          //       content: "Суммарицируй текст до пары коротких предложений",
+          //     },
+          //     { role: "user", content: text },
+          //   ],
+          // });
 
-          summary = result.choices[0].message.content;
+          if (typeof result.content === "string") {
+            summary = result.content;
+          } else {
+            // @ts-ignore
+            summary = result.content[result.content.length - 1].type === "text" ? result.content[result.content.length - 1].text : null;
+          }
         }
 
         const replyToMessage = await prisma.message.findUnique({
@@ -214,7 +247,6 @@ export const voiceController = async (ctx: BotContext) => {
 ${quote}`,
           { reply_to_message_id: ctx.message.message_id }
         );
-
 
         await prisma.message.create({
           data: {

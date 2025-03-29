@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
+import { customAlphabet } from 'nanoid'
 
 config();
 
@@ -25,3 +26,5 @@ export const langfuseConfig = {
 
 export const activateWordList = ['ио', 'форонида', 'io', 'иа'];
 
+
+export const sessionIdGenerator = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);

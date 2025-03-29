@@ -3,9 +3,9 @@ import { logger } from "../../logger";
 import { prisma } from "../../db";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
 import { langfuse, langfuseHandler } from "../../ai/langfuse";
+import { openRouterToken } from "../../config";
 
 const userMetaInfoSchema = z.object({
   interests: z.array(
@@ -42,11 +42,20 @@ const userMetaInfoSchema = z.object({
 
 type UserMetaInfo = z.infer<typeof userMetaInfoSchema>;
 
-const gemma3 = new ChatOpenAI({
-  model: "gemma-3-12b-it@q3_k_l",
+// const gemma3 = new ChatOpenAI({
+//   model: "gemma-3-12b-it@q3_k_l",
+//   configuration: {
+//     baseURL: "http://lamas-station:1234/v1",
+//   },
+// });
+
+const geminiFlash2 = new ChatOpenAI({
+  model: "google/gemini-2.0-flash-lite-001",
+  apiKey: openRouterToken,
   configuration: {
-    baseURL: "http://lamas-station:1234/v1",
+    baseURL: "https://openrouter.ai/api/v1",
   },
+  temperature: 0,
 });
 
 export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
@@ -117,7 +126,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
     const userPrompt = `Проанализируй новые сообщения пользователя и создай обновленную метаинформацию:
 ${messages.map((m) => m.summary || m.text).join("\n")}`;
 
-    const rawMetaInfo = await gemma3
+    const rawMetaInfo = await geminiFlash2
       .withStructuredOutput(userMetaInfoSchema, {
         includeRaw: true,
       })

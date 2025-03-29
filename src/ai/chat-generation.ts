@@ -6,8 +6,12 @@ import axios from "axios";
 import { prisma } from "../db";
 import { openWeatherToken } from "../config";
 import { BotContext } from "../bot";
-import { langfuseHandler } from "./langfuse";
+import { langfuse } from "./langfuse";
 import { openRouterToken } from "../config";
+import CallbackHandler from "langfuse-langchain";
+import { LangfuseTraceClient } from "langfuse";
+import { RunnableSequence } from "@langchain/core/runnables";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 const geminiFlash2 = new ChatOpenAI({
   model: "google/gemini-2.0-flash-lite-001",
@@ -75,7 +79,18 @@ const greetingTool = new DynamicTool({
   },
 });
 
-export const chatGeneration = async (messages: any[]) => {
+export const chatGeneration = async (
+  messages: any[],
+  trace: LangfuseTraceClient
+) => {
+  const prompt = await langfuse.getPrompt("chat-generation");
+
+  // const promptTemplate = PromptTemplate.fromTemplate(
+  //   prompt.getLangchainPrompt()
+  // ).withConfig({
+  //   metadata: { langfusePrompt: prompt },
+  // });
+
   const chatAgent = createReactAgent({
     name: "chat-generation",
     llm: geminiFlash2,
@@ -90,6 +105,33 @@ export const chatGeneration = async (messages: any[]) => {
     ],
   });
 
+  trace.update({
+    input: JSON.stringify(
+      messages.flatMap((x) =>
+        Array.isArray(x.content)
+          ? x.content.map((y: any) => ({
+              role: x.role,
+              content: y,
+            }))
+          : [
+              {
+                role: x.role,
+                content: x.content,
+              },
+            ]
+      )
+    ),
+  });
+
+  const generation = trace.generation({
+    prompt,
+  });
+
+  const langfuseHandler = new CallbackHandler({
+    root: generation,
+    updateRoot: true,
+  });
+
   const result = await chatAgent.invoke(
     { messages },
     {
@@ -97,5 +139,11 @@ export const chatGeneration = async (messages: any[]) => {
     }
   );
 
-  return result.messages[result.messages.length - 1].content;
+  const output = result.messages[result.messages.length - 1].content;
+
+  trace.update({
+    output: JSON.stringify(output),
+  });
+
+  return output;
 };
