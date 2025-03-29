@@ -12,7 +12,7 @@ import { chatGeneration } from "./chat-generation";
 import { getTopUserMetaInfo } from "../tools/user/meta-analyzer";
 
 import { sessionIdGenerator } from "../config";
-
+import { format } from "date-fns";
 const defaultMessagesCreate = () => {
   const isHelpful = Math.random() < 0.3;
   const isUseUsername = Math.random() < 0.2;
@@ -293,6 +293,8 @@ export const aiController = async (
       ]
         .filter(Boolean)
         .join("\n"),
+
+      time: format(new Date(), "dd.MM.yyyy HH:mm:ss"),
     });
 
     console.log(compiledPrompt);
