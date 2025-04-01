@@ -266,11 +266,13 @@ export const aiController = async (
     });
 
 
-    const isHelpful = Math.random() < 0.3;
+    // const isHelpful = Math.random() < 0.3;
+    const isHelpful = false;
     const isUseUsername = Math.random() < 0.2;
     const isInterests = Math.random() < 0.1;
     const isShort = Math.random() < 0.5;
-    const isFunny = !isHelpful && Math.random() < 0.1;
+    // const isFunny = !isHelpful && Math.random() < 0.1;
+    const isFunny = true;
 
     const compiledPrompt = prompt.compile({
       users: JSON.stringify(
