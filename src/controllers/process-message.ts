@@ -92,10 +92,13 @@ processMessageController.on(":text", async (ctx) => {
       analyzer(ctx);
     }
 
+    const randomAnswer = ctx.msg.text.endsWith("?") && Math.random() < 0.3;
+
     if (
       ctx.msg.text.toLowerCase().startsWith("ио") ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === "private"
+      ctx.chat.type === "private" ||
+      randomAnswer
     ) {
       await aiController(ctx);
     }
