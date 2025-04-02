@@ -187,9 +187,9 @@ export const aiController = async (
               type: msg.messageType,
               sender: msg.sender.userName,
               text:
-                msg.messageType === "MEDIA"
+                (msg.messageType === "MEDIA"
                   ? "Пользователь прислал фотографию, описание которой: "
-                  : "" + (msg.summary || msg.text),
+                  : "") + (msg.summary || msg.text),
             }))
           ),
         });
@@ -264,7 +264,6 @@ export const aiController = async (
           .join(" "),
       },
     });
-
 
     // const isHelpful = Math.random() < 0.3;
     const isHelpful = false;
