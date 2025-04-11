@@ -4,6 +4,7 @@ import { logger } from './logger'
 import { controllers } from "./controllers";
 import { prisma } from './db'
 import { bot } from './bot'
+import { startScheduler } from './scheduler';
 
 bot.use(controllers);
 
@@ -21,6 +22,7 @@ bot.catch((err) => {
   }
 });
 
+startScheduler();
 
 bot.start().catch((e) => logger.error(e));
 

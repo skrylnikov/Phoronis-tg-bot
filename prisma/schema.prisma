@@ -35,7 +35,9 @@ model Chat {
   title    String
   chatType ChatType
 
-  greeting String?
+  name                 String?
+  greeting             String?
+  selfieSaturdayEnabled Boolean? @default(false)
 
   Message Message[]
 }
