@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "prisma migrate deploy && bun run ./src/index.ts",
+    "start": "bun run ./src/index.ts",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
