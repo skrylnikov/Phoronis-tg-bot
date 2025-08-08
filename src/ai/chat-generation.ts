@@ -14,7 +14,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.0-flash-lite-001",
+  model: "openai/gpt-5-nano",
   apiKey: openRouterToken,
   configuration: {
     baseURL: "https://openrouter.ai/api/v1",
