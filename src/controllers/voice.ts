@@ -36,7 +36,7 @@ const s3 = new S3Client({
 });
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "openai/gpt-5-nano",
+  model: "google/gemini-2.5-flash-lite",
   apiKey: openRouterToken,
   configuration: {
     baseURL: "https://openrouter.ai/api/v1",
