@@ -6,6 +6,7 @@ import MD from "telegramify-markdown";
 import { openRouterToken } from "../config"; // Импортируем токен
 import { bot } from "../bot"; // Импортируем экземпляр бота
 import { logger } from "../logger"; // Импортируем логгер
+import { prisma } from "../db";
 
 // Используем ту же модель, что и в chat-generation
 const geminiFlash2 = new ChatOpenAI({
@@ -82,10 +83,23 @@ export async function sendInktoberMessage(chatId: number | bigint): Promise<void
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    await bot.api.sendMessage(targetChatId, MD(message, "remove"), {
+    const reply = await bot.api.sendMessage(targetChatId, MD(message, "remove"), {
       parse_mode: "MarkdownV2",
     });
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
+
+    await prisma.message.create({
+      data: {
+        id: reply.message_id,
+        chatId,
+        senderId: reply.from!.id,
+        replyToMessageId: null,
+        sentAt: new Date(reply.date * 1000),
+        messageType: "TEXT",
+        text: message,
+      },
+    });
+
   } catch (error) {
     logger.error(`Ошибка при отправке сообщения Inktober в чат ${chatId}:`, error);
     // Здесь можно добавить логику обработки ошибок, например, отключить фичу для этого чата, если бот заблокирован
