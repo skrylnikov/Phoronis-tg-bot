@@ -1,6 +1,8 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import MD from "telegramify-markdown";
+
 import { openRouterToken } from "../config"; // Импортируем токен
 import { bot } from "../bot"; // Импортируем экземпляр бота
 import { logger } from "../logger"; // Импортируем логгер
@@ -43,7 +45,7 @@ const promptTemplate = PromptTemplate.fromTemplate(
 4. Хэштеги #inktober и #inktober{day}
 5. Подходящий эмодзи
 
- Сделай сообщение живым и вдохновляющим!`
+Сделай сообщение живым и вдохновляющим!`
 );
 
 const outputParser = new StringOutputParser();
@@ -84,7 +86,7 @@ export async function sendInktoberMessage(chatId: number | bigint): Promise<void
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    await bot.api.sendMessage(targetChatId, message);
+    await bot.api.sendMessage(targetChatId, MD(message, "remove"));
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
   } catch (error) {
     logger.error(`Ошибка при отправке сообщения Inktober в чат ${chatId}:`, error);

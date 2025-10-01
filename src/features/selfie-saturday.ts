@@ -4,6 +4,7 @@ import { StringOutputParser } from "@langchain/core/output_parsers";
 import { openRouterToken } from "../config"; // Импортируем токен
 import { bot } from "../bot"; // Импортируем экземпляр бота
 import { logger } from "../logger"; // Импортируем логгер
+import MD from "telegramify-markdown";
 
 // Используем ту же модель, что и в chat-generation
 const geminiFlash2 = new ChatOpenAI({
@@ -18,8 +19,7 @@ const geminiFlash2 = new ChatOpenAI({
 // Промпт для генерации сообщения
 const promptTemplate = PromptTemplate.fromTemplate(
   `Придумай короткое и веселое сообщение с саркастичным подтекстом для чата, призывающее людей постить свои селфи в субботу.
-  Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.
-  Не используй markdown.`
+  Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.`
 );
 
 const outputParser = new StringOutputParser();
@@ -48,7 +48,7 @@ export async function sendSelfieSaturdayMessage(chatId: number | bigint): Promis
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    await bot.api.sendMessage(targetChatId, message);
+    await bot.api.sendMessage(targetChatId, MD(message, "remove"));
     logger.info(`Сообщение Селфи Субботы отправлено в чат ${targetChatId}`);
   } catch (error) {
     logger.error(`Ошибка при отправке сообщения Селфи Субботы в чат ${chatId}:`, error);
