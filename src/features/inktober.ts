@@ -65,10 +65,6 @@ async function generateInktoberMessage(): Promise<string> {
       theme: theme,
     });
     
-    // Дополнительная проверка или форматирование, если нужно
-    if (!message.includes("#inktober")) {
-        return message + "\n#inktober"; // Гарантируем наличие хештега
-    }
     return message;
   } catch (error) {
     logger.error("Ошибка при генерации сообщения для Inktober:", error);
@@ -86,7 +82,9 @@ export async function sendInktoberMessage(chatId: number | bigint): Promise<void
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    await bot.api.sendMessage(targetChatId, MD(message, "remove"));
+    await bot.api.sendMessage(targetChatId, MD(message, "remove"), {
+      parse_mode: "MarkdownV2",
+    });
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
   } catch (error) {
     logger.error(`Ошибка при отправке сообщения Inktober в чат ${chatId}:`, error);

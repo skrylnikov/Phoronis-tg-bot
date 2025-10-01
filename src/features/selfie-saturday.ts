@@ -30,10 +30,6 @@ const chain = promptTemplate.pipe(geminiFlash2).pipe(outputParser);
 async function generateSelfieMessage(): Promise<string> {
   try {
     const message = await chain.invoke({});
-    // Дополнительная проверка или форматирование, если нужно
-    if (!message.includes("#селфисуббота")) {
-        return message + "\n#селфисуббота"; // Гарантируем наличие хештега
-    }
     return message;
   } catch (error) {
     logger.error("Ошибка при генерации сообщения для Селфи Субботы:", error);
@@ -48,7 +44,9 @@ export async function sendSelfieSaturdayMessage(chatId: number | bigint): Promis
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    await bot.api.sendMessage(targetChatId, MD(message, "remove"));
+    await bot.api.sendMessage(targetChatId, MD(message, "remove"), {
+      parse_mode: "MarkdownV2",
+    });
     logger.info(`Сообщение Селфи Субботы отправлено в чат ${targetChatId}`);
   } catch (error) {
     logger.error(`Ошибка при отправке сообщения Селфи Субботы в чат ${chatId}:`, error);
