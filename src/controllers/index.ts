@@ -8,6 +8,7 @@ import { newChatMembersController } from "./new-chat-members.js";
 import { meController } from "./me.js";
 import { voiceController } from "./voice.js";
 import { selfieSaturdayController } from "./selfie-saturday";
+import { inktoberController } from "./inktober";
 
 export const controllers = new Composer<BotContext>();
 
@@ -16,6 +17,7 @@ controllers.command("start", startController);
 controllers.command("me", meController);
 
 controllers.use(selfieSaturdayController);
+controllers.use(inktoberController);
 
 controllers.on(":voice", voiceController);
 controllers.on(":video_note", voiceController);
