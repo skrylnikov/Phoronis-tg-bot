@@ -1,4 +1,5 @@
 import { Composer } from "grammy";
+import { embed } from "ai";
 import { logger } from "../logger";
 
 import { saveChat, saveUser } from "../shared";
@@ -13,6 +14,8 @@ import { langfuse, langfuseHandler } from "../ai/langfuse";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { PhotoSize } from "@grammyjs/types";
+import { qdrantClient } from "../qdrant";
+import { openRouter } from "../ai";
 
 interface Media {
   url: string;
@@ -92,6 +95,69 @@ processMessageController.on(":text", async (ctx) => {
       analyzer(ctx);
     }
 
+    const replyToMessageText =
+      ctx.msg.reply_to_message?.text?.trim() ||
+      ctx.msg.reply_to_message?.caption?.trim() ||
+      null;
+
+    const messageText = (ctx.msg.text || ctx.msg.caption || "").trim();
+
+    const content = replyToMessageText
+      ? `Q: ${replyToMessageText} \n\n A: ${messageText}`
+      : messageText;
+
+    let userContext: string[] | null = null;
+
+    if (content.length > 10) {
+      const result = await embed({
+        model: openRouter.textEmbeddingModel("qwen/qwen3-embedding-8b"),
+        value: content,
+        providerOptions: {
+          llamaGate: {
+            dimensions: 4096,
+          },
+        },
+      });
+
+      const searchResult = await qdrantClient.search("messages", {
+        vector: result.embedding,
+        filter: {
+          must: [
+            {
+              key: "userId",
+              match: {
+                value: ctx.from!.id,
+              },
+            },
+          ],
+        },
+        score_threshold: 0.6,
+        limit: 5,
+        with_payload: true,
+      });
+
+      if (searchResult.length > 0) {
+        userContext = searchResult.map((x) => x.payload!.content as string);
+      }
+
+      qdrantClient
+        .upsert("messages", {
+          points: [
+            {
+              id: ctx.msg.message_id,
+              vector: result.embedding,
+              payload: {
+                content,
+                text: ctx.msg.text,
+                chatId: ctx.chatId,
+                userId: ctx.from!.id,
+              },
+            },
+          ],
+        })
+        .catch((error) => logger.error(error));
+    }
+
     // const randomAnswer = ctx.msg.text.endsWith("?") && Math.random() < 0.3;
 
     if (
@@ -99,7 +165,7 @@ processMessageController.on(":text", async (ctx) => {
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === "private"
     ) {
-      await aiController(ctx);
+      await aiController(ctx, undefined, userContext);
     }
   } catch (error) {
     logger.error(error);
@@ -167,13 +233,6 @@ processMessageController.on("msg", async (ctx) => {
           },
         ];
       }
-
-      // const gemma3 = new ChatOpenAI({
-      //   model: "gemma-3-12b-it@q3_k_l",
-      //   configuration: {
-      //     baseURL: "http://lamas-station:1234/v1",
-      //   },
-      // });
 
       const prompt = await langfuse.getPrompt("image-description");
 

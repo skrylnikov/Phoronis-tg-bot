@@ -14,7 +14,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.5-flash-lite",
+  model: "google/gemini-3-flash-preview",
   apiKey: openRouterToken,
   configuration: {
     baseURL: "https://openrouter.ai/api/v1",
@@ -130,7 +130,7 @@ export const chatGeneration = async (
   const langfuseHandler = new CallbackHandler({
     root: generation,
     updateRoot: true,
-  });
+  }); 
 
   const result = await chatAgent.invoke(
     { messages },

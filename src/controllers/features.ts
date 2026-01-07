@@ -24,7 +24,7 @@ async function isAdmin(ctx: BotContext): Promise<boolean> {
 // Команда для включения фич
 featuresController.command("enable", async (ctx) => {
   const feature = ctx.match?.toLowerCase();
-  
+
   if (!ctx.chat || ctx.chat.type === "private") {
     await ctx.reply("Эту команду можно использовать только в группах.");
     return;
@@ -61,7 +61,9 @@ featuresController.command("enable", async (ctx) => {
       });
       await ctx.reply("Функция 'Inktober' включена для этого чата! 🎨");
     } else {
-      await ctx.reply("Доступные функции: selfiesaturday, inktober\nИспользование: /enable <название_функции>");
+      await ctx.reply(
+        "Доступные функции: selfiesaturday, inktober\nИспользование: /enable <название_функции>"
+      );
     }
   } catch (error) {
     console.error(`Ошибка при включении функции ${feature}:`, error);
@@ -72,7 +74,7 @@ featuresController.command("enable", async (ctx) => {
 // Команда для выключения фич
 featuresController.command("disable", async (ctx) => {
   const feature = ctx.match?.toLowerCase();
-  
+
   if (!ctx.chat || ctx.chat.type === "private") {
     await ctx.reply("Эту команду можно использовать только в группах.");
     return;
@@ -97,11 +99,15 @@ featuresController.command("disable", async (ctx) => {
       });
       await ctx.reply("Функция 'Inktober' выключена для этого чата.");
     } else {
-      await ctx.reply("Доступные функции: selfiesaturday, inktober\nИспользование: /disable <название_функции>");
+      await ctx.reply(
+        "Доступные функции: selfiesaturday, inktober\nИспользование: /disable <название_функции>"
+      );
     }
   } catch (error: any) {
-    if (error.code === 'P2025') {
-      await ctx.reply(`Функция '${feature}' уже была выключена или чат не найден.`);
+    if (error.code === "P2025") {
+      await ctx.reply(
+        `Функция '${feature}' уже была выключена или чат не найден.`
+      );
     } else {
       console.error(`Ошибка при выключении функции ${feature}:`, error);
       await ctx.reply("Произошла ошибка при выключении функции.");
@@ -112,7 +118,7 @@ featuresController.command("disable", async (ctx) => {
 // Команда для тестирования фич
 featuresController.command("test", async (ctx) => {
   const feature = ctx.match?.toLowerCase();
-  
+
   if (!ctx.chat || ctx.chat.type === "private") {
     await ctx.reply("Эту команду можно использовать только в группах.");
     return;
@@ -131,7 +137,9 @@ featuresController.command("test", async (ctx) => {
       await ctx.reply("Тестируем отправку сообщения 'Inktober'...");
       await sendInktoberMessage(ctx.chat.id);
     } else {
-      await ctx.reply("Доступные функции для тестирования: selfiesaturday, inktober\nИспользование: /test <название_функции>");
+      await ctx.reply(
+        "Доступные функции для тестирования: selfiesaturday, inktober\nИспользование: /test <название_функции>"
+      );
     }
   } catch (error) {
     console.error(`Ошибка при тестировании функции ${feature}:`, error);
@@ -147,7 +155,9 @@ featuresController.command("status", async (ctx) => {
   }
 
   if (!(await isAdmin(ctx))) {
-    await ctx.reply("Только администраторы могут просматривать статус функций.");
+    await ctx.reply(
+      "Только администраторы могут просматривать статус функций."
+    );
     return;
   }
 
@@ -157,7 +167,7 @@ featuresController.command("status", async (ctx) => {
       select: {
         selfieSaturdayEnabled: true,
         inktoberEnabled: true,
-      }
+      },
     });
 
     if (!chat) {
@@ -165,9 +175,14 @@ featuresController.command("status", async (ctx) => {
       return;
     }
 
-    const status = `📊 Статус функций в этом чате:\n\n` +
-      `🎉 Селфи Суббота: ${chat.selfieSaturdayEnabled ? '✅ Включена' : '❌ Выключена'}\n` +
-      `🎨 Inktober: ${chat.inktoberEnabled ? '✅ Включена' : '❌ Выключена'}\n\n` +
+    const status =
+      `📊 Статус функций в этом чате:\n\n` +
+      `🎉 Селфи Суббота: ${
+        chat.selfieSaturdayEnabled ? "✅ Включена" : "❌ Выключена"
+      }\n` +
+      `🎨 Inktober: ${
+        chat.inktoberEnabled ? "✅ Включена" : "❌ Выключена"
+      }\n\n` +
       `Использование команд:\n` +
       `/enable <функция> - включить функцию\n` +
       `/disable <функция> - выключить функцию\n` +
@@ -178,5 +193,74 @@ featuresController.command("status", async (ctx) => {
   } catch (error) {
     console.error("Ошибка при получении статуса функций:", error);
     await ctx.reply("Произошла ошибка при получении статуса функций.");
+  }
+});
+
+featuresController.command("index", async (ctx) => {
+  try {
+    // const count = await prisma.message.count();
+    // // const count = 1000; 
+
+    // for (let i = 138800; i < count; i += 100) {
+    //   console.log(`Indexing messages ${i} of ${count}`);
+    //   const messages = await prisma.message.findMany({
+    //     skip: i,
+    //     take: 100,
+    //     include: {
+    //       replyToMessage: true,
+    //     }
+    //   });
+
+    //   const request = messages
+    //     .map((message) => {
+    //       const replyMessage = message.replyToMessage;
+
+    //       const replyToMessageText =
+    //       replyMessage?.text?.trim() ||
+    //         replyMessage?.summary?.trim() ||
+    //         null;
+
+    //       const messageText = (message.text || message.summary || "").trim();
+
+    //       const content = replyToMessageText
+    //         ? `Q: "${replyToMessageText}" \n\n A: "${messageText}"`
+    //         : messageText;
+
+    //       if (messageText.length <= 10 && (replyToMessageText === null || replyToMessageText.length <= 10)) {
+    //         return null;
+    //       }
+
+    //       return {
+    //         id: Number(message.id),
+    //         text: messageText,
+    //         content,
+    //         chatId: Number(message.chatId),
+    //         userId: Number(message.senderId),
+    //       };
+    //     })
+    //     .filter((message) => message);
+
+    //   const results = await embedMany({
+    //     model: llamaGate.textEmbeddingModel("auto"),
+    //     values: request.map((message) => message!.content),
+    //     providerOptions: {
+    //       llamaGate: {
+    //         dimensions: 4096,
+    //       },
+    //     },
+    //   });
+
+    //   await qdrantClient.upsert("messages", {
+    //     points: results.embeddings.map((result, index) => ({
+    //       id: request[index]!.id,
+    //       vector: result,
+    //       payload: request[index],
+    //     })),
+    //   });
+    // }
+    // await ctx.reply("Индексация завершена");
+  } catch (error) {
+    console.log("error");
+    console.error(error);
   }
 });

@@ -5,12 +5,13 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -19,7 +20,7 @@ model User {
   firstName String?
   lastName  String?
   userName  String?
-  metaInfo Json? @default("{}")
+  metaInfo  Json?   @default("{}")
 
   Message Message[]
 }
@@ -35,10 +36,10 @@ model Chat {
   title    String
   chatType ChatType
 
-  name                 String?
-  greeting             String?
+  name                  String?
+  greeting              String?
   selfieSaturdayEnabled Boolean? @default(false)
-  inktoberEnabled      Boolean? @default(false)
+  inktoberEnabled       Boolean? @default(false)
 
   Message Message[]
 }
@@ -58,8 +59,7 @@ model Message {
   senderId BigInt
   sender   User   @relation(fields: [senderId], references: [id])
 
-
-  sessionId String?
+  sessionId        String?
   replyToMessageId BigInt?
   replyToMessage   Message? @relation("replies", fields: [replyToMessageId, chatId], references: [id, chatId])
 

@@ -13,6 +13,7 @@ import { getTopUserMetaInfo } from "../tools/user/meta-analyzer";
 
 import { sessionIdGenerator } from "../config";
 import { format } from "date-fns";
+
 const defaultMessagesCreate = () => {
   const isHelpful = Math.random() < 0.3;
   const isUseUsername = Math.random() < 0.2;
@@ -115,7 +116,8 @@ const getThreadBySessionId = async (
 
 export const aiController = async (
   ctx: BotContext,
-  imageDescription?: string
+  imageDescription?: string,
+  userContext?: string[] | null
 ) => {
   console.log(ctx.msg);
   if (!ctx.msg?.text && !ctx.msg?.caption) {
@@ -289,6 +291,7 @@ export const aiController = async (
         isUseUsername &&
           "- В ответах если это уместно, иногда используй имя собеседника",
         isFunny && "- Отвечай с саркастическим юмором",
+        userContext && `\n Предыдущие сообщения пользователя похожие на запрос: "${userContext.join('", "')}"`
       ]
         .filter(Boolean)
         .join("\n"),
@@ -325,6 +328,7 @@ export const aiController = async (
         reply_to_message_id: ctx.msg?.message_id,
         parse_mode: "MarkdownV2",
       });
+
 
       try {
         await prisma.message.create({

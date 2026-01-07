@@ -1,18 +1,26 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:18.1-alpine3.23
     container_name: phoronis_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: phoronis
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    restart: unless-stopped
+  
+  qdrant:
+    image: qdrant/qdrant:v1.16
+    container_name: phoronis_qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
 volumes:
   postgres_data: 
+  qdrant_data:
