@@ -68,7 +68,7 @@ async function generateInktoberMessage(): Promise<string> {
     
     return message;
   } catch (error) {
-    logger.error("Ошибка при генерации сообщения для Inktober:", error);
+    logger.error(error, "Ошибка при генерации сообщения для Inktober");
     // Возвращаем стандартное сообщение в случае ошибки
     const today = new Date();
     const day = today.getDate();
@@ -101,7 +101,7 @@ export async function sendInktoberMessage(chatId: number | bigint): Promise<void
     });
 
   } catch (error) {
-    logger.error(`Ошибка при отправке сообщения Inktober в чат ${chatId}:`, error);
+    logger.error(error, `Ошибка при отправке сообщения Inktober в чат ${chatId}`);
     // Здесь можно добавить логику обработки ошибок, например, отключить фичу для этого чата, если бот заблокирован
   }
 }

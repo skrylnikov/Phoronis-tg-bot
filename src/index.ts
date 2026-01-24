@@ -13,12 +13,12 @@ bot.catch((err) => {
   logger.error(`Error while handling update ${ctx.update.update_id}:`);
   const e = err.error;
   if (e instanceof GrammyError) {
-    logger.error("Error in request:", e.description);
+    logger.error({ description: e.description }, "Error in request");
   } else if (e instanceof HttpError) {
-    logger.error("Could not contact Telegram:", e);
+    logger.error(e, "Could not contact Telegram");
   } else {
     logger.error(err);
-    logger.error("Unknown error:", e);
+    logger.error(e, "Unknown error");
   }
 });
 

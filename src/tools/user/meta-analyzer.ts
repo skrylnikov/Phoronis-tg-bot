@@ -155,7 +155,7 @@ ${messages.map((m) => m.summary || m.text).join("\n")}`;
     //   },
     // });
   } catch (error) {
-    logger.error("Error analyzing user meta info:", error);
+    logger.error(error, "Error analyzing user meta info");
     return null;
   }
 }
@@ -173,7 +173,7 @@ export function getTopUserMetaInfo(
   const { success, data: metaInfo } = userMetaInfoSchema.safeParse(rawMetaInfo);
 
   if (!success) {
-    logger.error("Invalid meta info:", rawMetaInfo);
+    logger.error(rawMetaInfo, "Invalid meta info");
     return {};
   }
 
@@ -296,7 +296,7 @@ export async function updateUserMetaInfo(
 
     return updatedMeta;
   } catch (error) {
-    logger.error("Error updating user meta info:", error);
+    logger.error(error, "Error updating user meta info");
     console.log(error);
     return null;
   }

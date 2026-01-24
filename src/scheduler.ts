@@ -38,7 +38,7 @@ export function startScheduler() {
       logger.info('Задача "Селфи Суббота" завершена.');
 
     } catch (error) {
-      logger.error('Критическая ошибка в задаче "Селфи Суббота":', error);
+      logger.error(error, 'Критическая ошибка в задаче "Селфи Суббота":');
     }
   }, {
     timezone: "UTC" // Явно указываем UTC для крона
@@ -75,7 +75,7 @@ export function startScheduler() {
       logger.info('Задача "Inktober" завершена.');
 
     } catch (error) {
-      logger.error('Критическая ошибка в задаче "Inktober":', error);
+      logger.error(error, 'Критическая ошибка в задаче "Inktober":');
     }
   }, {
     timezone: "UTC" // Явно указываем UTC для крона
