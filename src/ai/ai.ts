@@ -1,9 +1,7 @@
-
 // import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 // import { llamaGateToken, llamaGateBaseURL, openRouterToken } from '../config';
 import { openRouterToken } from '../config';
-
 
 // export const llamaGate = createOpenAICompatible({
 //   name: 'llamaGate',
@@ -20,7 +18,6 @@ import { openRouterToken } from '../config';
 
 export const openRouter = createOpenRouter({
   apiKey: openRouterToken,
-})
+});
 
-export const textBeautifierModel = openRouter('google/gemini-2.5-flash-lite')
-
+export const textBeautifierModel = openRouter('google/gemini-2.5-flash-lite');

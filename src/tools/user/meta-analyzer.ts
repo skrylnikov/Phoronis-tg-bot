@@ -1,42 +1,42 @@
-import { Message } from "@prisma/client";
-import { logger } from "../../logger";
-import { prisma } from "../../db";
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { z } from "zod";
-import { langfuse, langfuseHandler } from "../../ai/langfuse";
-import { openRouterToken } from "../../config";
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { ChatOpenAI } from '@langchain/openai';
+import type { Message } from '@prisma/client';
+import { z } from 'zod';
+import { langfuse, langfuseHandler } from '../../ai/langfuse';
+import { openRouterToken } from '../../config';
+import { prisma } from '../../db';
+import { logger } from '../../logger';
 
 const userMetaInfoSchema = z.object({
   interests: z.array(
     z.object({
       value: z.string(),
       weight: z.number().default(1),
-    })
+    }),
   ),
   communication_style: z.array(
     z.object({
       value: z.string(),
       weight: z.number().default(1),
-    })
+    }),
   ),
   notable_traits: z.array(
     z.object({
       value: z.string(),
       weight: z.number().default(1),
-    })
+    }),
   ),
   topics: z.array(
     z.object({
       value: z.string(),
       weight: z.number().default(1),
-    })
+    }),
   ),
   notes: z.array(
     z.object({
       value: z.string(),
       weight: z.number().default(1),
-    })
+    }),
   ),
 });
 
@@ -50,10 +50,10 @@ type UserMetaInfo = z.infer<typeof userMetaInfoSchema>;
 // });
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.5-flash-lite",
+  model: 'google/gemini-2.5-flash-lite',
   apiKey: openRouterToken,
   configuration: {
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: 'https://openrouter.ai/api/v1',
   },
   temperature: 0,
 });
@@ -113,7 +113,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
     //   ),
     // };
 
-    const prompt = await langfuse.getPrompt("meta-analyzer");
+    const prompt = await langfuse.getPrompt('meta-analyzer');
 
     const systemPrompt = prompt.compile();
 
@@ -124,7 +124,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
     // ${messages.map((m) => m.text).join("\n")}`;
 
     const userPrompt = `Проанализируй новые сообщения пользователя и создай обновленную метаинформацию:
-${messages.map((m) => m.summary || m.text).join("\n")}`;
+${messages.map((m) => m.summary || m.text).join('\n')}`;
 
     const rawMetaInfo = await geminiFlash2
       .withStructuredOutput(userMetaInfoSchema, {
@@ -135,7 +135,7 @@ ${messages.map((m) => m.summary || m.text).join("\n")}`;
       });
 
     const updatedMeta = userMetaInfoSchema.parse(
-      JSON.parse(rawMetaInfo.raw.content as string)
+      JSON.parse(rawMetaInfo.raw.content as string),
     );
 
     return await updateUserMetaInfo(userId, updatedMeta);
@@ -155,7 +155,7 @@ ${messages.map((m) => m.summary || m.text).join("\n")}`;
     //   },
     // });
   } catch (error) {
-    logger.error(error, "Error analyzing user meta info");
+    logger.error(error, 'Error analyzing user meta info');
     return null;
   }
 }
@@ -168,12 +168,12 @@ export function getTopUserMetaInfo(
     notable_traits?: number;
     topics?: number;
     notes?: number;
-  } = {}
-): UserMetaInfo | {} {
+  } = {},
+): UserMetaInfo | object {
   const { success, data: metaInfo } = userMetaInfoSchema.safeParse(rawMetaInfo);
 
   if (!success) {
-    logger.error(rawMetaInfo, "Invalid meta info");
+    logger.error(rawMetaInfo, 'Invalid meta info');
     return {};
   }
 
@@ -208,7 +208,7 @@ export function getTopUserMetaInfo(
 
 export function mergeMetaInfo(
   existing: UserMetaInfo,
-  newItems: Partial<UserMetaInfo>
+  newItems: Partial<UserMetaInfo>,
 ): UserMetaInfo {
   const result: UserMetaInfo = {
     interests: [...existing.interests],
@@ -221,7 +221,7 @@ export function mergeMetaInfo(
   // Функция для объединения массивов с учетом весов
   const mergeArrays = <T extends { value: string; weight: number }>(
     existingArray: T[],
-    newArray: T[] = []
+    newArray: T[] = [],
   ): T[] => {
     const merged: Record<string, T> = {};
 
@@ -250,14 +250,14 @@ export function mergeMetaInfo(
   if (newItems.communication_style) {
     result.communication_style = mergeArrays(
       existing.communication_style,
-      newItems.communication_style
+      newItems.communication_style,
     );
   }
 
   if (newItems.notable_traits) {
     result.notable_traits = mergeArrays(
       existing.notable_traits,
-      newItems.notable_traits
+      newItems.notable_traits,
     );
   }
 
@@ -274,7 +274,7 @@ export function mergeMetaInfo(
 
 export async function updateUserMetaInfo(
   userId: bigint,
-  newInfo: Partial<UserMetaInfo>
+  newInfo: Partial<UserMetaInfo>,
 ) {
   try {
     const user = await prisma.user.findUnique({
@@ -296,7 +296,7 @@ export async function updateUserMetaInfo(
 
     return updatedMeta;
   } catch (error) {
-    logger.error(error, "Error updating user meta info");
+    logger.error(error, 'Error updating user meta info');
     console.log(error);
     return null;
   }

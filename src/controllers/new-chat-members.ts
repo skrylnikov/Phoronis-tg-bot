@@ -1,6 +1,6 @@
-import { Context } from "grammy";
+import type { Context } from 'grammy';
 
-import { prisma } from "../db";
+import { prisma } from '../db';
 
 export const newChatMembersController = async (ctx: Context) => {
   const chat = await prisma.chat.findUnique({
@@ -19,7 +19,7 @@ export const newChatMembersController = async (ctx: Context) => {
         chatId: ctx.chatId!,
         senderId: reply.from!.id,
         sentAt: new Date(reply.date * 1000),
-        messageType: "TEXT",
+        messageType: 'TEXT',
         text: chat.greeting,
       },
     });

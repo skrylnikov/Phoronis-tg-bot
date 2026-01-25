@@ -1,21 +1,19 @@
-import { Composer } from "grammy";
-import { embed } from "ai";
-import { logger } from "../logger";
-
-import { saveChat, saveUser } from "../shared";
-import { prisma } from "../db";
-import { BotContext } from "../bot";
-import { aiController } from "../ai";
-import { analyzeUserMetaInfo } from "../tools/user/meta-analyzer";
-import { openRouterToken, token } from "../config";
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { langfuse, langfuseHandler } from "../ai/langfuse";
-import axios from "axios";
-import { Buffer } from "buffer";
-import { PhotoSize } from "@grammyjs/types";
-import { qdrantClient } from "../qdrant";
-import { openRouter } from "../ai";
+import type { PhotoSize } from '@grammyjs/types';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { ChatOpenAI } from '@langchain/openai';
+import { embed } from 'ai';
+import axios from 'axios';
+import { Buffer } from 'buffer';
+import { Composer } from 'grammy';
+import { aiController, openRouter } from '../ai';
+import { langfuse, langfuseHandler } from '../ai/langfuse';
+import type { BotContext } from '../bot';
+import { openRouterToken, token } from '../config';
+import { prisma } from '../db';
+import { logger } from '../logger';
+import { qdrantClient } from '../qdrant';
+import { saveChat, saveUser } from '../shared';
+import { analyzeUserMetaInfo } from '../tools/user/meta-analyzer';
 
 interface Media {
   url: string;
@@ -42,7 +40,7 @@ const analyzer = async (ctx: BotContext) => {
         senderId: ctx.from!.id,
       },
       orderBy: {
-        sentAt: "desc",
+        sentAt: 'desc',
       },
       take: 30,
     });
@@ -51,7 +49,7 @@ const analyzer = async (ctx: BotContext) => {
   }
 };
 
-processMessageController.on(":text", async (ctx) => {
+processMessageController.on(':text', async (ctx) => {
   try {
     await Promise.all([
       saveChat(ctx.chat),
@@ -65,7 +63,7 @@ processMessageController.on(":text", async (ctx) => {
       },
     });
 
-    if (chat?.greeting || ctx.chat.type === "private") {
+    if (chat?.greeting || ctx.chat.type === 'private') {
       const replyToMessage = ctx.msg?.reply_to_message?.message_id
         ? await prisma.message.findUnique({
             where: {
@@ -88,7 +86,7 @@ processMessageController.on(":text", async (ctx) => {
           replyToMessageId: replyToMessage?.id,
           sentAt: new Date(ctx.msg.date * 1000),
           text: ctx.msg.text,
-          messageType: "TEXT",
+          messageType: 'TEXT',
         },
       });
 
@@ -100,7 +98,7 @@ processMessageController.on(":text", async (ctx) => {
       ctx.msg.reply_to_message?.caption?.trim() ||
       null;
 
-    const messageText = (ctx.msg.text || ctx.msg.caption || "").trim();
+    const messageText = (ctx.msg.text || ctx.msg.caption || '').trim();
 
     const content = replyToMessageText
       ? `Q: ${replyToMessageText} \n\n A: ${messageText}`
@@ -110,7 +108,7 @@ processMessageController.on(":text", async (ctx) => {
 
     if (content.length > 10) {
       const result = await embed({
-        model: openRouter.textEmbeddingModel("qwen/qwen3-embedding-8b"),
+        model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
         value: content,
         providerOptions: {
           llamaGate: {
@@ -119,12 +117,12 @@ processMessageController.on(":text", async (ctx) => {
         },
       });
 
-      const searchResult = await qdrantClient.search("messages", {
+      const searchResult = await qdrantClient.search('messages', {
         vector: result.embedding,
         filter: {
           must: [
             {
-              key: "userId",
+              key: 'userId',
               match: {
                 value: ctx.from!.id,
               },
@@ -141,7 +139,7 @@ processMessageController.on(":text", async (ctx) => {
       }
 
       qdrantClient
-        .upsert("messages", {
+        .upsert('messages', {
           points: [
             {
               id: ctx.msg.message_id,
@@ -161,9 +159,9 @@ processMessageController.on(":text", async (ctx) => {
     // const randomAnswer = ctx.msg.text.endsWith("?") && Math.random() < 0.3;
 
     if (
-      ctx.msg.text.toLowerCase().startsWith("ио") ||
+      ctx.msg.text.toLowerCase().startsWith('ио') ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === "private"
+      ctx.chat.type === 'private'
     ) {
       await aiController(ctx, undefined, userContext);
     }
@@ -173,8 +171,8 @@ processMessageController.on(":text", async (ctx) => {
 });
 
 async function downloadImage(url: string): Promise<Buffer> {
-  console.log("downloadImage", url);
-  const response = await axios.get(url, { responseType: "arraybuffer" });
+  console.log('downloadImage', url);
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
   return Buffer.from(response.data);
 }
 
@@ -195,15 +193,15 @@ function selectOptimalPhoto(photos: PhotoSize[]): any {
 }
 
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.5-flash-lite",
+  model: 'google/gemini-2.5-flash-lite',
   apiKey: openRouterToken,
   configuration: {
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: 'https://openrouter.ai/api/v1',
   },
   temperature: 0,
 });
 
-processMessageController.on("msg", async (ctx) => {
+processMessageController.on('msg', async (ctx) => {
   try {
     await Promise.all([
       saveChat(ctx.chat),
@@ -217,7 +215,7 @@ processMessageController.on("msg", async (ctx) => {
       },
     });
 
-    if (chat?.greeting || ctx.chat.type === "private") {
+    if (chat?.greeting || ctx.chat.type === 'private') {
       let media: Media[] = [];
 
       if (ctx.msg.photo) {
@@ -229,12 +227,12 @@ processMessageController.on("msg", async (ctx) => {
           {
             url,
             // buffer: imageBuffer.toString("base64"),
-            mimeType: "image/jpeg",
+            mimeType: 'image/jpeg',
           },
         ];
       }
 
-      const prompt = await langfuse.getPrompt("image-description");
+      const prompt = await langfuse.getPrompt('image-description');
 
       const systemPrompt = prompt.compile();
 
@@ -243,24 +241,24 @@ processMessageController.on("msg", async (ctx) => {
           new SystemMessage(systemPrompt),
           new HumanMessage({
             content: media.map((m) => ({
-              type: "image_url",
+              type: 'image_url',
               image_url: { url: m.url },
             })),
           }),
         ],
         {
           callbacks: [langfuseHandler],
-        }
+        },
       );
 
       const imageDescription =
-        typeof response.content === "string"
+        typeof response.content === 'string'
           ? response.content
           : Array.isArray(response.content)
-          ? response.content
-              .map((c) => (typeof c === "string" ? c : ""))
-              .join("")
-          : "";
+            ? response.content
+                .map((c) => (typeof c === 'string' ? c : ''))
+                .join('')
+            : '';
 
       logger.debug(`Image description: ${imageDescription}`);
 
@@ -268,7 +266,7 @@ processMessageController.on("msg", async (ctx) => {
         where: {
           chatId_id: {
             chatId: ctx.chatId!,
-            id: ctx.msg?.message_id!,
+            id: ctx.msg?.message_id ?? 0,
           },
         },
         select: {
@@ -284,16 +282,16 @@ processMessageController.on("msg", async (ctx) => {
           replyToMessageId: replyToMessage?.id,
           sentAt: new Date(ctx.msg.date * 1000),
           text: ctx.msg.caption,
-          messageType: "MEDIA",
+          messageType: 'MEDIA',
           media: JSON.stringify(media.map((m) => m.url)),
           summary: imageDescription,
         },
       });
 
       if (
-        ctx.msg.text?.toLowerCase().startsWith("ио") ||
+        ctx.msg.text?.toLowerCase().startsWith('ио') ||
         ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-        ctx.chat.type === "private"
+        ctx.chat.type === 'private'
       ) {
         await aiController(ctx, imageDescription);
       }

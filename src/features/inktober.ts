@@ -1,28 +1,55 @@
-import { ChatOpenAI } from "@langchain/openai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import MD from "telegramify-markdown";
-
-import { openRouterToken } from "../config"; // Импортируем токен
-import { bot } from "../bot"; // Импортируем экземпляр бота
-import { logger } from "../logger"; // Импортируем логгер
-import { prisma } from "../db";
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { ChatOpenAI } from '@langchain/openai';
+import MD from 'telegramify-markdown';
+import { bot } from '../bot'; // Импортируем экземпляр бота
+import { openRouterToken } from '../config'; // Импортируем токен
+import { prisma } from '../db';
+import { logger } from '../logger'; // Импортируем логгер
 
 // Используем ту же модель, что и в chat-generation
 const geminiFlash2 = new ChatOpenAI({
-  model: "google/gemini-2.5-flash-lite",
+  model: 'google/gemini-2.5-flash-lite',
   apiKey: openRouterToken,
   configuration: {
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: 'https://openrouter.ai/api/v1',
   },
   temperature: 1, // Можно сделать температуру повыше для креативности
 });
 
 // Список тем Inktober
 const inktoberThemes = [
-  "Mustache", "Weave", "Crown", "Murky", "Deer", "Pierce", "Starfish", "Reckless", "Heavy", "Sweep",
-  "Sting", "Shredded", "Drink", "Trunk", "Ragged", "Blunder", "Ornate", "Deal", "Arctic", "Rivals",
-  "Blast", "Button", "Firefly", "Rowdy", "Inferno", "Puzzling", "Onion", "Skeletal", "Lesson", "Vacant", "Award"
+  'Mustache',
+  'Weave',
+  'Crown',
+  'Murky',
+  'Deer',
+  'Pierce',
+  'Starfish',
+  'Reckless',
+  'Heavy',
+  'Sweep',
+  'Sting',
+  'Shredded',
+  'Drink',
+  'Trunk',
+  'Ragged',
+  'Blunder',
+  'Ornate',
+  'Deal',
+  'Arctic',
+  'Rivals',
+  'Blast',
+  'Button',
+  'Firefly',
+  'Rowdy',
+  'Inferno',
+  'Puzzling',
+  'Onion',
+  'Skeletal',
+  'Lesson',
+  'Vacant',
+  'Award',
 ];
 
 // Функция для получения темы дня
@@ -46,7 +73,7 @@ const promptTemplate = PromptTemplate.fromTemplate(
 4. Хэштеги #inktober и #inktober{day}
 5. Подходящий эмодзи
 
-Сделай сообщение живым и вдохновляющим!`
+Сделай сообщение живым и вдохновляющим!`,
 );
 
 const outputParser = new StringOutputParser();
@@ -59,16 +86,16 @@ async function generateInktoberMessage(): Promise<string> {
     const today = new Date();
     const day = today.getDate();
     const theme = getThemeOfDay();
-    
+
     const message = await chain.invoke({
       day: day.toString(),
       dayOfInktober: day.toString(),
       theme: theme,
     });
-    
+
     return message;
   } catch (error) {
-    logger.error(error, "Ошибка при генерации сообщения для Inktober");
+    logger.error(error, 'Ошибка при генерации сообщения для Inktober');
     // Возвращаем стандартное сообщение в случае ошибки
     const today = new Date();
     const day = today.getDate();
@@ -78,14 +105,20 @@ async function generateInktoberMessage(): Promise<string> {
 }
 
 // Функция для отправки сообщения в конкретный чат
-export async function sendInktoberMessage(chatId: number | bigint): Promise<void> {
+export async function sendInktoberMessage(
+  chatId: number | bigint,
+): Promise<void> {
   const message = await generateInktoberMessage();
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    const reply = await bot.api.sendMessage(targetChatId, MD(message, "remove"), {
-      parse_mode: "MarkdownV2",
-    });
+    const reply = await bot.api.sendMessage(
+      targetChatId,
+      MD(message, 'remove'),
+      {
+        parse_mode: 'MarkdownV2',
+      },
+    );
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
 
     await prisma.message.create({
@@ -95,13 +128,15 @@ export async function sendInktoberMessage(chatId: number | bigint): Promise<void
         senderId: reply.from!.id,
         replyToMessageId: null,
         sentAt: new Date(reply.date * 1000),
-        messageType: "TEXT",
+        messageType: 'TEXT',
         text: message,
       },
     });
-
   } catch (error) {
-    logger.error(error, `Ошибка при отправке сообщения Inktober в чат ${chatId}`);
+    logger.error(
+      error,
+      `Ошибка при отправке сообщения Inktober в чат ${chatId}`,
+    );
     // Здесь можно добавить логику обработки ошибок, например, отключить фичу для этого чата, если бот заблокирован
   }
 }

@@ -1,18 +1,15 @@
 // import { OpenAI } from "openai";
-import { Message, User } from "@prisma/client";
-import { unique } from "remeda";
-import MD from "telegramify-markdown";
-
-import { logger } from "../logger";
-import { BotContext } from "../bot";
-import { prisma } from "../db";
-
-import { langfuse } from "./langfuse";
-import { chatGeneration } from "./chat-generation";
-import { getTopUserMetaInfo } from "../tools/user/meta-analyzer";
-
-import { sessionIdGenerator } from "../config";
-import { format } from "date-fns";
+import type { Message, User } from '@prisma/client';
+import { format } from 'date-fns';
+import { unique } from 'remeda';
+import MD from 'telegramify-markdown';
+import type { BotContext } from '../bot';
+import { sessionIdGenerator } from '../config';
+import { prisma } from '../db';
+import { logger } from '../logger';
+import { getTopUserMetaInfo } from '../tools/user/meta-analyzer';
+import { chatGeneration } from './chat-generation';
+import { langfuse } from './langfuse';
 
 const defaultMessagesCreate = () => {
   const isHelpful = Math.random() < 0.3;
@@ -22,25 +19,25 @@ const defaultMessagesCreate = () => {
   const isFunny = !isHelpful && Math.random() < 0.1;
 
   return {
-    role: "system",
+    role: 'system',
     content: `Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии.
-    ${isShort ? "Отвечай кратко." : ""}  ${
-      isHelpful ? "Будь полезной и старайся помочь." : ""
+    ${isShort ? 'Отвечай кратко.' : ''}  ${
+      isHelpful ? 'Будь полезной и старайся помочь.' : ''
     }
     Отвечай в стиле собеседника. ${
       isInterests
-        ? "Иногда предлагай пообщаться на интересные пользователю темы."
-        : ""
+        ? 'Иногда предлагай пообщаться на интересные пользователю темы.'
+        : ''
     }
     ${
       isUseUsername
-        ? "В ответах если это уместно, иногда используй имя собеседника."
-        : ""
+        ? 'В ответах если это уместно, иногда используй имя собеседника.'
+        : ''
     }
-    ${isFunny ? "Отвечай с саркастическим юмором." : ""}
+    ${isFunny ? 'Отвечай с саркастическим юмором.' : ''}
     Не используй эмодзи.
     Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение. Ответ должен быть строкой, не JSON.`,
-  } as any;
+  } as unknown;
 };
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
@@ -85,7 +82,7 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
 const getThreadBySessionId = async (
   chatId: number,
   messageId: bigint | null,
-  sessionId: string
+  sessionId: string,
 ) => {
   const result: Array<Message & { sender: User }> = [];
   const messages = await prisma.message.findMany({
@@ -117,7 +114,7 @@ const getThreadBySessionId = async (
 export const aiController = async (
   ctx: BotContext,
   imageDescription?: string,
-  userContext?: string[] | null
+  userContext?: string[] | null,
 ) => {
   console.log(ctx.msg);
   if (!ctx.msg?.text && !ctx.msg?.caption) {
@@ -125,25 +122,28 @@ export const aiController = async (
   }
 
   const typingInterval = setInterval(async () => {
-    await ctx.replyWithChatAction("typing");
+    await ctx.replyWithChatAction('typing');
   }, 5000);
 
   try {
-    await ctx.replyWithChatAction("typing");
+    await ctx.replyWithChatAction('typing');
 
     const text = ctx.msg.text || ctx.msg.caption;
 
     // const defaultMessages = defaultMessagesCreate();
 
-    const rawMessages: ReturnType<typeof defaultMessagesCreate>[] = [];
+    const rawMessages: Array<{
+      role: string;
+      content: string | Array<unknown>;
+    }> = [];
 
     let list: Awaited<ReturnType<typeof getThread>> = [];
 
     const replyToMessage = await prisma.message.findUnique({
       where: {
         chatId_id: {
-          chatId: ctx.chatId!,
-          id: ctx.msg?.message_id!,
+          chatId: ctx.chatId ?? 0,
+          id: ctx.msg?.message_id ?? 0,
         },
       },
       select: {
@@ -157,42 +157,42 @@ export const aiController = async (
     if (ctx.msg.reply_to_message) {
       if (replyToMessage?.sessionId) {
         list = await getThreadBySessionId(
-          ctx.chatId!,
+          ctx.chatId ?? 0,
           BigInt(ctx.msg.reply_to_message.message_id),
-          replyToMessage.sessionId
+          replyToMessage.sessionId,
         );
       } else {
         list = await getThread(
-          ctx.chatId!,
-          BigInt(ctx.msg.reply_to_message.message_id)
+          ctx.chatId ?? 0,
+          BigInt(ctx.msg.reply_to_message.message_id),
         );
       }
     }
 
     // Группируем последовательные сообщения
     let currentMessages: typeof list = [];
-    let currentRole: "assistant" | "user" | null = null;
+    let currentRole: 'assistant' | 'user' | null = null;
 
     const pushMessages = () => {
       if (currentMessages.length === 0) return;
 
-      if (currentRole === "assistant") {
+      if (currentRole === 'assistant') {
         rawMessages.push({
-          role: currentRole!,
-          content: currentMessages[0].summary || currentMessages[0].text!,
+          role: 'assistant',
+          content: currentMessages[0].summary ?? currentMessages[0].text ?? '',
         });
-      } else {
+      } else if (currentRole === 'user') {
         rawMessages.push({
-          role: currentRole!,
+          role: 'user',
           content: JSON.stringify(
             currentMessages.map((msg) => ({
               type: msg.messageType,
               sender: msg.sender.userName,
               text:
-                (msg.messageType === "MEDIA"
-                  ? "Пользователь прислал фотографию, описание которой: "
-                  : "") + (msg.summary || msg.text),
-            }))
+                (msg.messageType === 'MEDIA'
+                  ? 'Пользователь прислал фотографию, описание которой: '
+                  : '') + (msg.summary || msg.text),
+            })),
           ),
         });
       }
@@ -203,7 +203,7 @@ export const aiController = async (
     // Обрабатываем сообщения из истории
     list.forEach((msg) => {
       const role =
-        msg.sender.userName === ctx.me.username ? "assistant" : "user";
+        msg.sender.userName === ctx.me.username ? 'assistant' : 'user';
 
       if (role !== currentRole) {
         pushMessages();
@@ -218,21 +218,21 @@ export const aiController = async (
 
     // Добавляем текущее сообщение пользователя
     rawMessages.push({
-      role: "user",
+      role: 'user',
       content: JSON.stringify([
         ...(imageDescription
           ? [
               {
-                type: "image",
+                type: 'image',
                 sender: ctx.from?.username,
                 image:
-                  "Пользователь прислал фотографию, описание которой: " +
+                  'Пользователь прислал фотографию, описание которой: ' +
                   imageDescription,
               },
             ]
           : []),
         {
-          type: "text",
+          type: 'text',
           sender: ctx.from?.username,
           text,
         },
@@ -243,27 +243,27 @@ export const aiController = async (
       where: {
         userName: {
           in: unique([
-            ctx.from?.username!,
-            ...list.map((x) => x.sender.userName!),
-          ]).filter(Boolean),
+            ctx.from?.username ?? undefined,
+            ...list.map((x) => x.sender.userName),
+          ]).filter((x): x is string => x !== undefined),
         },
       },
     });
 
-    const prompt = await langfuse.getPrompt("chat-generation");
+    const prompt = await langfuse.getPrompt('chat-generation');
 
     const trace = langfuse.trace({
-      name: "chat-generation",
+      name: 'chat-generation',
       sessionId,
       userId: ctx.from?.id?.toString() || null,
       metadata: {
         userName: [
-          ctx.from?.username ? "@" + ctx.from?.username : null,
+          ctx.from?.username ? '@' + ctx.from?.username : null,
           ctx.from?.first_name,
           ctx.from?.last_name,
         ]
           .filter(Boolean)
-          .join(" "),
+          .join(' '),
       },
     });
 
@@ -280,30 +280,31 @@ export const aiController = async (
           lastName: x.lastName,
           userName: x.userName,
           metaInfo: getTopUserMetaInfo(x.metaInfo),
-        }))
+        })),
       ),
       rules: [
-        "- Используй tools когда это нужно",
-        isShort && "- Отвечай кратко",
-        isHelpful && "- Будь полезной и старайся помочь",
+        '- Используй tools когда это нужно',
+        isShort && '- Отвечай кратко',
+        isHelpful && '- Будь полезной и старайся помочь',
         isInterests &&
-          "- Иногда предлагай пообщаться на интересные пользователю темы",
+          '- Иногда предлагай пообщаться на интересные пользователю темы',
         isUseUsername &&
-          "- В ответах если это уместно, иногда используй имя собеседника",
-        isFunny && "- Отвечай с саркастическим юмором",
-        userContext && `\n Предыдущие сообщения пользователя похожие на запрос: "${userContext.join('", "')}"`
+          '- В ответах если это уместно, иногда используй имя собеседника',
+        isFunny && '- Отвечай с саркастическим юмором',
+        userContext &&
+          `\n Предыдущие сообщения пользователя похожие на запрос: "${userContext.join('", "')}"`,
       ]
         .filter(Boolean)
-        .join("\n"),
+        .join('\n'),
 
-      time: format(new Date(), "dd.MM.yyyy HH:mm:ss"),
+      time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
     });
 
     console.log(compiledPrompt);
 
     const messages = [
       {
-        role: "system",
+        role: 'system',
         content: compiledPrompt,
       },
       ...rawMessages,
@@ -318,27 +319,26 @@ export const aiController = async (
         ...userList[0],
         id: Number(userList[0].id),
       })} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
-        rawMessages
-      )} \n response: "${result}"`
+        rawMessages,
+      )} \n response: "${result}"`,
     );
 
     if (result) {
       clearInterval(typingInterval);
-      const reply = await ctx.reply(MD(result.toString(), "remove"), {
+      const reply = await ctx.reply(MD(result.toString(), 'remove'), {
         reply_to_message_id: ctx.msg?.message_id,
-        parse_mode: "MarkdownV2",
+        parse_mode: 'MarkdownV2',
       });
-
 
       try {
         await prisma.message.create({
           data: {
             id: reply.message_id,
-            chatId: ctx.chatId!,
-            senderId: reply.from!.id,
+            chatId: ctx.chatId ?? 0,
+            senderId: reply.from?.id ?? 0,
             replyToMessageId: replyToMessage ? replyToMessage.id : null,
             sentAt: new Date(reply.date * 1000),
-            messageType: "TEXT",
+            messageType: 'TEXT',
             text: result.toString(),
           },
         });
@@ -346,11 +346,11 @@ export const aiController = async (
         logger.error(error);
         logger.debug({
           id: reply.message_id,
-          chatId: ctx.chatId!,
-          senderId: reply.from!.id,
+          chatId: ctx.chatId ?? 0,
+          senderId: reply.from?.id ?? 0,
           replyToMessageId: ctx.msg?.message_id,
           sentAt: new Date(reply.date * 1000),
-          messageType: "TEXT",
+          messageType: 'TEXT',
           text: result.toString(),
         });
       }

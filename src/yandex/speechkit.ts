@@ -1,13 +1,13 @@
-import z from "zod";
-import { S3mini, sanitizeETag } from "s3mini";
+import { S3mini } from 's3mini';
+import z from 'zod';
 
-import { yandexCloudToken, yandexS3ID, yandexS3Secret } from "../config";
+import { yandexCloudToken, yandexS3ID, yandexS3Secret } from '../config';
 
 const s3client = new S3mini({
   accessKeyId: yandexS3ID,
   secretAccessKey: yandexS3Secret,
-  endpoint: "https://storage.yandexcloud.net",
-  region: "us-east-1",
+  endpoint: 'https://storage.yandexcloud.net',
+  region: 'us-east-1',
 });
 
 const recoginzeSyncSchema = z.object({
@@ -16,15 +16,15 @@ const recoginzeSyncSchema = z.object({
 
 const recognizeSync = async (file: Buffer) => {
   const { result } = await fetch(
-    "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize",
+    'https://stt.api.cloud.yandex.net/speech/v1/stt:recognize',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Api-Key ${yandexCloudToken}`,
-        "x-data-logging-enabled": "true",
+        'x-data-logging-enabled': 'true',
       },
       body: file,
-    }
+    },
   )
     .then((res) => res.json())
     .then((res) => recoginzeSyncSchema.parse(res));
@@ -40,40 +40,41 @@ const checkSchema = z.object({
       chunks: z.array(
         z.object({
           alternatives: z.array(z.object({ text: z.string().optional() })),
-        })
+        }),
       ),
     })
     .optional(),
 });
 
+// biome-ignore lint/correctness/noUnusedVariables: test
 type Check = z.infer<typeof checkSchema>;
 
 const recognizeAsync = async (
   fileName: string,
   file: Buffer,
-  duration: number
+  duration: number,
 ) => {
-  await s3client.putObject("bot-voic/phoronis/" + fileName, file);
+  await s3client.putObject('bot-voic/phoronis/' + fileName, file);
 
   const taskResponse = await fetch(
-    "https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize",
+    'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Api-Key ${yandexCloudToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         config: {
           specification: {
-            languageCode: "ru-RU",
+            languageCode: 'ru-RU',
           },
         },
         audio: {
           uri: `https://storage.yandexcloud.net/bot-voic/phoronis/${fileName}`,
         },
       }),
-    }
+    },
   );
 
   const task = checkSchema.parse(await taskResponse.json());
@@ -87,11 +88,11 @@ const recognizeAsync = async (
     const operationResponse = await fetch(
       `https://operation.api.cloud.yandex.net/operations/${id}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: {
           Authorization: `Api-Key ${yandexCloudToken}`,
         },
-      }
+      },
     );
 
     const data = checkSchema.parse(await operationResponse.json());
@@ -107,7 +108,7 @@ const recognizeAsync = async (
   const text =
     result?.response?.chunks
       ?.map(({ alternatives }) => alternatives?.[0]?.text)
-      .join(". ") || null;
+      .join('. ') || null;
 
   return text;
 };

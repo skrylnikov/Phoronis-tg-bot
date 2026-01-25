@@ -1,7 +1,7 @@
-import { User } from "@grammyjs/types";
-import { LRUCache } from "lru-cache";
+import type { User } from '@grammyjs/types';
+import { LRUCache } from 'lru-cache';
 
-import { prisma } from "../db";
+import { prisma } from '../db';
 
 const cache = new LRUCache<number, true>({
   max: 10000,
