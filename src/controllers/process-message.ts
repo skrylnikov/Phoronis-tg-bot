@@ -1,7 +1,5 @@
-import { Buffer } from 'node:buffer';
 import type { PhotoSize } from '@grammyjs/types';
 import { generateText } from 'ai';
-import axios from 'axios';
 import { Composer } from 'grammy';
 import { aiController, openRouter, searchContext, upsertMessage } from '../ai';
 import { langfuse } from '../ai/langfuse';

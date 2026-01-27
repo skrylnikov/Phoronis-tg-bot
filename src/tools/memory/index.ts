@@ -1,4 +1,4 @@
-import { embed, generateObject, generateText, Output } from 'ai';
+import { embed, generateText, Output } from 'ai';
 import { z } from 'zod';
 import { openRouter } from '../../ai/ai';
 import { prisma } from '../../db';

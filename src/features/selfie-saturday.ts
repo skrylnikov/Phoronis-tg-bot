@@ -2,7 +2,6 @@ import { generateText } from 'ai';
 import MD from 'telegramify-markdown';
 import { openRouter } from '../ai/ai';
 import { bot } from '../bot';
-import { prisma } from '../db';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
 
