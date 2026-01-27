@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 
 import { prisma } from '../db';
+import { saveMessage } from '../shared';
 
 export const meController = async (ctx: Context) => {
   try {
@@ -13,15 +14,13 @@ export const meController = async (ctx: Context) => {
       const reply = await ctx.reply(result, { parse_mode: 'Markdown' });
       await ctx.api.deleteMessage(ctx.message.chat.id, ctx.message.message_id);
 
-      await prisma.message.create({
-        data: {
-          id: reply.message_id,
-          chatId: ctx.chatId!,
-          senderId: reply.from!.id,
-          sentAt: new Date(reply.date * 1000),
-          messageType: 'TEXT',
-          text: result,
-        },
+      await saveMessage({
+        id: reply.message_id,
+        chatId: ctx.chatId!,
+        senderId: reply.from!.id,
+        sentAt: new Date(reply.date * 1000),
+        messageType: 'TEXT',
+        text: result,
       });
     }
   } catch (e) {

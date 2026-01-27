@@ -8,6 +8,7 @@ import { token } from '../config.js';
 
 import { prisma } from '../db';
 import { logger } from '../logger';
+import { saveMessage } from '../shared';
 import { yandex } from '../yandex';
 
 export const voiceController = async (ctx: BotContext) => {
@@ -93,31 +94,27 @@ export const voiceController = async (ctx: BotContext) => {
         recognizedResult.length > 350
           ? langfuse.getPrompt('voice-summarize')
           : null,
-        prisma.message.create({
-          data: {
-            id: ctx.msg!.message_id,
-            chatId: ctx.chatId!,
-            senderId: ctx.from!.id,
-            sentAt: new Date(ctx.msg!.date * 1000),
-            messageType: 'VOICE',
-            text: recognizedResult,
-            replyToMessageId: replyToMessage?.id,
-          },
+        saveMessage({
+          id: ctx.msg!.message_id,
+          chatId: ctx.chatId!,
+          senderId: ctx.from!.id,
+          sentAt: new Date(ctx.msg!.date * 1000),
+          messageType: 'VOICE',
+          text: recognizedResult,
+          replyToMessageId: ctx.msg?.reply_to_message?.message_id,
         }),
       ]);
 
     const [savedBotMessage, beautifiedResult, summarizedResult] =
       await Promise.all([
-        prisma.message.create({
-          data: {
-            id: reply.message_id,
-            chatId: ctx.chatId!,
-            senderId: reply.from!.id,
-            sentAt: new Date(reply.date * 1000),
-            messageType: 'VOICE',
-            text: reply.text,
-            replyToMessageId: ctx.message?.message_id,
-          },
+        saveMessage({
+          id: reply.message_id,
+          chatId: ctx.chatId!,
+          senderId: reply.from!.id,
+          sentAt: new Date(reply.date * 1000),
+          messageType: 'VOICE',
+          text: reply.text,
+          replyToMessageId: ctx.message?.message_id,
         }),
         generateText({
           model: textBeautifierModel,

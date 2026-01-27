@@ -1,36 +1,20 @@
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { ChatOpenAI } from '@langchain/openai';
+import { generateText } from 'ai';
 import MD from 'telegramify-markdown';
-import { bot } from '../bot'; // Импортируем экземпляр бота
-import { openRouterToken } from '../config'; // Импортируем токен
+import { openRouter } from '../ai/ai';
+import { bot } from '../bot';
 import { prisma } from '../db';
-import { logger } from '../logger'; // Импортируем логгер
-
-// Используем ту же модель, что и в chat-generation
-const geminiFlash2 = new ChatOpenAI({
-  model: 'google/gemini-2.5-flash-lite',
-  apiKey: openRouterToken,
-  configuration: {
-    baseURL: 'https://openrouter.ai/api/v1',
-  },
-  temperature: 1, // Можно сделать температуру повыше для креативности
-});
-
-// Промпт для генерации сообщения
-const promptTemplate = PromptTemplate.fromTemplate(
-  `Придумай короткое и веселое сообщение с саркастичным подтекстом для чата, призывающее людей постить свои селфи в субботу.
-  Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.`,
-);
-
-const outputParser = new StringOutputParser();
-
-const chain = promptTemplate.pipe(geminiFlash2).pipe(outputParser);
+import { logger } from '../logger';
+import { saveMessage } from '../shared';
 
 // Функция для генерации сообщения
 async function generateSelfieMessage(): Promise<string> {
   try {
-    const message = await chain.invoke({});
+    const message = await generateText({
+      model: openRouter('google/gemini-2.5-flash-lite'),
+      prompt: `Придумай короткое и веселое сообщение с саркастичным подтекстом для чата, призывающее людей постить свои селфи в субботу.
+Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.`,
+      temperature: 1,
+    }).then((r) => r.text);
     return message;
   } catch (error) {
     logger.error(error, 'Ошибка при генерации сообщения для Селфи Субботы');
@@ -56,16 +40,13 @@ export async function sendSelfieSaturdayMessage(
     );
     logger.info(`Сообщение Селфи Субботы отправлено в чат ${targetChatId}`);
 
-    await prisma.message.create({
-      data: {
-        id: reply.message_id,
-        chatId,
-        senderId: reply.from!.id,
-        replyToMessageId: null,
-        sentAt: new Date(reply.date * 1000),
-        messageType: 'TEXT',
-        text: message,
-      },
+    await saveMessage({
+      id: reply.message_id,
+      chatId,
+      senderId: reply.from!.id,
+      sentAt: new Date(reply.date * 1000),
+      messageType: 'TEXT',
+      text: message,
     });
   } catch (error) {
     logger.error(

@@ -1,21 +1,10 @@
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { ChatOpenAI } from '@langchain/openai';
+import { generateText } from 'ai';
 import MD from 'telegramify-markdown';
-import { bot } from '../bot'; // Импортируем экземпляр бота
-import { openRouterToken } from '../config'; // Импортируем токен
+import { openRouter } from '../ai/ai';
+import { bot } from '../bot';
 import { prisma } from '../db';
-import { logger } from '../logger'; // Импортируем логгер
-
-// Используем ту же модель, что и в chat-generation
-const geminiFlash2 = new ChatOpenAI({
-  model: 'google/gemini-2.5-flash-lite',
-  apiKey: openRouterToken,
-  configuration: {
-    baseURL: 'https://openrouter.ai/api/v1',
-  },
-  temperature: 1, // Можно сделать температуру повыше для креативности
-});
+import { logger } from '../logger';
+import { saveMessage } from '../shared';
 
 // Список тем Inktober
 const inktoberThemes = [
@@ -60,26 +49,6 @@ function getThemeOfDay(): string {
   return inktoberThemes[themeIndex];
 }
 
-// Промпт для генерации сообщения
-const promptTemplate = PromptTemplate.fromTemplate(
-  `Сегодня {day} октября - день {dayOfInktober} из Inktober! 🎨
-
-Тема дня: {theme}
-
-Напиши вдохновляющее сообщение для чата, включающее:
-1. Короткое приветствие и мотивацию для участия в Inktober
-2. Тему дня на английском и русском языках
-3. 2-3 креативные идеи для рисунка на эту тему
-4. Хэштеги #inktober и #inktober{day}
-5. Подходящий эмодзи
-
-Сделай сообщение живым и вдохновляющим!`,
-);
-
-const outputParser = new StringOutputParser();
-
-const chain = promptTemplate.pipe(geminiFlash2).pipe(outputParser);
-
 // Функция для генерации сообщения
 async function generateInktoberMessage(): Promise<string> {
   try {
@@ -87,11 +56,22 @@ async function generateInktoberMessage(): Promise<string> {
     const day = today.getDate();
     const theme = getThemeOfDay();
 
-    const message = await chain.invoke({
-      day: day.toString(),
-      dayOfInktober: day.toString(),
-      theme: theme,
-    });
+    const message = await generateText({
+      model: openRouter('google/gemini-2.5-flash-lite'),
+      prompt: `Сегодня ${day} октября - день ${day} из Inktober! 🎨
+
+Тема дня: ${theme}
+
+Напиши вдохновляющее сообщение для чата, включающее:
+1. Короткое приветствие и мотивацию для участия в Inktober
+2. Тему дня на английском и русском языках
+3. 2-3 креативные идеи для рисунка на эту тему
+4. Хэштеги #inktober и #inktober${day}
+5. Подходящий эмодзи
+
+Сделай сообщение живым и вдохновляющим!`,
+      temperature: 1,
+    }).then((r) => r.text);
 
     return message;
   } catch (error) {
@@ -121,16 +101,13 @@ export async function sendInktoberMessage(
     );
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
 
-    await prisma.message.create({
-      data: {
-        id: reply.message_id,
-        chatId,
-        senderId: reply.from!.id,
-        replyToMessageId: null,
-        sentAt: new Date(reply.date * 1000),
-        messageType: 'TEXT',
-        text: message,
-      },
+    await saveMessage({
+      id: reply.message_id,
+      chatId,
+      senderId: reply.from!.id,
+      sentAt: new Date(reply.date * 1000),
+      messageType: 'TEXT',
+      text: message,
     });
   } catch (error) {
     logger.error(

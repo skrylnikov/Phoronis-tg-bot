@@ -7,38 +7,10 @@ import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
+import { saveMessage } from '../shared';
 import { getTopUserMetaInfo } from '../tools/user/meta-analyzer';
 import { chatGeneration } from './chat-generation';
 import { langfuse } from './langfuse';
-
-const defaultMessagesCreate = () => {
-  const isHelpful = Math.random() < 0.3;
-  const isUseUsername = Math.random() < 0.2;
-  const isInterests = Math.random() < 0.1;
-  const isShort = Math.random() < 0.5;
-  const isFunny = !isHelpful && Math.random() < 0.1;
-
-  return {
-    role: 'system',
-    content: `Ты умный помошник, женского пола, названа в честь ИО - спутника Юпитера или персонажа древнегреческой мифологии.
-    ${isShort ? 'Отвечай кратко.' : ''}  ${
-      isHelpful ? 'Будь полезной и старайся помочь.' : ''
-    }
-    Отвечай в стиле собеседника. ${
-      isInterests
-        ? 'Иногда предлагай пообщаться на интересные пользователю темы.'
-        : ''
-    }
-    ${
-      isUseUsername
-        ? 'В ответах если это уместно, иногда используй имя собеседника.'
-        : ''
-    }
-    ${isFunny ? 'Отвечай с саркастическим юмором.' : ''}
-    Не используй эмодзи.
-    Ниже будет переписка из чата в формате JSON, ответь на последнее сообщение. Ответ должен быть строкой, не JSON.`,
-  } as unknown;
-};
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
   const result: Array<Message & { sender: User }> = [];
@@ -115,8 +87,8 @@ export const aiController = async (
   ctx: BotContext,
   imageDescription?: string,
   userContext?: string[] | null,
+  chatContext?: string[] | null,
 ) => {
-  console.log(ctx.msg);
   if (!ctx.msg?.text && !ctx.msg?.caption) {
     return;
   }
@@ -222,14 +194,14 @@ export const aiController = async (
       content: JSON.stringify([
         ...(imageDescription
           ? [
-              {
-                type: 'image',
-                sender: ctx.from?.username,
-                image:
-                  'Пользователь прислал фотографию, описание которой: ' +
-                  imageDescription,
-              },
-            ]
+            {
+              type: 'image',
+              sender: ctx.from?.username,
+              image:
+                'Пользователь прислал фотографию, описание которой: ' +
+                imageDescription,
+            },
+          ]
           : []),
         {
           type: 'text',
@@ -239,18 +211,19 @@ export const aiController = async (
       ]),
     });
 
-    const userList = await prisma.user.findMany({
-      where: {
-        userName: {
-          in: unique([
-            ctx.from?.username ?? undefined,
-            ...list.map((x) => x.sender.userName),
-          ]).filter((x): x is string => x !== undefined),
+    const [userList, prompt] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          userName: {
+            in: unique([
+              ctx.from?.username ?? undefined,
+              ...list.map((x) => x.sender.userName),
+            ]).filter((x): x is string => x !== undefined),
+          },
         },
-      },
-    });
-
-    const prompt = await langfuse.getPrompt('chat-generation');
+      }),
+      langfuse.getPrompt('chat-generation')
+    ]);
 
     const trace = langfuse.trace({
       name: 'chat-generation',
@@ -287,12 +260,12 @@ export const aiController = async (
         isShort && '- Отвечай кратко',
         isHelpful && '- Будь полезной и старайся помочь',
         isInterests &&
-          '- Иногда предлагай пообщаться на интересные пользователю темы',
+        '- Иногда предлагай пообщаться на интересные пользователю темы',
         isUseUsername &&
-          '- В ответах если это уместно, иногда используй имя собеседника',
+        '- В ответах если это уместно, иногда используй имя собеседника',
         isFunny && '- Отвечай с саркастическим юмором',
-        userContext &&
-          `\n Предыдущие сообщения пользователя похожие на запрос: "${userContext.join('", "')}"`,
+        userContext && `\nUser context: "${userContext.join('", "')}"`,
+        chatContext && `\nChat context: "${chatContext.join('", "')}"`,
       ]
         .filter(Boolean)
         .join('\n'),
@@ -300,7 +273,6 @@ export const aiController = async (
       time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
     });
 
-    console.log(compiledPrompt);
 
     const messages = [
       {
@@ -310,18 +282,16 @@ export const aiController = async (
       ...rawMessages,
     ];
 
-    const result = await chatGeneration(messages, trace);
+    const result = await chatGeneration(messages, trace, ctx);
 
-    console.info(result);
-
-    logger.debug(
-      `AI request for user ${JSON.stringify({
-        ...userList[0],
-        id: Number(userList[0].id),
-      })} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
-        rawMessages,
-      )} \n response: "${result}"`,
-    );
+    // logger.debug(
+    //   `AI request for user ${JSON.stringify({
+    //     ...userList[0],
+    //     id: Number(userList[0].id),
+    //   })} in chat ${JSON.stringify(ctx.chat)}: ${JSON.stringify(
+    //     rawMessages,
+    //   )} \n response: "${result}"`,
+    // );
 
     if (result) {
       clearInterval(typingInterval);
@@ -331,16 +301,14 @@ export const aiController = async (
       });
 
       try {
-        await prisma.message.create({
-          data: {
-            id: reply.message_id,
-            chatId: ctx.chatId ?? 0,
-            senderId: reply.from?.id ?? 0,
-            replyToMessageId: replyToMessage ? replyToMessage.id : null,
-            sentAt: new Date(reply.date * 1000),
-            messageType: 'TEXT',
-            text: result.toString(),
-          },
+        await saveMessage({
+          id: reply.message_id,
+          chatId: ctx.chatId ?? 0,
+          senderId: reply.from?.id ?? 0,
+          replyToMessageId: ctx.msg?.message_id,
+          sentAt: new Date(reply.date * 1000),
+          messageType: 'TEXT',
+          text: result.toString(),
         });
       } catch (error) {
         logger.error(error);

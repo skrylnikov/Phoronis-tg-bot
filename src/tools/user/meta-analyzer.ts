@@ -1,9 +1,8 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { ChatOpenAI } from '@langchain/openai';
 import type { Message } from '@prisma/client';
+import { generateObject } from 'ai';
 import { z } from 'zod';
-import { langfuse, langfuseHandler } from '../../ai/langfuse';
-import { openRouterToken } from '../../config';
+import { openRouter } from '../../ai/ai';
+import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
 
@@ -41,22 +40,6 @@ const userMetaInfoSchema = z.object({
 });
 
 type UserMetaInfo = z.infer<typeof userMetaInfoSchema>;
-
-// const gemma3 = new ChatOpenAI({
-//   model: "gemma-3-12b-it@q3_k_l",
-//   configuration: {
-//     baseURL: "http://lamas-station:1234/v1",
-//   },
-// });
-
-const geminiFlash2 = new ChatOpenAI({
-  model: 'google/gemini-2.5-flash-lite',
-  apiKey: openRouterToken,
-  configuration: {
-    baseURL: 'https://openrouter.ai/api/v1',
-  },
-  temperature: 0,
-});
 
 export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
   try {
@@ -124,19 +107,20 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
     // ${messages.map((m) => m.text).join("\n")}`;
 
     const userPrompt = `Проанализируй новые сообщения пользователя и создай обновленную метаинформацию:
-${messages.map((m) => m.summary || m.text).join('\n')}`;
+ ${messages.map((m) => m.summary || m.text).join('\n')}`;
 
-    const rawMetaInfo = await geminiFlash2
-      .withStructuredOutput(userMetaInfoSchema, {
-        includeRaw: true,
-      })
-      .invoke([new SystemMessage(systemPrompt), new HumanMessage(userPrompt)], {
-        callbacks: [langfuseHandler],
-      });
+    const result = await generateObject({
+      model: openRouter('google/gemini-2.5-flash-lite'),
+      schema: userMetaInfoSchema,
+      prompt: `
+${systemPrompt}
 
-    const updatedMeta = userMetaInfoSchema.parse(
-      JSON.parse(rawMetaInfo.raw.content as string),
-    );
+${userPrompt}
+`.trim(),
+      temperature: 0,
+    });
+
+    const updatedMeta = result.object;
 
     return await updateUserMetaInfo(userId, updatedMeta);
 
