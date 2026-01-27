@@ -8,6 +8,7 @@ import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
+import { getRecentMemories } from '../tools/memory';
 import { getTopUserMetaInfo } from '../tools/user/meta-analyzer';
 import { chatGeneration } from './chat-generation';
 import { langfuse } from './langfuse';
@@ -194,14 +195,14 @@ export const aiController = async (
       content: JSON.stringify([
         ...(imageDescription
           ? [
-            {
-              type: 'image',
-              sender: ctx.from?.username,
-              image:
-                'Пользователь прислал фотографию, описание которой: ' +
-                imageDescription,
-            },
-          ]
+              {
+                type: 'image',
+                sender: ctx.from?.username,
+                image:
+                  'Пользователь прислал фотографию, описание которой: ' +
+                  imageDescription,
+              },
+            ]
           : []),
         {
           type: 'text',
@@ -211,7 +212,7 @@ export const aiController = async (
       ]),
     });
 
-    const [userList, prompt] = await Promise.all([
+    const [userList, prompt, memories] = await Promise.all([
       prisma.user.findMany({
         where: {
           userName: {
@@ -222,7 +223,8 @@ export const aiController = async (
           },
         },
       }),
-      langfuse.getPrompt('chat-generation')
+      langfuse.getPrompt('chat-generation'),
+      getRecentMemories(ctx.from?.id ?? 0, ctx.chatId ?? 0, 10).catch(() => []),
     ]);
 
     const trace = langfuse.trace({
@@ -260,19 +262,20 @@ export const aiController = async (
         isShort && '- Отвечай кратко',
         isHelpful && '- Будь полезной и старайся помочь',
         isInterests &&
-        '- Иногда предлагай пообщаться на интересные пользователю темы',
+          '- Иногда предлагай пообщаться на интересные пользователю темы',
         isUseUsername &&
-        '- В ответах если это уместно, иногда используй имя собеседника',
+          '- В ответах если это уместно, иногда используй имя собеседника',
         isFunny && '- Отвечай с саркастическим юмором',
         userContext && `\nUser context: "${userContext.join('", "')}"`,
         chatContext && `\nChat context: "${chatContext.join('", "')}"`,
+        memories.length > 0 &&
+          `\nИнформация из памяти:\n${memories.map((m, i) => `${i + 1}. ${m}`).join('\n')}`,
       ]
         .filter(Boolean)
         .join('\n'),
 
       time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
     });
-
 
     const messages = [
       {

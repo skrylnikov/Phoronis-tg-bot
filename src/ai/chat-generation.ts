@@ -3,9 +3,11 @@ import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
 import { logger } from '../logger';
+import { getRecentMemories } from '../tools/memory';
 import { openRouter } from './ai';
 import { langfuse } from './langfuse';
 import { weatherTool, wikipediaTool } from './tools';
+import { createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
   messages: Array<{ role: string; content: string | Array<unknown> }>,
@@ -64,8 +66,27 @@ export const chatGeneration = async (
     },
   });
 
+  let memoryContext: string[] = [];
+  if (ctx?.from && ctx.chatId) {
+    try {
+      memoryContext = await getRecentMemories(ctx.from.id, ctx.chatId, 10);
+    } catch (error) {}
+  }
+
+  console.log('Memory context:', memoryContext);
+
+  const memoryTool = createMemoryTool(ctx);
+
   const fullMessages = [
-    { role: 'system' as const, content: systemPrompt },
+    {
+      role: 'system' as const,
+      content: `${systemPrompt}${
+        memoryContext.length > 0
+          ? '\n\nИнформация из памяти:\n' +
+            memoryContext.map((m, i) => `${i + 1}. ${m}`).join('\n')
+          : ''
+      }`,
+    },
     ...messages.map((m) =>
       m.role === 'user'
         ? { role: 'user' as const, content: m.content as string }
@@ -88,6 +109,7 @@ export const chatGeneration = async (
       get_weather: weatherTool,
       set_greeting: greetingTool,
       wikipedia: wikipediaTool,
+      save_memory: memoryTool,
     },
     stopWhen: stepCountIs(5),
     temperature: 1,
