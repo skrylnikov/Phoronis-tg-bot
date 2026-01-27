@@ -5,6 +5,8 @@
 - `bun run start` - Start the bot in production mode
 - `bun run dev` - Start bot with watch mode for development
 - `bun run typecheck` - Run TypeScript type checking (always run after changes)
+- `bun run lint` - Run Biome linter for code quality checks
+- `bun run lint:fix` - Run Biome linter with auto-fix for code issues
 - `bun run db:generate` - Generate Prisma client from schema
 - `bun run db:deploy` - Deploy database migrations
 - `bun run postinstall` - Runs automatically after install; generates Prisma client
