@@ -233,6 +233,7 @@ export type ChatWhereInput = {
   selfieSaturdayEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   Message?: Prisma.MessageListRelationFilter
+  Memory?: Prisma.MemoryListRelationFilter
 }
 
 export type ChatOrderByWithRelationInput = {
@@ -244,6 +245,7 @@ export type ChatOrderByWithRelationInput = {
   selfieSaturdayEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   Message?: Prisma.MessageOrderByRelationAggregateInput
+  Memory?: Prisma.MemoryOrderByRelationAggregateInput
 }
 
 export type ChatWhereUniqueInput = Prisma.AtLeast<{
@@ -258,6 +260,7 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   selfieSaturdayEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   Message?: Prisma.MessageListRelationFilter
+  Memory?: Prisma.MemoryListRelationFilter
 }, "id">
 
 export type ChatOrderByWithAggregationInput = {
@@ -297,6 +300,7 @@ export type ChatCreateInput = {
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateInput = {
@@ -308,6 +312,7 @@ export type ChatUncheckedCreateInput = {
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatUpdateInput = {
@@ -319,6 +324,7 @@ export type ChatUpdateInput = {
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateInput = {
@@ -330,6 +336,7 @@ export type ChatUncheckedUpdateInput = {
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateManyInput = {
@@ -431,6 +438,20 @@ export type ChatUpdateOneRequiredWithoutMessageNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutMessageInput, Prisma.ChatUpdateWithoutMessageInput>, Prisma.ChatUncheckedUpdateWithoutMessageInput>
 }
 
+export type ChatCreateNestedOneWithoutMemoryInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutMemoryInput, Prisma.ChatUncheckedCreateWithoutMemoryInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutMemoryInput
+  connect?: Prisma.ChatWhereUniqueInput
+}
+
+export type ChatUpdateOneRequiredWithoutMemoryNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutMemoryInput, Prisma.ChatUncheckedCreateWithoutMemoryInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutMemoryInput
+  upsert?: Prisma.ChatUpsertWithoutMemoryInput
+  connect?: Prisma.ChatWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutMemoryInput, Prisma.ChatUpdateWithoutMemoryInput>, Prisma.ChatUncheckedUpdateWithoutMemoryInput>
+}
+
 export type ChatCreateWithoutMessageInput = {
   id: bigint | number
   title: string
@@ -439,6 +460,7 @@ export type ChatCreateWithoutMessageInput = {
   greeting?: string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
+  Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutMessageInput = {
@@ -449,6 +471,7 @@ export type ChatUncheckedCreateWithoutMessageInput = {
   greeting?: string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutMessageInput = {
@@ -475,6 +498,7 @@ export type ChatUpdateWithoutMessageInput = {
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutMessageInput = {
@@ -485,6 +509,67 @@ export type ChatUncheckedUpdateWithoutMessageInput = {
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
+}
+
+export type ChatCreateWithoutMemoryInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+}
+
+export type ChatUncheckedCreateWithoutMemoryInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+}
+
+export type ChatCreateOrConnectWithoutMemoryInput = {
+  where: Prisma.ChatWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChatCreateWithoutMemoryInput, Prisma.ChatUncheckedCreateWithoutMemoryInput>
+}
+
+export type ChatUpsertWithoutMemoryInput = {
+  update: Prisma.XOR<Prisma.ChatUpdateWithoutMemoryInput, Prisma.ChatUncheckedUpdateWithoutMemoryInput>
+  create: Prisma.XOR<Prisma.ChatCreateWithoutMemoryInput, Prisma.ChatUncheckedCreateWithoutMemoryInput>
+  where?: Prisma.ChatWhereInput
+}
+
+export type ChatUpdateToOneWithWhereWithoutMemoryInput = {
+  where?: Prisma.ChatWhereInput
+  data: Prisma.XOR<Prisma.ChatUpdateWithoutMemoryInput, Prisma.ChatUncheckedUpdateWithoutMemoryInput>
+}
+
+export type ChatUpdateWithoutMemoryInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+}
+
+export type ChatUncheckedUpdateWithoutMemoryInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
 }
 
 
@@ -494,10 +579,12 @@ export type ChatUncheckedUpdateWithoutMessageInput = {
 
 export type ChatCountOutputType = {
   Message: number
+  Memory: number
 }
 
 export type ChatCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | ChatCountOutputTypeCountMessageArgs
+  Memory?: boolean | ChatCountOutputTypeCountMemoryArgs
 }
 
 /**
@@ -517,6 +604,13 @@ export type ChatCountOutputTypeCountMessageArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.MessageWhereInput
 }
 
+/**
+ * ChatCountOutputType without action
+ */
+export type ChatCountOutputTypeCountMemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MemoryWhereInput
+}
+
 
 export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -527,6 +621,7 @@ export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   selfieSaturdayEnabled?: boolean
   inktoberEnabled?: boolean
   Message?: boolean | Prisma.Chat$MessageArgs<ExtArgs>
+  Memory?: boolean | Prisma.Chat$MemoryArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
@@ -563,6 +658,7 @@ export type ChatSelectScalar = {
 export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "chatType" | "name" | "greeting" | "selfieSaturdayEnabled" | "inktoberEnabled", ExtArgs["result"]["chat"]>
 export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.Chat$MessageArgs<ExtArgs>
+  Memory?: boolean | Prisma.Chat$MemoryArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChatIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -572,6 +668,7 @@ export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "Chat"
   objects: {
     Message: Prisma.$MessagePayload<ExtArgs>[]
+    Memory: Prisma.$MemoryPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -976,6 +1073,7 @@ readonly fields: ChatFieldRefs;
 export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Message<T extends Prisma.Chat$MessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$MessageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  Memory<T extends Prisma.Chat$MemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$MemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1421,6 +1519,30 @@ export type Chat$MessageArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.MessageScalarFieldEnum | Prisma.MessageScalarFieldEnum[]
+}
+
+/**
+ * Chat.Memory
+ */
+export type Chat$MemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Memory
+   */
+  select?: Prisma.MemorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Memory
+   */
+  omit?: Prisma.MemoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemoryInclude<ExtArgs> | null
+  where?: Prisma.MemoryWhereInput
+  orderBy?: Prisma.MemoryOrderByWithRelationInput | Prisma.MemoryOrderByWithRelationInput[]
+  cursor?: Prisma.MemoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MemoryScalarFieldEnum | Prisma.MemoryScalarFieldEnum[]
 }
 
 /**

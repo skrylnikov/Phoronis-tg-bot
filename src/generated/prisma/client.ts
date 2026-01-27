@@ -54,3 +54,8 @@ export type Chat = Prisma.ChatModel
  * 
  */
 export type Message = Prisma.MessageModel
+/**
+ * Model Memory
+ * 
+ */
+export type Memory = Prisma.MemoryModel

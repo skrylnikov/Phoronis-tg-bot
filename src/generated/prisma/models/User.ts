@@ -213,6 +213,7 @@ export type UserWhereInput = {
   userName?: Prisma.StringNullableFilter<"User"> | string | null
   metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
+  Memory?: Prisma.MemoryListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -222,6 +223,7 @@ export type UserOrderByWithRelationInput = {
   userName?: Prisma.SortOrderInput | Prisma.SortOrder
   metaInfo?: Prisma.SortOrderInput | Prisma.SortOrder
   Message?: Prisma.MessageOrderByRelationAggregateInput
+  Memory?: Prisma.MemoryOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -234,6 +236,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   userName?: Prisma.StringNullableFilter<"User"> | string | null
   metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
+  Memory?: Prisma.MemoryListRelationFilter
 }, "id">
 
 export type UserOrderByWithAggregationInput = {
@@ -267,6 +270,7 @@ export type UserCreateInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -276,6 +280,7 @@ export type UserUncheckedCreateInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -285,6 +290,7 @@ export type UserUpdateInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -294,6 +300,7 @@ export type UserUncheckedUpdateInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -381,12 +388,27 @@ export type UserUpdateOneRequiredWithoutMessageNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMessageInput, Prisma.UserUpdateWithoutMessageInput>, Prisma.UserUncheckedUpdateWithoutMessageInput>
 }
 
+export type UserCreateNestedOneWithoutMemoryInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMemoryInput, Prisma.UserUncheckedCreateWithoutMemoryInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemoryInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutMemoryNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMemoryInput, Prisma.UserUncheckedCreateWithoutMemoryInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemoryInput
+  upsert?: Prisma.UserUpsertWithoutMemoryInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMemoryInput, Prisma.UserUpdateWithoutMemoryInput>, Prisma.UserUncheckedUpdateWithoutMemoryInput>
+}
+
 export type UserCreateWithoutMessageInput = {
   id: bigint | number
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMessageInput = {
@@ -395,6 +417,7 @@ export type UserUncheckedCreateWithoutMessageInput = {
   lastName?: string | null
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMessageInput = {
@@ -419,6 +442,7 @@ export type UserUpdateWithoutMessageInput = {
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMessageInput = {
@@ -427,6 +451,59 @@ export type UserUncheckedUpdateWithoutMessageInput = {
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMemoryInput = {
+  id: bigint | number
+  firstName?: string | null
+  lastName?: string | null
+  userName?: string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+}
+
+export type UserUncheckedCreateWithoutMemoryInput = {
+  id: bigint | number
+  firstName?: string | null
+  lastName?: string | null
+  userName?: string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+}
+
+export type UserCreateOrConnectWithoutMemoryInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMemoryInput, Prisma.UserUncheckedCreateWithoutMemoryInput>
+}
+
+export type UserUpsertWithoutMemoryInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMemoryInput, Prisma.UserUncheckedUpdateWithoutMemoryInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMemoryInput, Prisma.UserUncheckedCreateWithoutMemoryInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMemoryInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMemoryInput, Prisma.UserUncheckedUpdateWithoutMemoryInput>
+}
+
+export type UserUpdateWithoutMemoryInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMemoryInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
 }
 
 
@@ -436,10 +513,12 @@ export type UserUncheckedUpdateWithoutMessageInput = {
 
 export type UserCountOutputType = {
   Message: number
+  Memory: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | UserCountOutputTypeCountMessageArgs
+  Memory?: boolean | UserCountOutputTypeCountMemoryArgs
 }
 
 /**
@@ -459,6 +538,13 @@ export type UserCountOutputTypeCountMessageArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.MessageWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountMemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MemoryWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -467,6 +553,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   userName?: boolean
   metaInfo?: boolean
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
+  Memory?: boolean | Prisma.User$MemoryArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -497,6 +584,7 @@ export type UserSelectScalar = {
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "userName" | "metaInfo", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
+  Memory?: boolean | Prisma.User$MemoryArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -506,6 +594,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "User"
   objects: {
     Message: Prisma.$MessagePayload<ExtArgs>[]
+    Memory: Prisma.$MemoryPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -908,6 +997,7 @@ readonly fields: UserFieldRefs;
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Message<T extends Prisma.User$MessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$MessageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  Memory<T extends Prisma.User$MemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$MemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1351,6 +1441,30 @@ export type User$MessageArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.MessageScalarFieldEnum | Prisma.MessageScalarFieldEnum[]
+}
+
+/**
+ * User.Memory
+ */
+export type User$MemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Memory
+   */
+  select?: Prisma.MemorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Memory
+   */
+  omit?: Prisma.MemoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemoryInclude<ExtArgs> | null
+  where?: Prisma.MemoryWhereInput
+  orderBy?: Prisma.MemoryOrderByWithRelationInput | Prisma.MemoryOrderByWithRelationInput[]
+  cursor?: Prisma.MemoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MemoryScalarFieldEnum | Prisma.MemoryScalarFieldEnum[]
 }
 
 /**

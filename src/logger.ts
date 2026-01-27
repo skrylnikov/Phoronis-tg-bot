@@ -7,5 +7,5 @@ export const logger = pino({
   // } : undefined,
   transport: {
     target: 'pino-pretty',
-  }
-})
+  },
+});

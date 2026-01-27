@@ -1,5 +1,5 @@
 import * as Language from './language/index.js';
 
-export { 
-  Language,
-}
+export * as Memory from './memory/index.js';
+
+export { Language };

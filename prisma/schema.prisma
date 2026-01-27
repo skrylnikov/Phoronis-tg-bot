@@ -23,6 +23,7 @@ model User {
   metaInfo  Json?   @default("{}")
 
   Message Message[]
+  Memory  Memory[]
 }
 
 enum ChatType {
@@ -42,6 +43,7 @@ model Chat {
   inktoberEnabled       Boolean? @default(false)
 
   Message Message[]
+  Memory  Memory[]
 }
 
 enum MessageType {
@@ -73,4 +75,22 @@ model Message {
 
   @@id([chatId, id])
   @@index([sessionId])
+}
+
+model Memory {
+  id        BigInt   @id @default(autoincrement())
+
+  userId    BigInt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chatId    BigInt
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  content   String
+  isUser    Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isUser])
+  @@index([chatId, isUser])
 }

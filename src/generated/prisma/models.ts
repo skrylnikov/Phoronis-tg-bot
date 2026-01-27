@@ -11,4 +11,5 @@
 export type * from './models/User'
 export type * from './models/Chat'
 export type * from './models/Message'
+export type * from './models/Memory'
 export type * from './commonInputTypes'

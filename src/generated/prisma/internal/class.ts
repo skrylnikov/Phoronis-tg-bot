@@ -17,10 +17,10 @@ import type * as Prisma from "./prismaNamespace"
 
 const config: runtime.GetPrismaClientConfig = {
   "previewFeatures": [],
-  "clientVersion": "7.1.0",
-  "engineVersion": "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba",
+  "clientVersion": "7.3.0",
+  "engineVersion": "9d6ad21cbbceab97458517b147a6a09ff43aa735",
   "activeProvider": "postgresql",
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider   = \"prisma-client\"\n  output     = \"../src/generated/prisma\"\n  engineType = \"client\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel User {\n  id BigInt @id\n\n  firstName String?\n  lastName  String?\n  userName  String?\n  metaInfo  Json?   @default(\"{}\")\n\n  Message Message[]\n}\n\nenum ChatType {\n  PRIVATE\n  GROUP\n}\n\nmodel Chat {\n  id BigInt @id\n\n  title    String\n  chatType ChatType\n\n  name                  String?\n  greeting              String?\n  selfieSaturdayEnabled Boolean? @default(false)\n  inktoberEnabled       Boolean? @default(false)\n\n  Message Message[]\n}\n\nenum MessageType {\n  TEXT\n  MEDIA\n  VOICE\n}\n\nmodel Message {\n  id BigInt\n\n  chatId BigInt\n  chat   Chat   @relation(fields: [chatId], references: [id])\n\n  senderId BigInt\n  sender   User   @relation(fields: [senderId], references: [id])\n\n  sessionId        String?\n  replyToMessageId BigInt?\n  replyToMessage   Message? @relation(\"replies\", fields: [replyToMessageId, chatId], references: [id, chatId])\n\n  messageType MessageType\n\n  text    String?\n  media   String?\n  summary String?\n  sentAt  DateTime\n  Replies Message[] @relation(\"replies\")\n\n  @@id([chatId, id])\n  @@index([sessionId])\n}\n",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider   = \"prisma-client\"\n  output     = \"../src/generated/prisma\"\n  engineType = \"client\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel User {\n  id BigInt @id\n\n  firstName String?\n  lastName  String?\n  userName  String?\n  metaInfo  Json?   @default(\"{}\")\n\n  Message Message[]\n  Memory  Memory[]\n}\n\nenum ChatType {\n  PRIVATE\n  GROUP\n}\n\nmodel Chat {\n  id BigInt @id\n\n  title    String\n  chatType ChatType\n\n  name                  String?\n  greeting              String?\n  selfieSaturdayEnabled Boolean? @default(false)\n  inktoberEnabled       Boolean? @default(false)\n\n  Message Message[]\n  Memory  Memory[]\n}\n\nenum MessageType {\n  TEXT\n  MEDIA\n  VOICE\n}\n\nmodel Message {\n  id BigInt\n\n  chatId BigInt\n  chat   Chat   @relation(fields: [chatId], references: [id])\n\n  senderId BigInt\n  sender   User   @relation(fields: [senderId], references: [id])\n\n  sessionId        String?\n  replyToMessageId BigInt?\n  replyToMessage   Message? @relation(\"replies\", fields: [replyToMessageId, chatId], references: [id, chatId])\n\n  messageType MessageType\n\n  text    String?\n  media   String?\n  summary String?\n  sentAt  DateTime\n  Replies Message[] @relation(\"replies\")\n\n  @@id([chatId, id])\n  @@index([sessionId])\n}\n\nmodel Memory {\n  id BigInt @id @default(autoincrement())\n\n  userId BigInt\n  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  chatId BigInt\n  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)\n\n  content   String\n  isUser    Boolean\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userId, isUser])\n  @@index([chatId, isUser])\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -28,7 +28,7 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"firstName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"lastName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metaInfo\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"Message\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"MessageToUser\"}],\"dbName\":null},\"Chat\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"chatType\",\"kind\":\"enum\",\"type\":\"ChatType\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"greeting\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"selfieSaturdayEnabled\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"inktoberEnabled\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"Message\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"ChatToMessage\"}],\"dbName\":null},\"Message\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"chatId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"chat\",\"kind\":\"object\",\"type\":\"Chat\",\"relationName\":\"ChatToMessage\"},{\"name\":\"senderId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sender\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"MessageToUser\"},{\"name\":\"sessionId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"replyToMessageId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"replyToMessage\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"replies\"},{\"name\":\"messageType\",\"kind\":\"enum\",\"type\":\"MessageType\"},{\"name\":\"text\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"media\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sentAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"Replies\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"replies\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"firstName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"lastName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metaInfo\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"Message\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"MessageToUser\"},{\"name\":\"Memory\",\"kind\":\"object\",\"type\":\"Memory\",\"relationName\":\"MemoryToUser\"}],\"dbName\":null},\"Chat\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"chatType\",\"kind\":\"enum\",\"type\":\"ChatType\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"greeting\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"selfieSaturdayEnabled\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"inktoberEnabled\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"Message\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"ChatToMessage\"},{\"name\":\"Memory\",\"kind\":\"object\",\"type\":\"Memory\",\"relationName\":\"ChatToMemory\"}],\"dbName\":null},\"Message\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"chatId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"chat\",\"kind\":\"object\",\"type\":\"Chat\",\"relationName\":\"ChatToMessage\"},{\"name\":\"senderId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sender\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"MessageToUser\"},{\"name\":\"sessionId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"replyToMessageId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"replyToMessage\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"replies\"},{\"name\":\"messageType\",\"kind\":\"enum\",\"type\":\"MessageType\"},{\"name\":\"text\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"media\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sentAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"Replies\",\"kind\":\"object\",\"type\":\"Message\",\"relationName\":\"replies\"}],\"dbName\":null},\"Memory\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"MemoryToUser\"},{\"name\":\"chatId\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"chat\",\"kind\":\"object\",\"type\":\"Chat\",\"relationName\":\"ChatToMemory\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isUser\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
   const { Buffer } = await import('node:buffer')
@@ -37,12 +37,14 @@ async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Modul
 }
 
 config.compilerWasm = {
-  getRuntime: async () => await import("@prisma/client/runtime/query_compiler_bg.postgresql.mjs"),
+  getRuntime: async () => await import("@prisma/client/runtime/query_compiler_fast_bg.postgresql.mjs"),
 
   getQueryCompilerWasmModule: async () => {
-    const { wasm } = await import("@prisma/client/runtime/query_compiler_bg.postgresql.wasm-base64.mjs")
+    const { wasm } = await import("@prisma/client/runtime/query_compiler_fast_bg.postgresql.wasm-base64.mjs")
     return await decodeBase64AsWasm(wasm)
-  }
+  },
+
+  importName: "./query_compiler_fast_bg.js"
 }
 
 
@@ -203,6 +205,16 @@ export interface PrismaClient<
     * ```
     */
   get message(): Prisma.MessageDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.memory`: Exposes CRUD operations for the **Memory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Memories
+    * const memories = await prisma.memory.findMany()
+    * ```
+    */
+  get memory(): Prisma.MemoryDelegate<ExtArgs, { omit: OmitOpts }>;
 }
 
 export function getPrismaClientClass(): PrismaClientConstructor {
