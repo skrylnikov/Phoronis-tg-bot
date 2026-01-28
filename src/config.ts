@@ -26,6 +26,8 @@ export const qdrantBaseURL =
 export const qdrantApiKey =
   process.env.QDRANT_API_KEY || showError('token not found in .env');
 
+console.log('Using Qdrant Base URL:', qdrantBaseURL);
+
 export const langfuseConfig = {
   secretKey:
     process.env.LANGFUSE_SECRET_KEY ||

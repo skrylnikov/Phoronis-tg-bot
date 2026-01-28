@@ -87,6 +87,7 @@ export async function searchContext(
         score_threshold: USER_SCORE_THRESHOLD,
         limit: USER_LIMIT,
         with_payload: true,
+        timeout: 3000,
       }),
       !isPrivateChat
         ? qdrantClient.search('messages', {
@@ -104,6 +105,7 @@ export async function searchContext(
           score_threshold: CHAT_SCORE_THRESHOLD,
           limit: CHAT_LIMIT,
           with_payload: true,
+          timeout: 3000,
         })
         : null,
     ]);
