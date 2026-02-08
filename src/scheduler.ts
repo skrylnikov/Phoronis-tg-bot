@@ -1,5 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { prisma } from './db';
+import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
@@ -141,6 +142,23 @@ export function startScheduler() {
       logger.error(error, 'Ошибка при перерасчёте impact score:');
     }
   });
+
+  cron.schedule(
+    '0 2 * * *',
+    async () => {
+      logger.info('Запуск очистки старых приватных сообщений...');
+      try {
+        const deleted = await cleanOldPrivateMessages();
+        logger.info(`Очистка завершена. Удалено ${deleted} сообщений.`);
+      } catch (error) {
+        logger.error(
+          error,
+          'Критическая ошибка при очистке приватных сообщений:',
+        );
+      }
+    },
+    { timezone: 'UTC' },
+  );
 
   logger.info('Планировщик задач настроен полностью.');
 }
