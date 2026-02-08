@@ -42,6 +42,7 @@ model Chat {
   greeting              String?
   selfieSaturdayEnabled Boolean? @default(false)
   inktoberEnabled       Boolean? @default(false)
+  privateModeEnabled    Boolean? @default(false)
 
   Message Message[]
   Memory  Memory[]
@@ -72,6 +73,7 @@ model Message {
   media   String?
   summary String?
   sentAt  DateTime
+  private Boolean? @default(false)
   Replies Message[] @relation("replies")
 
   @@id([chatId, id])

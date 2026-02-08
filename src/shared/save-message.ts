@@ -57,6 +57,7 @@ export const saveMessage = async (params: {
   media?: string | null;
   summary?: string | null;
   sessionId?: string | null;
+  private?: boolean | null;
 }) => {
   const replyId = await findReplyId(
     BigInt(params.chatId),
@@ -75,6 +76,7 @@ export const saveMessage = async (params: {
       media: params.media,
       summary: params.summary,
       sessionId: params.sessionId,
+      private: params.private,
     },
   });
 };

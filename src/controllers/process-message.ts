@@ -79,6 +79,7 @@ const analyzer = async (ctx: BotContext) => {
     where: {
       chatId: ctx.chatId,
       senderId: ctx.from.id,
+      private: false,
     },
   });
 
@@ -87,6 +88,7 @@ const analyzer = async (ctx: BotContext) => {
       where: {
         chatId: ctx.chatId,
         senderId: ctx.from.id,
+        private: false,
       },
       include: {
         replyToMessage: true,
@@ -113,6 +115,12 @@ processMessageController.on(':text', async (ctx) => {
       saveUser(ctx.me),
     ]);
 
+    const chat = await prisma.chat.findUnique({
+      where: { id: ctx.chatId },
+      select: { privateModeEnabled: true },
+    });
+    const isPrivateMode = chat?.privateModeEnabled ?? false;
+
     await saveMessage({
       id: ctx.msg.message_id,
       chatId: ctx.chatId,
@@ -121,9 +129,12 @@ processMessageController.on(':text', async (ctx) => {
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
+      private: isPrivateMode,
     });
 
-    analyzer(ctx);
+    if (!isPrivateMode) {
+      analyzer(ctx);
+    }
 
     const replyToMessageText =
       ctx.msg.reply_to_message?.text?.trim() ||
@@ -143,7 +154,7 @@ processMessageController.on(':text', async (ctx) => {
       ctx.chat.type === 'private',
     );
 
-    if (embedding) {
+    if (!isPrivateMode && embedding) {
       upsertMessage(
         ctx.msg.message_id,
         embedding,
@@ -198,6 +209,12 @@ processMessageController.on('msg', async (ctx) => {
       saveUser(ctx.me),
     ]);
 
+    const chat = await prisma.chat.findUnique({
+      where: { id: ctx.chatId },
+      select: { privateModeEnabled: true },
+    });
+    const isPrivateMode = chat?.privateModeEnabled ?? false;
+
     let media: Media[] = [];
 
     if (ctx.msg.photo) {
@@ -248,6 +265,7 @@ processMessageController.on('msg', async (ctx) => {
       messageType: 'MEDIA',
       media: JSON.stringify(media.map((m) => m.url)),
       summary: imageDescription,
+      private: isPrivateMode,
     });
 
     if (
