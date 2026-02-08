@@ -1,4 +1,3 @@
-import type { Message } from '@prisma/client';
 import { embed } from 'ai';
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
@@ -119,18 +118,7 @@ async function checkFactExistsInQdrant(
   content: string,
 ): Promise<boolean> {
   try {
-    const result = await embed({
-      model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
-      value: content,
-      providerOptions: {
-        llamaGate: {
-          dimensions: 4096,
-        },
-      },
-    });
-
-    const searchResults = await qdrantClient.search('user-facts', {
-      vector: result.embedding,
+    const scrollResult = await qdrantClient.scroll('user-facts', {
       filter: {
         must: [
           {
@@ -150,15 +138,19 @@ async function checkFactExistsInQdrant(
       limit: 1,
     });
 
-    return searchResults.length > 0;
+    return scrollResult.points.length > 0;
   } catch (error) {
     logger.error(error, 'Error checking fact existence in Qdrant');
     return false;
   }
 }
 
-async function migrateUserMetaInfo(userId: bigint, metaInfo: UserMetaInfo) {
+async function migrateUserMetaInfo(
+  userId: bigint,
+  metaInfo: UserMetaInfo,
+): Promise<{ migratedCount: number; totalCount: number; hadErrors: boolean }> {
   const facts = convertMetaInfoToFacts(metaInfo);
+  const totalCount = facts.length;
 
   const existingFacts = await prisma.userFact.findMany({
     where: { userId },
@@ -167,6 +159,7 @@ async function migrateUserMetaInfo(userId: bigint, metaInfo: UserMetaInfo) {
   const existingContents = new Set(existingFacts.map((f) => f.content));
 
   let migratedCount = 0;
+  let hadErrors = false;
   const MIGRATION_DATE = new Date('2026-01-01T00:00:00Z');
 
   for (const fact of facts) {
@@ -217,6 +210,7 @@ async function migrateUserMetaInfo(userId: bigint, metaInfo: UserMetaInfo) {
 
       migratedCount++;
     } catch (error) {
+      hadErrors = true;
       logger.error(
         error,
         `Error migrating fact for user ${userId}: ${fact.content}`,
@@ -228,20 +222,16 @@ async function migrateUserMetaInfo(userId: bigint, metaInfo: UserMetaInfo) {
     logger.info(`Migrated ${migratedCount} facts for user ${userId}`);
   }
 
-  return migratedCount;
+  return { migratedCount, totalCount, hadErrors };
 }
 
 const MIGRATION_BATCH_SIZE = 10;
 
 let migrationTask: ScheduledTask | null = null;
+let isMigrationRunning = false;
 
 export async function migrateNextBatchOfUsers() {
   const allUsers = await prisma.user.findMany({
-    include: {
-      UserFact: {
-        select: { content: true },
-      },
-    },
     take: MIGRATION_BATCH_SIZE * 3,
     orderBy: { id: 'asc' },
   });
@@ -268,18 +258,26 @@ export async function migrateNextBatchOfUsers() {
       continue;
     }
 
-    const migratedCount = await migrateUserMetaInfo(
-      user.id,
-      metaInfoParse.data,
-    );
-    totalMigrated += migratedCount;
+    const result = await migrateUserMetaInfo(user.id, metaInfoParse.data);
+    totalMigrated += result.migratedCount;
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        metaInfo: {},
-      },
-    });
+    if (!result.hadErrors && result.migratedCount === result.totalCount) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          metaInfo: {},
+        },
+      });
+    } else if (result.hadErrors) {
+      logger.error(
+        {
+          userId: user.id,
+          expectedFacts: result.totalCount,
+          migratedFacts: result.migratedCount,
+        },
+        'Meta info migration had errors for user; preserving metaInfo for retry',
+      );
+    }
   }
 
   return totalMigrated;
@@ -289,6 +287,12 @@ export function startMetaInfoMigration() {
   logger.info('Starting meta info migration scheduler...');
 
   migrationTask = cron.schedule('*/10 * * * * *', async () => {
+    if (isMigrationRunning) {
+      return;
+    }
+
+    isMigrationRunning = true;
+
     try {
       const migrated = await migrateNextBatchOfUsers();
       if (migrated > 0) {
@@ -299,6 +303,8 @@ export function startMetaInfoMigration() {
       }
     } catch (error) {
       logger.error(error, 'Error in meta info migration');
+    } finally {
+      isMigrationRunning = false;
     }
   });
 }

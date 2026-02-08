@@ -17,28 +17,47 @@ interface Media {
   mimeType: string;
 }
 
+interface TelegramReactionResult {
+  emoji?: string;
+  type?: string;
+  count?: number;
+}
+
+interface TelegramReactionsMessage {
+  reactions?: {
+    results?: TelegramReactionResult[];
+  };
+}
+
+function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
+  if (!msg || typeof msg !== 'object') {
+    return false;
+  }
+  const withReactions = msg as TelegramReactionsMessage;
+  return Array.isArray(withReactions.reactions?.results);
+}
+
 async function handleUserReaction(
   ctx: BotContext,
   messageText: string,
 ): Promise<void> {
   if (!ctx.msg || !ctx.msg.reply_to_message || !ctx.from || !ctx.chatId) return;
-  console.log('Handling user reaction for message:', {
-    messageId: ctx.msg.message_id,
-    replyToMessageId: ctx.msg.reply_to_message.message_id,
-    userId: ctx.from.id,
-    chatId: ctx.chatId,
-    messageText,
-  });
+  logger.info('Handling user reaction for message');
   const botMessageId = ctx.msg.reply_to_message.message_id;
   if (!botMessageId) return;
 
-  const telegramReactions = (
-    ctx.msg.reply_to_message as any
-  ).reactions?.results?.map((r: any) => ({
-    type: r.emoji,
-    count: r.count,
-  }));
-  
+  let telegramReactions: { type: string; count: number }[] | undefined;
+  const replyMessage = ctx.msg.reply_to_message;
+  if (hasTelegramReactions(replyMessage)) {
+    telegramReactions =
+      replyMessage.reactions?.results?.map((r) => {
+        const type = typeof r.emoji === 'string' ? r.emoji : r.type;
+        return {
+          type: typeof type === 'string' ? type : '',
+          count: typeof r.count === 'number' ? r.count : 0,
+        };
+      }) ?? [];
+  }
 
   await recordUserReaction(
     botMessageId,
@@ -115,8 +134,6 @@ processMessageController.on(':text', async (ctx) => {
       ctx.chatId,
       ctx.chat.type === 'private',
     );
-
-    console.log({ userContext, chatContext });
 
     if (embedding) {
       upsertMessage(

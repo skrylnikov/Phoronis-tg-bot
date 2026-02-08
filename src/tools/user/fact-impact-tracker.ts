@@ -168,37 +168,39 @@ export async function recalculateFactImpactScores() {
     let score = 0;
 
     for (const impact of impacts) {
+      let deltaScore = 0;
+
       switch (impact.userReaction) {
         case 'positive':
-          score += 2;
+          deltaScore += 2;
           break;
         case 'negative':
-          score -= 2;
+          deltaScore -= 2;
           break;
         case 'correction':
-          score -= 1;
+          deltaScore -= 1;
           break;
       }
 
       switch (impact.messageReaction) {
         case 'question':
-          score += 1.5;
+          deltaScore += 1.5;
           break;
         case 'clarification':
-          score += 1.5;
+          deltaScore += 1.5;
           break;
         case 'continue':
-          score += 1;
+          deltaScore += 1;
           break;
         case 'ignore':
-          score -= 0.5;
+          deltaScore -= 0.5;
           break;
       }
 
       const daysSince =
         (Date.now() - impact.timestamp.getTime()) / (1000 * 60 * 60 * 24);
       const timeDecay = Math.exp(-daysSince / 30);
-      score *= timeDecay;
+      score += deltaScore * timeDecay;
     }
 
     const normalizedScore = score / Math.sqrt(impacts.length);
