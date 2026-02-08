@@ -8,7 +8,8 @@ import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
-import { getRecentMemories } from '../tools/memory';
+import { getRecentMemoriesForUsers } from '../tools/memory';
+import { extractMentionedUserIds } from '../tools/shared/entities';
 import { getTopUserFacts } from '../tools/user/fact-analyzer';
 import { chatGeneration } from './chat-generation';
 import { langfuse } from './langfuse';
@@ -228,19 +229,26 @@ export const aiController = async (
       ]),
     });
 
-    const [userList, prompt, memories] = await Promise.all([
+    const mentionedIds = await extractMentionedUserIds(ctx);
+
+    const allUserIds = unique(
+      [
+        ctx.from?.id,
+        ...list.map((x) => Number(x.sender.id)),
+        ...mentionedIds,
+      ].filter((x): x is number => x !== undefined),
+    );
+
+    const [userList, prompt, allMemories] = await Promise.all([
       prisma.user.findMany({
         where: {
-          userName: {
-            in: unique([
-              ctx.from?.username ?? undefined,
-              ...list.map((x) => x.sender.userName),
-            ]).filter((x): x is string => x !== undefined),
-          },
+          id: { in: allUserIds.map(BigInt) },
         },
       }),
       langfuse.getPrompt('chat-generation'),
-      getRecentMemories(ctx.from?.id ?? 0, ctx.chatId ?? 0, 10).catch(() => []),
+      getRecentMemoriesForUsers(allUserIds, ctx.chatId ?? 0, 10).catch(
+        () => new Map(),
+      ),
     ]);
 
     const userFactsPromises = userList.map((user) => getTopUserFacts(user.id));
@@ -287,8 +295,22 @@ export const aiController = async (
         isFunny && '- Отвечай с саркастическим юмором',
         userContext && `\nUser context: "${userContext.join('", "')}"`,
         chatContext && `\nChat context: "${chatContext.join('", "')}"`,
-        memories.length > 0 &&
-          `\nИнформация из памяти:\n${memories.map((m, i) => `${i + 1}. ${m}`).join('\n')}`,
+        (() => {
+          const memoriesByUser = userList
+            .map((user) => {
+              const userMemories = allMemories.get(Number(user.id)) || [];
+              if (userMemories.length === 0) return null;
+              const userIdentifier = user.userName
+                ? `@${user.userName}`
+                : user.firstName || '';
+              return `${userIdentifier}:\n${userMemories.map((m: string) => `- ${m}`).join('\n')}`;
+            })
+            .filter((m): m is string => m !== null);
+
+          return memoriesByUser.length > 0
+            ? `\nИнформация из памяти:\n${memoriesByUser.join('\n\n')}`
+            : '';
+        })(),
       ]
         .filter(Boolean)
         .join('\n'),

@@ -294,3 +294,50 @@ export async function getRecentMemories(
 
   return memories.map((m: { content: string }) => m.content);
 }
+
+export async function getRecentMemoriesForUsers(
+  userIds: number[],
+  chatId: number,
+  limit: number = 10,
+): Promise<Map<number, string[]>> {
+  const result = new Map<number, string[]>();
+
+  userIds.forEach((id) => {
+    result.set(id, []);
+  });
+
+  const userMemories = await prisma.memory.findMany({
+    where: {
+      userId: { in: userIds.map(BigInt) },
+      isUser: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: userIds.length * limit,
+  });
+
+  userMemories.forEach((memory) => {
+    const userId = Number(memory.userId);
+    const userMemories = result.get(userId);
+    if (userMemories && userMemories.length < limit) {
+      userMemories.push(memory.content);
+    }
+  });
+
+  const chatMemories = await prisma.memory.findMany({
+    where: {
+      chatId: BigInt(chatId),
+      isUser: false,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  const chatMemoriesContent = chatMemories.map((m) => m.content);
+
+  userIds.forEach((id) => {
+    const userMemories = result.get(id) || [];
+    result.set(id, [...userMemories, ...chatMemoriesContent]);
+  });
+
+  return result;
+}
