@@ -4,6 +4,7 @@ import { bot } from './bot';
 import { controllers } from './controllers';
 import { prisma } from './db';
 import { logger } from './logger';
+import { ensureQdrantCollections } from './qdrant-init';
 import { startScheduler } from './scheduler';
 
 bot.use(controllers);
@@ -22,6 +23,7 @@ bot.catch((err) => {
   }
 });
 
+await ensureQdrantCollections();
 startScheduler();
 
 bot.start().catch((e) => logger.error(e));

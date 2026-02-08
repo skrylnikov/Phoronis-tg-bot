@@ -1,8 +1,12 @@
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { prisma } from './db';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
+import { recalculateFactImpactScores } from './tools/user/fact-impact-tracker';
+import { startMetaInfoMigration } from './tools/user/migrate-meta-info';
+
+let impactScoreTask: ScheduledTask | null = null;
 
 export function startScheduler() {
   logger.info('Запуск планировщика задач...');
@@ -98,4 +102,53 @@ export function startScheduler() {
   );
 
   logger.info('Планировщик задач настроен.');
+
+  startMetaInfoMigration();
+
+  cron.schedule(
+    '0 3 * * 0',
+    async () => {
+      logger.info('Запуск задачи decay фактов...');
+      try {
+        const result = await prisma.userFact.updateMany({
+          where: {
+            updatedAt: {
+              lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
+            weight: {
+              gte: 2,
+            },
+          },
+          data: {
+            weight: { decrement: 1 },
+          },
+        });
+        logger.info(`Decay завершён: обновлено ${result.count} фактов`);
+      } catch (error) {
+        logger.error(error, 'Критическая ошибка в задаче decay фактов:');
+      }
+    },
+    {
+      timezone: 'UTC',
+    },
+  );
+
+  impactScoreTask = cron.schedule('*/30 * * * *', async () => {
+    logger.info('Перерасчёт impact score фактов...');
+    try {
+      await recalculateFactImpactScores();
+    } catch (error) {
+      logger.error(error, 'Ошибка при перерасчёте impact score:');
+    }
+  });
+
+  logger.info('Планировщик задач настроен полностью.');
+}
+
+export function stopImpactScoreRecalculation() {
+  if (impactScoreTask) {
+    impactScoreTask.stop();
+    impactScoreTask = null;
+    logger.info('Impact score recalculation scheduler stopped');
+  }
 }

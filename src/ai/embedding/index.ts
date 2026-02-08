@@ -91,22 +91,22 @@ export async function searchContext(
       }),
       !isPrivateChat
         ? qdrantClient.search('messages', {
-          vector: result.embedding,
-          filter: {
-            must: [
-              {
-                key: 'chatId',
-                match: {
-                  value: chatId,
+            vector: result.embedding,
+            filter: {
+              must: [
+                {
+                  key: 'chatId',
+                  match: {
+                    value: chatId,
+                  },
                 },
-              },
-            ],
-          },
-          score_threshold: CHAT_SCORE_THRESHOLD,
-          limit: CHAT_LIMIT,
-          with_payload: true,
-          timeout: 3000,
-        })
+              ],
+            },
+            score_threshold: CHAT_SCORE_THRESHOLD,
+            limit: CHAT_LIMIT,
+            with_payload: true,
+            timeout: 3000,
+          })
         : null,
     ]);
     console.timeEnd('Qdrant search time');
@@ -122,7 +122,6 @@ export async function searchContext(
         : null;
 
     return { userContext, chatContext, embedding: result.embedding };
-
   } catch (error) {
     logger.error(error, 'Embeding search error:');
     return { userContext: null, chatContext: null, embedding: undefined };

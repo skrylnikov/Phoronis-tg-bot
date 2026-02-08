@@ -1,4 +1,3 @@
-// import { OpenAI } from "openai";
 import type { Message, User } from '@prisma/client';
 import { format } from 'date-fns';
 import { unique } from 'remeda';
@@ -9,9 +8,27 @@ import { prisma } from '../db';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
 import { getRecentMemories } from '../tools/memory';
-import { getTopUserMetaInfo } from '../tools/user/meta-analyzer';
+import { getTopUserFacts } from '../tools/user/fact-analyzer';
 import { chatGeneration } from './chat-generation';
 import { langfuse } from './langfuse';
+
+function convertFactsToMetaInfo(
+  facts: Awaited<ReturnType<typeof getTopUserFacts>>,
+) {
+  return {
+    interests: facts
+      .filter((f) => f.type === 'INTEREST')
+      .map((f) => ({ value: f.content, weight: f.weight })),
+    communication_style: facts
+      .filter((f) => f.type === 'TEXT_STYLE')
+      .map((f) => ({ value: f.content, weight: f.weight })),
+    notable_traits: facts
+      .filter((f) => f.type === 'FACT')
+      .map((f) => ({ value: f.content, weight: f.weight })),
+    topics: [],
+    notes: [],
+  };
+}
 
 const getThread = async (chatId: number, messageId: bigint | null) => {
   const result: Array<Message & { sender: User }> = [];
@@ -227,6 +244,9 @@ export const aiController = async (
       getRecentMemories(ctx.from?.id ?? 0, ctx.chatId ?? 0, 10).catch(() => []),
     ]);
 
+    const userFactsPromises = userList.map((user) => getTopUserFacts(user.id));
+    const userFactsResults = await Promise.all(userFactsPromises);
+
     const trace = langfuse.trace({
       name: 'chat-generation',
       sessionId,
@@ -250,11 +270,11 @@ export const aiController = async (
 
     const compiledPrompt = prompt.compile({
       users: JSON.stringify(
-        userList.map((x) => ({
+        userList.map((x, i) => ({
           firstName: x.firstName,
           lastName: x.lastName,
           userName: x.userName,
-          metaInfo: getTopUserMetaInfo(x.metaInfo),
+          metaInfo: convertFactsToMetaInfo(userFactsResults[i]),
         })),
       ),
       rules: [

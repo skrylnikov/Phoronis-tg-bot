@@ -74,7 +74,6 @@ async function checkForSimilarMemories(
       with_payload: true,
     });
 
-
     if (searchResults.length === 0) {
       return { isDuplicate: false, isContradiction: false };
     }
@@ -88,7 +87,7 @@ async function checkForSimilarMemories(
 
     const llmResult = await generateText({
       model: openRouter('google/gemini-2.5-flash-lite'),
-      output: Output.object({schema: memoryCheckSchema}),
+      output: Output.object({ schema: memoryCheckSchema }),
       prompt: `Анализируй новую запись и существующие записи на предмет дубликатов и противоречий.
 
 Новая запись для сохранения:
@@ -106,7 +105,6 @@ ${candidates}
 Если нет ни того ни другого - верни null для обоих полей.`,
       temperature: 0,
     });
-
 
     if (llmResult.output.duplicateId) {
       return {
@@ -164,7 +162,6 @@ export async function saveMemory(options: SaveMemoryOptions) {
     content,
     isUser,
   );
-
 
   if (checkResult.isDuplicate && checkResult.similarMemoryId) {
     await prisma.memory.update({
