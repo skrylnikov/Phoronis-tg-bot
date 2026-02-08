@@ -54,7 +54,10 @@ export const ModelName = {
   User: 'User',
   Chat: 'Chat',
   Message: 'Message',
-  Memory: 'Memory'
+  Memory: 'Memory',
+  UserFact: 'UserFact',
+  FactImpact: 'FactImpact',
+  FactHistory: 'FactHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -124,6 +127,50 @@ export const MemoryScalarFieldEnum = {
 } as const
 
 export type MemoryScalarFieldEnum = (typeof MemoryScalarFieldEnum)[keyof typeof MemoryScalarFieldEnum]
+
+
+export const UserFactScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  content: 'content',
+  type: 'type',
+  weight: 'weight',
+  confidence: 'confidence',
+  sourceMessageId: 'sourceMessageId',
+  expiresAt: 'expiresAt',
+  usageCount: 'usageCount',
+  lastUsedAt: 'lastUsedAt',
+  impactScore: 'impactScore',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserFactScalarFieldEnum = (typeof UserFactScalarFieldEnum)[keyof typeof UserFactScalarFieldEnum]
+
+
+export const FactImpactScalarFieldEnum = {
+  id: 'id',
+  factId: 'factId',
+  usedInMessageId: 'usedInMessageId',
+  timestamp: 'timestamp',
+  userReaction: 'userReaction',
+  messageReaction: 'messageReaction'
+} as const
+
+export type FactImpactScalarFieldEnum = (typeof FactImpactScalarFieldEnum)[keyof typeof FactImpactScalarFieldEnum]
+
+
+export const FactHistoryScalarFieldEnum = {
+  id: 'id',
+  factId: 'factId',
+  previousContent: 'previousContent',
+  newContent: 'newContent',
+  weightChange: 'weightChange',
+  changedAt: 'changedAt',
+  reason: 'reason'
+} as const
+
+export type FactHistoryScalarFieldEnum = (typeof FactHistoryScalarFieldEnum)[keyof typeof FactHistoryScalarFieldEnum]
 
 
 export const SortOrder = {

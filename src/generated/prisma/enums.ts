@@ -24,3 +24,13 @@ export const MessageType = {
 } as const
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType]
+
+
+export const FactType = {
+  TEXT_STYLE: 'TEXT_STYLE',
+  FACT: 'FACT',
+  INTEREST: 'INTEREST',
+  NEGATIVE_INTEREST: 'NEGATIVE_INTEREST'
+} as const
+
+export type FactType = (typeof FactType)[keyof typeof FactType]

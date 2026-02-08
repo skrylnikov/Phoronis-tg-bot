@@ -8,7 +8,8 @@ import { token } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
 import { saveChat, saveMessage, saveUser } from '../shared';
-import { analyzeUserMetaInfo } from '../tools/user/meta-analyzer';
+import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
+import { recordUserReaction } from '../tools/user/fact-impact-tracker';
 
 interface Media {
   url: string;
@@ -16,10 +17,60 @@ interface Media {
   mimeType: string;
 }
 
+interface TelegramReactionResult {
+  emoji?: string;
+  type?: string;
+  count?: number;
+}
+
+interface TelegramReactionsMessage {
+  reactions?: {
+    results?: TelegramReactionResult[];
+  };
+}
+
+function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
+  if (!msg || typeof msg !== 'object') {
+    return false;
+  }
+  const withReactions = msg as TelegramReactionsMessage;
+  return Array.isArray(withReactions.reactions?.results);
+}
+
+async function handleUserReaction(
+  ctx: BotContext,
+  messageText: string,
+): Promise<void> {
+  if (!ctx.msg || !ctx.msg.reply_to_message || !ctx.from || !ctx.chatId) return;
+  logger.info('Handling user reaction for message');
+  const botMessageId = ctx.msg.reply_to_message.message_id;
+  if (!botMessageId) return;
+
+  let telegramReactions: { type: string; count: number }[] | undefined;
+  const replyMessage = ctx.msg.reply_to_message;
+  if (hasTelegramReactions(replyMessage)) {
+    telegramReactions =
+      replyMessage.reactions?.results?.map((r) => {
+        const type = typeof r.emoji === 'string' ? r.emoji : r.type;
+        return {
+          type: typeof type === 'string' ? type : '',
+          count: typeof r.count === 'number' ? r.count : 0,
+        };
+      }) ?? [];
+  }
+
+  await recordUserReaction(
+    botMessageId,
+    ctx.from.id,
+    ctx.chatId,
+    messageText,
+    telegramReactions,
+  ).catch((error) => logger.error(error, 'Error recording user reaction'));
+}
+
 export const processMessageController = new Composer<BotContext>();
 
 const analyzer = async (ctx: BotContext) => {
-  // Подсчитываем общее количество сообщений пользователя
   const messageCount = await prisma.message.count({
     where: {
       chatId: ctx.chatId,
@@ -27,12 +78,14 @@ const analyzer = async (ctx: BotContext) => {
     },
   });
 
-  // Если это тридцатое сообщение (или кратное 30), анализируем последние 30
   if (messageCount % 30 === 0) {
     const lastMessages = await prisma.message.findMany({
       where: {
         chatId: ctx.chatId,
         senderId: ctx.from!.id,
+      },
+      include: {
+        replyToMessage: true,
       },
       orderBy: {
         sentAt: 'desc',
@@ -82,8 +135,6 @@ processMessageController.on(':text', async (ctx) => {
       ctx.chat.type === 'private',
     );
 
-    console.log({ userContext, chatContext });
-
     if (embedding) {
       upsertMessage(
         ctx.msg.message_id,
@@ -96,10 +147,14 @@ processMessageController.on(':text', async (ctx) => {
     }
 
     if (
-      ctx.msg.text.toLowerCase().startsWith('ио') ||
+      (ctx.msg.text && ctx.msg.text.toLowerCase().startsWith('ио')) ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private'
     ) {
+      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
+        await handleUserReaction(ctx, ctx.msg.text);
+      }
+
       await aiController(ctx, undefined, userContext, chatContext);
     }
   } catch (error) {
@@ -183,10 +238,17 @@ processMessageController.on('msg', async (ctx) => {
     });
 
     if (
-      ctx.msg.text?.toLowerCase().startsWith('ио') ||
+      (ctx.msg.text && ctx.msg.text.toLowerCase().startsWith('ио')) ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private'
     ) {
+      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
+        const messageText = ctx.msg.text || ctx.msg.caption || '';
+        if (messageText) {
+          await handleUserReaction(ctx, messageText);
+        }
+      }
+
       await aiController(ctx, imageDescription);
     }
   } catch (error) {

@@ -60,7 +60,6 @@ export const chatGeneration = async (
     },
   });
 
-
   const memoryTool = createMemoryTool(ctx);
 
   trace.update({

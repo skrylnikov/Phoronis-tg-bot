@@ -387,7 +387,10 @@ export const ModelName = {
   User: 'User',
   Chat: 'Chat',
   Message: 'Message',
-  Memory: 'Memory'
+  Memory: 'Memory',
+  UserFact: 'UserFact',
+  FactImpact: 'FactImpact',
+  FactHistory: 'FactHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -403,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "chat" | "message" | "memory"
+    modelProps: "user" | "chat" | "message" | "memory" | "userFact" | "factImpact" | "factHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -703,6 +706,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserFact: {
+      payload: Prisma.$UserFactPayload<ExtArgs>
+      fields: Prisma.UserFactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserFactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserFactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        findFirst: {
+          args: Prisma.UserFactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserFactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        findMany: {
+          args: Prisma.UserFactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>[]
+        }
+        create: {
+          args: Prisma.UserFactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        createMany: {
+          args: Prisma.UserFactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserFactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>[]
+        }
+        delete: {
+          args: Prisma.UserFactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        update: {
+          args: Prisma.UserFactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserFactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserFactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserFactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserFactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserFactPayload>
+        }
+        aggregate: {
+          args: Prisma.UserFactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserFact>
+        }
+        groupBy: {
+          args: Prisma.UserFactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserFactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserFactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserFactCountAggregateOutputType> | number
+        }
+      }
+    }
+    FactImpact: {
+      payload: Prisma.$FactImpactPayload<ExtArgs>
+      fields: Prisma.FactImpactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FactImpactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FactImpactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        findFirst: {
+          args: Prisma.FactImpactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FactImpactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        findMany: {
+          args: Prisma.FactImpactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
+        }
+        create: {
+          args: Prisma.FactImpactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        createMany: {
+          args: Prisma.FactImpactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FactImpactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
+        }
+        delete: {
+          args: Prisma.FactImpactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        update: {
+          args: Prisma.FactImpactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        deleteMany: {
+          args: Prisma.FactImpactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FactImpactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FactImpactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
+        }
+        upsert: {
+          args: Prisma.FactImpactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
+        }
+        aggregate: {
+          args: Prisma.FactImpactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFactImpact>
+        }
+        groupBy: {
+          args: Prisma.FactImpactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FactImpactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FactImpactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FactImpactCountAggregateOutputType> | number
+        }
+      }
+    }
+    FactHistory: {
+      payload: Prisma.$FactHistoryPayload<ExtArgs>
+      fields: Prisma.FactHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FactHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FactHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.FactHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FactHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.FactHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.FactHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.FactHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FactHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.FactHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        update: {
+          args: Prisma.FactHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.FactHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FactHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FactHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.FactHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.FactHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFactHistory>
+        }
+        groupBy: {
+          args: Prisma.FactHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FactHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FactHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FactHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -793,6 +1018,50 @@ export const MemoryScalarFieldEnum = {
 } as const
 
 export type MemoryScalarFieldEnum = (typeof MemoryScalarFieldEnum)[keyof typeof MemoryScalarFieldEnum]
+
+
+export const UserFactScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  content: 'content',
+  type: 'type',
+  weight: 'weight',
+  confidence: 'confidence',
+  sourceMessageId: 'sourceMessageId',
+  expiresAt: 'expiresAt',
+  usageCount: 'usageCount',
+  lastUsedAt: 'lastUsedAt',
+  impactScore: 'impactScore',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserFactScalarFieldEnum = (typeof UserFactScalarFieldEnum)[keyof typeof UserFactScalarFieldEnum]
+
+
+export const FactImpactScalarFieldEnum = {
+  id: 'id',
+  factId: 'factId',
+  usedInMessageId: 'usedInMessageId',
+  timestamp: 'timestamp',
+  userReaction: 'userReaction',
+  messageReaction: 'messageReaction'
+} as const
+
+export type FactImpactScalarFieldEnum = (typeof FactImpactScalarFieldEnum)[keyof typeof FactImpactScalarFieldEnum]
+
+
+export const FactHistoryScalarFieldEnum = {
+  id: 'id',
+  factId: 'factId',
+  previousContent: 'previousContent',
+  newContent: 'newContent',
+  weightChange: 'weightChange',
+  changedAt: 'changedAt',
+  reason: 'reason'
+} as const
+
+export type FactHistoryScalarFieldEnum = (typeof FactHistoryScalarFieldEnum)[keyof typeof FactHistoryScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -934,6 +1203,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'FactType'
+ */
+export type EnumFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FactType'>
+    
+
+
+/**
+ * Reference to a field of type 'FactType[]'
+ */
+export type ListEnumFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FactType[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1059,6 +1342,9 @@ export type GlobalOmitConfig = {
   chat?: Prisma.ChatOmit
   message?: Prisma.MessageOmit
   memory?: Prisma.MemoryOmit
+  userFact?: Prisma.UserFactOmit
+  factImpact?: Prisma.FactImpactOmit
+  factHistory?: Prisma.FactHistoryOmit
 }
 
 /* Types for Logging */

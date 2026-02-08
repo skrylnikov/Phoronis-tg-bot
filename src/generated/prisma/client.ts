@@ -59,3 +59,18 @@ export type Message = Prisma.MessageModel
  * 
  */
 export type Memory = Prisma.MemoryModel
+/**
+ * Model UserFact
+ * 
+ */
+export type UserFact = Prisma.UserFactModel
+/**
+ * Model FactImpact
+ * 
+ */
+export type FactImpact = Prisma.FactImpactModel
+/**
+ * Model FactHistory
+ * 
+ */
+export type FactHistory = Prisma.FactHistoryModel

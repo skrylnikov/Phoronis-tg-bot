@@ -2,7 +2,6 @@ import { WikipediaQueryRun } from '@langchain/community/tools/wikipedia_query_ru
 import { tool } from 'ai';
 import { z } from 'zod';
 
-
 export const wikipediaTool = tool({
   description: 'Поиск информации в Википедии на русском языке',
   inputSchema: z.object({
