@@ -1,4 +1,5 @@
 import type { Message, User } from '@prisma/client';
+import type { ModelMessage } from 'ai';
 import { format } from 'date-fns';
 import { unique } from 'remeda';
 import MD from 'telegramify-markdown';
@@ -120,10 +121,8 @@ export const aiController = async (
 
     const text = ctx.msg.text || ctx.msg.caption;
 
-    // const defaultMessages = defaultMessagesCreate();
-
     const rawMessages: Array<{
-      role: string;
+      role: 'system' | 'user' | 'assistant';
       content: string | Array<unknown>;
     }> = [];
 
@@ -253,7 +252,7 @@ export const aiController = async (
       userId: ctx.from?.id?.toString() || null,
       metadata: {
         userName: [
-          ctx.from?.username ? '@' + ctx.from?.username : null,
+          ctx.from?.username ? `@${ctx.from?.username}` : null,
           ctx.from?.first_name,
           ctx.from?.last_name,
         ]
@@ -297,12 +296,12 @@ export const aiController = async (
       time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
     });
 
-    const messages = [
+    const messages: ModelMessage[] = [
       {
         role: 'system',
         content: compiledPrompt,
       },
-      ...rawMessages,
+      ...(rawMessages as ModelMessage[]),
     ];
 
     const result = await chatGeneration(messages, trace, ctx);

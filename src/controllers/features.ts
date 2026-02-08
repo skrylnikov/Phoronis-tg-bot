@@ -201,9 +201,9 @@ featuresController.command('status', async (ctx) => {
   }
 });
 
-featuresController.command('index', async (ctx) => {
+featuresController.command('index', async (_ctx) => {
   try {
-    const count = await prisma.message.count();
+    const _count = await prisma.message.count();
     // // const count = 1000;
     // for (let i = 138800; i < count; i += 100) {
     //   console.log(`Indexing messages ${i} of ${count}`);

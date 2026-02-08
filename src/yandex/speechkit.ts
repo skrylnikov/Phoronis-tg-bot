@@ -54,7 +54,7 @@ const recognizeAsync = async (
   file: Buffer,
   duration: number,
 ) => {
-  await s3client.putObject('bot-voic/phoronis/' + fileName, file);
+  await s3client.putObject(`bot-voic/phoronis/${fileName}`, file);
 
   const taskResponse = await fetch(
     'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize',

@@ -71,10 +71,14 @@ async function handleUserReaction(
 export const processMessageController = new Composer<BotContext>();
 
 const analyzer = async (ctx: BotContext) => {
+  if (!ctx.from || !ctx.chatId) {
+    return;
+  }
+
   const messageCount = await prisma.message.count({
     where: {
       chatId: ctx.chatId,
-      senderId: ctx.from!.id,
+      senderId: ctx.from.id,
     },
   });
 
@@ -82,7 +86,7 @@ const analyzer = async (ctx: BotContext) => {
     const lastMessages = await prisma.message.findMany({
       where: {
         chatId: ctx.chatId,
-        senderId: ctx.from!.id,
+        senderId: ctx.from.id,
       },
       include: {
         replyToMessage: true,
@@ -93,22 +97,26 @@ const analyzer = async (ctx: BotContext) => {
       take: 30,
     });
 
-    await analyzeUserMetaInfo(BigInt(ctx.from!.id), lastMessages.reverse());
+    await analyzeUserMetaInfo(BigInt(ctx.from.id), lastMessages.reverse());
   }
 };
 
 processMessageController.on(':text', async (ctx) => {
   try {
+    if (!ctx.from || !ctx.chatId) {
+      return;
+    }
+
     await Promise.all([
       saveChat(ctx.chat),
-      saveUser(ctx.from!),
+      saveUser(ctx.from),
       saveUser(ctx.me),
     ]);
 
     await saveMessage({
       id: ctx.msg.message_id,
       chatId: ctx.chatId,
-      senderId: ctx.from!.id,
+      senderId: ctx.from.id,
       replyToMessageId: ctx.msg?.reply_to_message?.message_id,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
@@ -130,7 +138,7 @@ processMessageController.on(':text', async (ctx) => {
 
     const { userContext, chatContext, embedding } = await searchContext(
       content,
-      ctx.from!.id,
+      ctx.from.id,
       ctx.chatId,
       ctx.chat.type === 'private',
     );
@@ -142,12 +150,12 @@ processMessageController.on(':text', async (ctx) => {
         content,
         ctx.msg.text,
         ctx.chatId,
-        ctx.from!.id,
+        ctx.from.id,
       );
     }
 
     if (
-      (ctx.msg.text && ctx.msg.text.toLowerCase().startsWith('ио')) ||
+      ctx.msg.text?.toLowerCase().startsWith('ио') ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private'
     ) {
@@ -162,7 +170,7 @@ processMessageController.on(':text', async (ctx) => {
   }
 });
 
-function selectOptimalPhoto(photos: PhotoSize[]): any {
+function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
   const MAX_SIZE = 896;
   let optimalPhoto = photos[0];
   let maxSize = 0;
@@ -180,9 +188,13 @@ function selectOptimalPhoto(photos: PhotoSize[]): any {
 
 processMessageController.on('msg', async (ctx) => {
   try {
+    if (!ctx.from || !ctx.chatId) {
+      return;
+    }
+
     await Promise.all([
       saveChat(ctx.chat),
-      saveUser(ctx.from!),
+      saveUser(ctx.from),
       saveUser(ctx.me),
     ]);
 
@@ -190,13 +202,14 @@ processMessageController.on('msg', async (ctx) => {
 
     if (ctx.msg.photo) {
       const optimalPhoto = selectOptimalPhoto(ctx.msg.photo);
+      if (!optimalPhoto) {
+        return;
+      }
       const fileLink = await ctx.api.getFile(optimalPhoto.file_id);
       const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
-      // const imageBuffer = await downloadImage(url);
       media = [
         {
           url,
-          // buffer: imageBuffer.toString("base64"),
           mimeType: 'image/jpeg',
         },
       ];
@@ -228,7 +241,7 @@ processMessageController.on('msg', async (ctx) => {
     await saveMessage({
       id: ctx.msg.message_id,
       chatId: ctx.chatId,
-      senderId: ctx.from!.id,
+      senderId: ctx.from.id,
       replyToMessageId: ctx.msg?.reply_to_message?.message_id,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.caption,
@@ -238,7 +251,7 @@ processMessageController.on('msg', async (ctx) => {
     });
 
     if (
-      (ctx.msg.text && ctx.msg.text.toLowerCase().startsWith('ио')) ||
+      ctx.msg.text?.toLowerCase().startsWith('ио') ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private'
     ) {

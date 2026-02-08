@@ -15,7 +15,7 @@ export const voiceController = async (ctx: BotContext) => {
   try {
     const info = ctx.message?.voice || ctx.message?.video_note;
 
-    if (!info || !ctx.message) {
+    if (!info || !ctx.message || !ctx.chatId || !ctx.from) {
       return;
     }
 
@@ -23,8 +23,12 @@ export const voiceController = async (ctx: BotContext) => {
     await ctx.replyWithChatAction('typing');
     const fileLink = await ctx.api.getFile(file_id);
 
+    if (!fileLink.file_path) {
+      return;
+    }
+
     const rawFile = await axios.get(
-      `https://api.telegram.org/file/bot${token}/${fileLink.file_path!}`,
+      `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`,
       { responseType: 'arraybuffer' },
     );
 
@@ -53,7 +57,7 @@ export const voiceController = async (ctx: BotContext) => {
       file = Buffer.from(result.MEMFS[0].data);
     }
 
-    const [recognizedResult, replyToMessage] = await Promise.all([
+    const [recognizedResult, _replyToMessage] = await Promise.all([
       yandex.speechkit.recognize({
         fileId: file_id,
         file,
@@ -62,7 +66,7 @@ export const voiceController = async (ctx: BotContext) => {
       prisma.message.findUnique({
         where: {
           chatId_id: {
-            chatId: ctx.chatId!,
+            chatId: ctx.chatId,
             id: ctx.msg?.message_id ?? 0,
           },
         },
@@ -95,10 +99,10 @@ export const voiceController = async (ctx: BotContext) => {
           ? langfuse.getPrompt('voice-summarize')
           : null,
         saveMessage({
-          id: ctx.msg!.message_id,
-          chatId: ctx.chatId!,
-          senderId: ctx.from!.id,
-          sentAt: new Date(ctx.msg!.date * 1000),
+          id: ctx.msg?.message_id ?? 0,
+          chatId: ctx.chatId,
+          senderId: ctx.from.id,
+          sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
           messageType: 'VOICE',
           text: recognizedResult,
           replyToMessageId: ctx.msg?.reply_to_message?.message_id,
@@ -109,8 +113,8 @@ export const voiceController = async (ctx: BotContext) => {
       await Promise.all([
         saveMessage({
           id: reply.message_id,
-          chatId: ctx.chatId!,
-          senderId: reply.from!.id,
+          chatId: ctx.chatId,
+          senderId: reply.from?.id ?? 0,
           sentAt: new Date(reply.date * 1000),
           messageType: 'VOICE',
           text: reply.text,
@@ -138,7 +142,7 @@ export const voiceController = async (ctx: BotContext) => {
                   role: 'system',
                   content: summarizePrompt.compile({
                     author: [
-                      ctx.from?.username ? '@' + ctx.from?.username : null,
+                      ctx.from?.username ? `@${ctx.from?.username}` : null,
                       ctx.from?.first_name,
                       ctx.from?.last_name,
                     ]
@@ -163,7 +167,7 @@ export const voiceController = async (ctx: BotContext) => {
       : fmt`${beautifiedResult.text}`;
 
     await Promise.all([
-      ctx.api.editMessageText(ctx.chatId!, reply.message_id, result.text, {
+      ctx.api.editMessageText(ctx.chatId, reply.message_id, result.text, {
         entities: result.entities,
       }),
       prisma.message.update({

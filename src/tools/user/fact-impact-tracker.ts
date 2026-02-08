@@ -84,7 +84,7 @@ export async function analyzeUserReaction(
 
 export async function recordUserReaction(
   botMessageId: number,
-  userId: number,
+  _userId: number,
   chatId: number,
   userMessage?: string,
   telegramReactions?: TelegramReaction[],
@@ -131,7 +131,7 @@ export async function recordUserReaction(
 }
 
 export async function trackFactUsage(
-  userId: number,
+  _userId: number,
   usedFactIds: bigint[],
   botMessageId: number,
 ) {

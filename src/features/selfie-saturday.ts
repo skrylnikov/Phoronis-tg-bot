@@ -42,7 +42,7 @@ export async function sendSelfieSaturdayMessage(
     await saveMessage({
       id: reply.message_id,
       chatId,
-      senderId: reply.from!.id,
+      senderId: reply.from?.id ?? 0,
       sentAt: new Date(reply.date * 1000),
       messageType: 'TEXT',
       text: message,

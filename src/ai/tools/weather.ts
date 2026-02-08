@@ -16,7 +16,7 @@ export const weatherTool = tool({
         { responseType: 'json' },
       );
       return JSON.stringify(weatherResponse.data);
-    } catch (error) {
+    } catch (_error) {
       return 'Не удалось получить информацию о погоде';
     }
   },

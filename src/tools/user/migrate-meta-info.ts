@@ -197,7 +197,7 @@ async function migrateUserMetaInfo(
       await qdrantClient.upsert('user-facts', {
         points: [
           {
-            id: createdFact.id.toString(),
+            id: Number(createdFact.id),
             vector: embeddingResult.embedding,
             payload: {
               content: fact.content,

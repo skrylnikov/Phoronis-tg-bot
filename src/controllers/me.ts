@@ -1,6 +1,5 @@
 import type { Context } from 'grammy';
 
-import { prisma } from '../db';
 import { saveMessage } from '../shared';
 
 export const meController = async (ctx: Context) => {
@@ -16,8 +15,8 @@ export const meController = async (ctx: Context) => {
 
       await saveMessage({
         id: reply.message_id,
-        chatId: ctx.chatId!,
-        senderId: reply.from!.id,
+        chatId: ctx.message.chat.id,
+        senderId: reply.from?.id ?? 0,
         sentAt: new Date(reply.date * 1000),
         messageType: 'TEXT',
         text: result,

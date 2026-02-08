@@ -1,3 +1,4 @@
+import type { Schemas } from '@qdrant/js-client-rest';
 import { embed, generateText, Output } from 'ai';
 import { z } from 'zod';
 import { openRouter } from '../../ai/ai';
@@ -48,7 +49,7 @@ async function checkForSimilarMemories(
       },
     });
 
-    const filter: any = {
+    const filter: Schemas['Filter'] = {
       must: [
         {
           key: 'isUser',
@@ -56,15 +57,14 @@ async function checkForSimilarMemories(
             value: isUser,
           },
         },
+        {
+          key: isUser ? 'userId' : 'chatId',
+          match: {
+            value: isUser ? userId : chatId,
+          },
+        },
       ],
     };
-
-    filter.must.push({
-      key: isUser ? 'userId' : 'chatId',
-      match: {
-        value: isUser ? userId : chatId,
-      },
-    });
 
     const searchResults = await qdrantClient.search('memories', {
       vector: result.embedding,

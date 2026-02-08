@@ -31,11 +31,11 @@ bot.start().catch((e) => logger.error(e));
 logger.info('Bot started');
 
 process.on('uncaughtException', (err) => {
-  logger.error('Caught exception: ' + err);
+  logger.error(`Caught exception: ${err}`);
 });
 
 process.on('unhandledRejection', (err) => {
-  logger.error('Caught rejection: ' + err);
+  logger.error(`Caught rejection: ${err}`);
 });
 
 const shutdown = () => {

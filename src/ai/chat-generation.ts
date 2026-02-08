@@ -1,4 +1,6 @@
+import type { ModelMessage } from 'ai';
 import { dynamicTool, generateText, stepCountIs } from 'ai';
+import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
@@ -7,8 +9,8 @@ import { weatherTool, wikipediaTool } from './tools';
 import { createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
-  messages: Array<any>,
-  trace: any,
+  messages: Array<ModelMessage>,
+  trace: LangfuseTraceClient,
   ctx?: BotContext,
 ) => {
   const greetingTool = dynamicTool({
@@ -54,7 +56,7 @@ export const chatGeneration = async (
         return JSON.stringify({
           message: `Приветствие установлено: ${greeting}`,
         });
-      } catch (error) {
+      } catch (_error) {
         return JSON.stringify({ error: 'Ошибка при установке приветствия' });
       }
     },
@@ -64,10 +66,6 @@ export const chatGeneration = async (
 
   trace.update({
     input: JSON.stringify(messages),
-  });
-
-  const generation = trace.generation({
-    prompt,
   });
 
   const response = await generateText({
@@ -81,12 +79,6 @@ export const chatGeneration = async (
     },
     stopWhen: stepCountIs(5),
     temperature: 1,
-  });
-
-  // logger.debug(response);
-
-  generation.update({
-    output: JSON.stringify(response.text),
   });
 
   trace.update({

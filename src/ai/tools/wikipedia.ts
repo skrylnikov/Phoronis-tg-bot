@@ -3,7 +3,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 export const wikipediaTool = tool({
-  description: 'Поиск информации в Википедии на русском языке',
+  description: 'Поиск информации в Википедии на английсом языке',
   inputSchema: z.object({
     query: z.string().describe('Поисковый запрос'),
   }),
@@ -12,7 +12,7 @@ export const wikipediaTool = tool({
     const wikiTool = new WikipediaQueryRun({
       topKResults: 3,
       maxDocContentLength: 4000,
-      baseUrl: 'https://ru.wikipedia.org/w/api.php',
+      baseUrl: 'https://en.wikipedia.org/w/api.php',
     });
     return await wikiTool.invoke(query);
   },

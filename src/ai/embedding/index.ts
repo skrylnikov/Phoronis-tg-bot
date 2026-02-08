@@ -113,12 +113,12 @@ export async function searchContext(
 
     const userContext =
       userSearchResult.length > 0
-        ? userSearchResult.map((x) => x.payload!.content as string)
+        ? userSearchResult.map((x) => x.payload?.content as string)
         : null;
 
     const chatContext =
       chatSearchResult && chatSearchResult.length > 0
-        ? chatSearchResult.map((x) => x.payload!.content as string)
+        ? chatSearchResult.map((x) => x.payload?.content as string)
         : null;
 
     return { userContext, chatContext, embedding: result.embedding };

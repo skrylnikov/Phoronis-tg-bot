@@ -10,14 +10,14 @@ export const newChatMembersController = async (ctx: Context) => {
     },
   });
 
-  if (chat?.greeting) {
+  if (chat?.greeting && ctx.chat) {
     const reply = await ctx.reply(chat.greeting, {
       reply_to_message_id: ctx.message?.message_id,
     });
     await saveMessage({
       id: reply.message_id,
-      chatId: ctx.chatId!,
-      senderId: reply.from!.id,
+      chatId: ctx.chat.id,
+      senderId: reply.from?.id ?? 0,
       replyToMessageId: ctx.message?.message_id,
       sentAt: new Date(reply.date * 1000),
       messageType: 'TEXT',

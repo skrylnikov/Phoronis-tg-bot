@@ -1,4 +1,5 @@
 import type { Message } from '@prisma/client';
+import type { Schemas } from '@qdrant/js-client-rest';
 import { embed, generateObject, generateText, Output } from 'ai';
 import { z } from 'zod';
 import { openRouter } from '../../ai/ai';
@@ -82,25 +83,27 @@ async function checkForSimilarFacts(
       },
     });
 
-    const filter: any = {
-      must: [
-        {
-          key: 'userId',
-          match: {
-            value: userId.toString(),
-          },
+    const mustConditions = [
+      {
+        key: 'userId',
+        match: {
+          value: userId.toString(),
         },
-      ],
-    };
+      },
+    ];
 
     if (type) {
-      filter.must.push({
+      mustConditions.push({
         key: 'type',
         match: {
           value: type,
         },
       });
     }
+
+    const filter: Schemas['Filter'] = {
+      must: mustConditions,
+    };
 
     const searchResults = await qdrantClient.search('user-facts', {
       vector: result.embedding,
@@ -182,7 +185,7 @@ async function upsertFactEmbedding(
   await qdrantClient.upsert('user-facts', {
     points: [
       {
-        id: factId.toString(),
+        id: Number(factId),
         vector: embedding,
         payload: {
           content,
@@ -243,13 +246,15 @@ async function saveUserFact(
         'duplicate',
       );
 
-      await upsertFactEmbedding(
-        checkResult.similarFactId,
-        content,
-        userId,
-        existingFact.type,
-        checkResult.embedding!,
-      );
+      if (checkResult.embedding) {
+        await upsertFactEmbedding(
+          checkResult.similarFactId,
+          content,
+          userId,
+          existingFact.type,
+          checkResult.embedding,
+        );
+      }
     }
 
     return checkResult.similarFactId;
@@ -278,13 +283,15 @@ async function saveUserFact(
         'contradiction',
       );
 
-      await upsertFactEmbedding(
-        checkResult.similarFactId,
-        content,
-        userId,
-        existingFact.type,
-        checkResult.embedding!,
-      );
+      if (checkResult.embedding) {
+        await upsertFactEmbedding(
+          checkResult.similarFactId,
+          content,
+          userId,
+          existingFact.type,
+          checkResult.embedding,
+        );
+      }
     }
 
     return checkResult.similarFactId;
@@ -300,13 +307,15 @@ async function saveUserFact(
     },
   });
 
-  await upsertFactEmbedding(
-    fact.id,
-    content,
-    userId,
-    type,
-    checkResult.embedding!,
-  );
+  if (checkResult.embedding) {
+    await upsertFactEmbedding(
+      fact.id,
+      content,
+      userId,
+      type,
+      checkResult.embedding,
+    );
+  }
 
   return fact.id;
 }

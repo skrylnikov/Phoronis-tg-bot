@@ -11,14 +11,14 @@
 - `bun run db:deploy` - Deploy database migrations
 - `bun run postinstall` - Runs automatically after install; generates Prisma client
 
-**No test framework is currently configured** - Tests must be added manually if needed.
+**No test framework is currently configured** - Tests must be added manually. To add tests: install vitest or jest and configure in package.json.
 
 ## Code Style Guidelines
 
 ### Imports & Formatting
-- Use named imports from libraries: `import { Bot, Context } from "grammy"`
-- Default imports for project modules: `import { bot } from "./bot"`
-- Single quotes for strings
+- Use named imports from libraries: `import { Bot, Context } from 'grammy'`
+- ES modules require .js extensions in imports: `import { bot } from './bot.js'`
+- Single quotes for strings (enforced by Biome)
 - 2-space indentation (enforced by .editorconfig)
 - Always insert final newline
 - Group imports: external libraries first, then project modules
@@ -36,6 +36,11 @@
 - Constants: `camelCase` (e.g., `openRouterToken`, `token`)
 - File names: `kebab-case` for folders and files (e.g., `meta-analyzer.ts`, `save-chat.ts`)
 - Prisma models: `PascalCase` (User, Chat, Message)
+
+### Type Guards & Patterns
+- Use type guards for runtime type checking: `function hasProperty(obj: unknown): obj is MyType { ... }`
+- Type guards return `obj is Type` for proper TypeScript narrowing
+- See `src/controllers/process-message.ts:32-38` for example
 
 ### Project Structure
 ```
@@ -75,6 +80,7 @@ src/
 - Access message data: `ctx.msg.text`, `ctx.from.id`, `ctx.chatId`
 - Bot instance: `import { bot } from "./bot"`
 - Use BotContext type throughout: `ctx: BotContext`
+- Register controllers in `src/controllers/index.ts` to compose middleware
 
 ### AI Integration
 - Use LangChain for complex chains and AI SDK for simple embeddings
@@ -82,6 +88,9 @@ src/
 - Langfuse for prompt management and observability
 - Embeddings with vector search in Qdrant
 - Stream responses where applicable
+- AI models defined in `src/ai/ai.ts`: `textBeautifierModel = openRouter('google/gemini-2.5-flash-lite')`
+- Use `generateText()` from 'ai' package for text generation
+- Use `telegramify-markdown` imported as `MD` for formatting AI responses
 
 ### Best Practices
 - Use `Promise.all()` for parallel independent operations
@@ -99,7 +108,7 @@ src/
 
 ### Testing
 - No test framework configured (no test script in package.json)
-- To add tests: install vitest/jest and configure in package.json
+- To add tests: install vitest or jest and configure in package.json
 - Example test command pattern: `bun test <filename>` for running single test
 
 ### Dependencies & Libraries
@@ -119,6 +128,7 @@ src/
 - Missing env vars throw errors at startup
 - See `.env.example` for required variables (TOKEN, OPENROUTER_API_KEY, etc.)
 - Tokens exported from config: `import { token, openRouterToken } from './config'`
+- Required vars: TOKEN, OPEN_WEATHER_TOKEN, DADATA_TOKEN, YANDEX_CLOUD_TOKEN, YANDEX_S3_ID, YANDEX_S3_SECRET, OPENAI_API_KEY, OPENROUTER_API_KEY, QDRANT_BASE_URL, QDRANT_API_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
 
 ### Message Processing Flow
 1. Save chat and user info (cached with LRU)
