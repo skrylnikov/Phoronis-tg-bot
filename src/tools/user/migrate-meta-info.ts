@@ -124,7 +124,7 @@ async function checkFactExistsInQdrant(
           {
             key: 'userId',
             match: {
-              value: Number(userId),
+              value: userId.toString(),
             },
           },
           {
@@ -197,11 +197,11 @@ async function migrateUserMetaInfo(
       await qdrantClient.upsert('user-facts', {
         points: [
           {
-            id: Number(createdFact.id),
+            id: createdFact.id.toString(),
             vector: embeddingResult.embedding,
             payload: {
               content: fact.content,
-              userId: Number(userId),
+              userId: userId.toString(),
               type: fact.type,
             },
           },
@@ -229,84 +229,103 @@ const MIGRATION_BATCH_SIZE = 10;
 
 let migrationTask: ScheduledTask | null = null;
 let isMigrationRunning = false;
+let lastProcessedUserId: bigint | null = null;
 
 export async function migrateNextBatchOfUsers() {
-  const allUsers = await prisma.user.findMany({
-    take: MIGRATION_BATCH_SIZE * 3,
-    orderBy: { id: 'asc' },
-  });
-
-  const users = allUsers.filter(
-    (u) => u.metaInfo && Object.keys(u.metaInfo).length > 0,
-  );
-
-  if (users.length === 0) {
-    logger.info('No more users to migrate');
-    return 0;
-  }
-
   let totalMigrated = 0;
 
-  for (const user of users) {
-    const metaInfoParse = userMetaInfoSchema.safeParse(user.metaInfo);
+  while (true) {
+    const allUsers = await prisma.user.findMany({
+      take: MIGRATION_BATCH_SIZE * 3,
+      orderBy: { id: 'asc' },
+      ...(lastProcessedUserId != null && {
+        cursor: { id: lastProcessedUserId },
+        skip: 1,
+      }),
+    });
 
-    if (!metaInfoParse.success) {
-      logger.error(
-        user.metaInfo,
-        `Invalid metaInfo format for user ${user.id}`,
-      );
+    if (allUsers.length === 0) {
+      logger.info('No more users to migrate');
+      return totalMigrated;
+    }
+
+    const users = allUsers.filter(
+      (u) => u.metaInfo && Object.keys(u.metaInfo).length > 0,
+    );
+
+    lastProcessedUserId = allUsers[allUsers.length - 1].id;
+
+    if (users.length === 0) {
       continue;
     }
 
-    const result = await migrateUserMetaInfo(user.id, metaInfoParse.data);
-    totalMigrated += result.migratedCount;
+    for (const user of users) {
+      const metaInfoParse = userMetaInfoSchema.safeParse(user.metaInfo);
 
-    if (!result.hadErrors && result.migratedCount === result.totalCount) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          metaInfo: {},
-        },
-      });
-    } else if (result.hadErrors) {
-      logger.error(
-        {
-          userId: user.id,
-          expectedFacts: result.totalCount,
-          migratedFacts: result.migratedCount,
-        },
-        'Meta info migration had errors for user; preserving metaInfo for retry',
-      );
+      if (!metaInfoParse.success) {
+        logger.error(
+          user.metaInfo,
+          `Invalid metaInfo format for user ${user.id}`,
+        );
+        continue;
+      }
+
+      const result = await migrateUserMetaInfo(user.id, metaInfoParse.data);
+      totalMigrated += result.migratedCount;
+
+      if (!result.hadErrors && result.migratedCount === result.totalCount) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            metaInfo: {},
+          },
+        });
+      } else if (result.hadErrors) {
+        logger.error(
+          {
+            userId: user.id,
+            expectedFacts: result.totalCount,
+            migratedFacts: result.migratedCount,
+          },
+          'Meta info migration had errors for user; preserving metaInfo for retry',
+        );
+      }
     }
-  }
 
-  return totalMigrated;
+    return totalMigrated;
+  }
 }
 
 export function startMetaInfoMigration() {
   logger.info('Starting meta info migration scheduler...');
 
-  migrationTask = cron.schedule('*/10 * * * * *', async () => {
-    if (isMigrationRunning) {
-      return;
-    }
-
-    isMigrationRunning = true;
-
-    try {
-      const migrated = await migrateNextBatchOfUsers();
-      if (migrated > 0) {
-        logger.info(`Migration batch completed: ${migrated} facts migrated`);
-      } else {
-        logger.info('No users to migrate, stopping migration scheduler');
-        stopMetaInfoMigration();
+  migrationTask = cron.schedule(
+    '*/10 * * * * *',
+    async () => {
+      if (isMigrationRunning) {
+        return;
       }
-    } catch (error) {
-      logger.error(error, 'Error in meta info migration');
-    } finally {
-      isMigrationRunning = false;
-    }
-  });
+
+      isMigrationRunning = true;
+
+      try {
+        const migrated = await migrateNextBatchOfUsers();
+        if (migrated > 0) {
+          logger.info(`Migration batch completed: ${migrated} facts migrated`);
+        } else {
+          logger.info('No users to migrate, stopping migration scheduler');
+          stopMetaInfoMigration();
+        }
+      } catch (error) {
+        logger.error(error, 'Error in meta info migration');
+      } finally {
+        isMigrationRunning = false;
+      }
+    },
+    {
+      timezone: 'UTC',
+    },
+  );
 }
 
 export function stopMetaInfoMigration() {

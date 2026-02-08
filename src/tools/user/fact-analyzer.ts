@@ -38,6 +38,7 @@ interface FactCheckResult {
   isDuplicate: boolean;
   isContradiction: boolean;
   similarFactId?: bigint;
+  embedding?: number[];
 }
 
 async function formatMessagesWithReplies(
@@ -86,7 +87,7 @@ async function checkForSimilarFacts(
         {
           key: 'userId',
           match: {
-            value: Number(userId),
+            value: userId.toString(),
           },
         },
       ],
@@ -110,7 +111,11 @@ async function checkForSimilarFacts(
     });
 
     if (searchResults.length === 0) {
-      return { isDuplicate: false, isContradiction: false };
+      return {
+        isDuplicate: false,
+        isContradiction: false,
+        embedding: result.embedding,
+      };
     }
 
     const candidates = searchResults
@@ -143,6 +148,7 @@ ${candidates}
         isDuplicate: true,
         isContradiction: false,
         similarFactId: BigInt(llmResult.output.duplicateId),
+        embedding: result.embedding,
       };
     }
 
@@ -151,10 +157,15 @@ ${candidates}
         isDuplicate: false,
         isContradiction: true,
         similarFactId: BigInt(llmResult.output.contradictionId),
+        embedding: result.embedding,
       };
     }
 
-    return { isDuplicate: false, isContradiction: false };
+    return {
+      isDuplicate: false,
+      isContradiction: false,
+      embedding: result.embedding,
+    };
   } catch (error) {
     logger.error(error, 'Error checking for similar facts');
     return { isDuplicate: false, isContradiction: false };
@@ -166,25 +177,16 @@ async function upsertFactEmbedding(
   content: string,
   userId: bigint,
   type: FactType,
+  embedding: number[],
 ) {
-  const result = await embed({
-    model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
-    value: content,
-    providerOptions: {
-      llamaGate: {
-        dimensions: 4096,
-      },
-    },
-  });
-
   await qdrantClient.upsert('user-facts', {
     points: [
       {
-        id: Number(factId),
-        vector: result.embedding,
+        id: factId.toString(),
+        vector: embedding,
         payload: {
           content,
-          userId: Number(userId),
+          userId: userId.toString(),
           type,
         },
       },
@@ -246,6 +248,7 @@ async function saveUserFact(
         content,
         userId,
         existingFact.type,
+        checkResult.embedding!,
       );
     }
 
@@ -280,6 +283,7 @@ async function saveUserFact(
         content,
         userId,
         existingFact.type,
+        checkResult.embedding!,
       );
     }
 
@@ -296,7 +300,13 @@ async function saveUserFact(
     },
   });
 
-  await upsertFactEmbedding(fact.id, content, userId, type);
+  await upsertFactEmbedding(
+    fact.id,
+    content,
+    userId,
+    type,
+    checkResult.embedding!,
+  );
 
   return fact.id;
 }
@@ -394,7 +404,7 @@ export async function getTopUserFacts(
         fact.confidence * 0.5 +
         fact.impactScore * 1.5 +
         (fact.type === 'INTEREST' ? 5 : 0) +
-        (fact.expiresAt && fact.expiresAt > now ? 10 : 0) +
+        (fact.expiresAt && fact.expiresAt > now ? 10 : 0) -
         daysSinceUpdate * 0.1;
 
       return { ...fact, rankScore };

@@ -34,10 +34,18 @@ export async function analyzeUserReaction(
       .reduce((sum, r) => sum + r.count, 0);
 
     if (positiveCount > negativeCount && positiveCount > 0) {
-      return { reaction: 'positive' as const, confidence: 0.9 };
+      return {
+        reaction: 'positive' as const,
+        confidence: 0.9,
+        messageReaction: 'none' as const,
+      };
     }
     if (negativeCount > positiveCount && negativeCount > 0) {
-      return { reaction: 'negative' as const, confidence: 0.9 };
+      return {
+        reaction: 'negative' as const,
+        confidence: 0.9,
+        messageReaction: 'none' as const,
+      };
     }
   }
 

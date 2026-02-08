@@ -111,7 +111,7 @@ model UserFact {
   content          String
   type             FactType
   weight           Int      @default(1)
-  confidence       Float    @default(50)
+  confidence       Float    @default(0.5)
   sourceMessageId  BigInt?
   expiresAt        DateTime?
 
