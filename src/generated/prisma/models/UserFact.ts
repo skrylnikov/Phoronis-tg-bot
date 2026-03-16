@@ -1777,6 +1777,11 @@ export type UserFactFindManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Skip the first `n` UserFacts.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of UserFacts.
+   */
   distinct?: Prisma.UserFactScalarFieldEnum | Prisma.UserFactScalarFieldEnum[]
 }
 

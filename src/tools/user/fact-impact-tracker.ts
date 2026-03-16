@@ -57,29 +57,32 @@ export async function analyzeUserReaction(
     };
   }
 
-  const result = await generateText({
-    model: openRouter('google/gemini-2.5-flash-lite'),
-    output: Output.object({ schema: reactionSchema }),
-    prompt: `Проанализируй реакцию пользователя на ответ бота.
 
-Ответ бота:
-"${botReply}"
+  return null;
 
-Ответ пользователя:
-"${userMessage}"
+//   const result = await generateText({
+//     model: openRouter('google/gemini-2.5-flash-lite'),
+//     output: Output.object({ schema: reactionSchema }),
+//     prompt: `Проанализируй реакцию пользователя на ответ бота.
 
-Определи:
-1. reaction: позитивная/негативная/нейтральная/исправление ошибки
-2. messageReaction: продолжение диалога/уточняющий вопрос/пояснение/игнорирование/нет реакции
-3. confidence: уверенность в оценке (0-1)`,
-    temperature: 0,
-  });
+// Ответ бота:
+// "${botReply}"
 
-  return {
-    reaction: result.output.reaction,
-    messageReaction: result.output.messageReaction,
-    confidence: result.output.confidence,
-  };
+// Ответ пользователя:
+// "${userMessage}"
+
+// Определи:
+// 1. reaction: позитивная/негативная/нейтральная/исправление ошибки
+// 2. messageReaction: продолжение диалога/уточняющий вопрос/пояснение/игнорирование/нет реакции
+// 3. confidence: уверенность в оценке (0-1)`,
+//     temperature: 0,
+//   });
+
+//   return {
+//     reaction: result.output.reaction,
+//     messageReaction: result.output.messageReaction,
+//     confidence: result.output.confidence,
+//   };
 }
 
 export async function recordUserReaction(
@@ -115,6 +118,9 @@ export async function recordUserReaction(
     telegramReactions,
   );
 
+  if (!reaction) {
+    return;
+  }
   await prisma.factImpact.updateMany({
     where: {
       id: { in: factImpacts.map((fi) => fi.id) },
