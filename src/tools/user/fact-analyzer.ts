@@ -126,7 +126,7 @@ async function checkForSimilarFacts(
       .join('\n');
 
     const llmResult = await generateText({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: openRouter('openai/gpt-oss-120b'),
       output: Output.object({ schema: factsCheckSchema }),
       prompt: `Анализируй новый факт и существующие факты на предмет дубликатов и противоречий.
 
@@ -359,7 +359,7 @@ ${formattedMessages}
 Извлеки новые факты о пользователе, стилях общения и интересах. НЕ повторяй существующие факты, а только дополняй их.`;
 
     const result = await generateObject({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: openRouter('openai/gpt-oss-120b'),
       schema: factExtractionSchema,
       prompt: `
 ${systemPrompt}

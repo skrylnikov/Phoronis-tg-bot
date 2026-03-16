@@ -237,7 +237,7 @@ processMessageController.on('msg', async (ctx) => {
     const systemPrompt = prompt.compile();
 
     const response = await generateText({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: openRouter('openai/gpt-oss-120b'),
       messages: [
         { role: 'system', content: systemPrompt },
         {
