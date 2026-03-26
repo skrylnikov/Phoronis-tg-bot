@@ -39,7 +39,7 @@ export const langfuseConfig = {
   environment: process.env.LANGFUSE_ENVIRONMENT || 'development',
 };
 
-export const activateWordList = ['ио', 'форонида', 'io', 'иа'];
+export const activateWordList = ['ио', 'форонида', 'io'];
 
 export const sessionIdGenerator = customAlphabet(
   '1234567890abcdefghijklmnopqrstuvwxyz',
