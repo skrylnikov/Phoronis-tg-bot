@@ -3,6 +3,7 @@ import { embed, generateText, Output } from 'ai';
 import { z } from 'zod';
 import { openRouter } from '../../ai/ai';
 import { prisma } from '../../db';
+import { logger } from '../../logger';
 import { qdrantClient } from '../../qdrant';
 
 interface SaveMemoryOptions {
@@ -266,6 +267,69 @@ export async function saveMemory(options: SaveMemoryOptions) {
   }
 
   return memory.id;
+}
+
+export type ClearMemoryScope = 'personal' | 'shared' | 'all';
+
+export interface ClearMemoryOptions {
+  userId: number;
+  chatId: number;
+  scope: ClearMemoryScope;
+}
+
+export async function clearMemories(options: ClearMemoryOptions): Promise<number> {
+  const { userId, chatId, scope } = options;
+
+  const where =
+    scope === 'personal'
+      ? {
+          userId: BigInt(userId),
+          chatId: BigInt(chatId),
+          isUser: true,
+        }
+      : scope === 'shared'
+        ? {
+            chatId: BigInt(chatId),
+            isUser: false,
+          }
+        : {
+            OR: [
+              {
+                userId: BigInt(userId),
+                chatId: BigInt(chatId),
+                isUser: true,
+              },
+              {
+                chatId: BigInt(chatId),
+                isUser: false,
+              },
+            ],
+          };
+
+  const rows = await prisma.memory.findMany({
+    where,
+    select: { id: true },
+  });
+
+  if (rows.length === 0) {
+    return 0;
+  }
+
+  const ids = rows.map((r) => r.id);
+
+  await prisma.memory.deleteMany({
+    where: { id: { in: ids } },
+  });
+
+  try {
+    await qdrantClient.delete('memories', {
+      points: ids.map((id) => Number(id)),
+    });
+  } catch (error) {
+    logger.error(error, 'clearMemories: Qdrant delete failed');
+  }
+
+  return rows.length;
 }
 
 export async function getRecentMemories(

@@ -6,7 +6,7 @@ import type { BotContext } from '../bot';
 import { prisma } from '../db';
 import { openRouter } from './ai';
 import { weatherTool, wikipediaTool } from './tools';
-import { createMemoryTool } from './tools/memory';
+import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,
@@ -63,6 +63,7 @@ export const chatGeneration = async (
   });
 
   const memoryTool = createMemoryTool(ctx);
+  const clearMemoryTool = createClearMemoryTool(ctx);
 
   trace.update({
     input: JSON.stringify(messages),
@@ -76,6 +77,7 @@ export const chatGeneration = async (
       set_greeting: greetingTool,
       wikipedia: wikipediaTool,
       save_memory: memoryTool,
+      clear_memory: clearMemoryTool,
     },
     stopWhen: stepCountIs(5),
     temperature: 1,
