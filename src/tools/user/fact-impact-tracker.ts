@@ -57,32 +57,31 @@ export async function analyzeUserReaction(
     };
   }
 
-
   return null;
 
-//   const result = await generateText({
-//     model: openRouter('google/gemini-2.5-flash-lite'),
-//     output: Output.object({ schema: reactionSchema }),
-//     prompt: `Проанализируй реакцию пользователя на ответ бота.
+  //   const result = await generateText({
+  //     model: openRouter('google/gemini-2.5-flash-lite'),
+  //     output: Output.object({ schema: reactionSchema }),
+  //     prompt: `Проанализируй реакцию пользователя на ответ бота.
 
-// Ответ бота:
-// "${botReply}"
+  // Ответ бота:
+  // "${botReply}"
 
-// Ответ пользователя:
-// "${userMessage}"
+  // Ответ пользователя:
+  // "${userMessage}"
 
-// Определи:
-// 1. reaction: позитивная/негативная/нейтральная/исправление ошибки
-// 2. messageReaction: продолжение диалога/уточняющий вопрос/пояснение/игнорирование/нет реакции
-// 3. confidence: уверенность в оценке (0-1)`,
-//     temperature: 0,
-//   });
+  // Определи:
+  // 1. reaction: позитивная/негативная/нейтральная/исправление ошибки
+  // 2. messageReaction: продолжение диалога/уточняющий вопрос/пояснение/игнорирование/нет реакции
+  // 3. confidence: уверенность в оценке (0-1)`,
+  //     temperature: 0,
+  //   });
 
-//   return {
-//     reaction: result.output.reaction,
-//     messageReaction: result.output.messageReaction,
-//     confidence: result.output.confidence,
-//   };
+  //   return {
+  //     reaction: result.output.reaction,
+  //     messageReaction: result.output.messageReaction,
+  //     confidence: result.output.confidence,
+  //   };
 }
 
 export async function recordUserReaction(

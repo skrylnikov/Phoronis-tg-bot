@@ -277,7 +277,9 @@ export interface ClearMemoryOptions {
   scope: ClearMemoryScope;
 }
 
-export async function clearMemories(options: ClearMemoryOptions): Promise<number> {
+export async function clearMemories(
+  options: ClearMemoryOptions,
+): Promise<number> {
   const { userId, chatId, scope } = options;
 
   const where =

@@ -2,6 +2,7 @@ import type { Chat } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({
   max: 1000,
@@ -17,31 +18,35 @@ export const saveChat = async (
     | Chat.SupergroupChat
     | Chat.ChannelChat,
 ) => {
-  if (cache.has(chat.id)) {
-    return;
+  try {
+    if (cache.has(chat.id)) {
+      return;
+    }
+    const chatType = chat.type === 'private' ? 'PRIVATE' : 'GROUP';
+
+    const title =
+      chat.type === 'private'
+        ? [chat.first_name, chat.last_name].filter(Boolean).join(' ') ||
+          chat.username ||
+          chat.id.toString()
+        : chat.title;
+
+    await prisma.chat.upsert({
+      create: {
+        id: chat.id,
+        title,
+        chatType,
+      },
+      update: {
+        title,
+      },
+      where: {
+        id: chat.id,
+      },
+    });
+
+    cache.set(chat.id, true);
+  } catch (error) {
+    handleError(error, `Error saving chat ${chat.id}`);
   }
-  const chatType = chat.type === 'private' ? 'PRIVATE' : 'GROUP';
-
-  const title =
-    chat.type === 'private'
-      ? [chat.first_name, chat.last_name].filter(Boolean).join(' ') ||
-        chat.username ||
-        chat.id.toString()
-      : chat.title;
-
-  await prisma.chat.upsert({
-    create: {
-      id: chat.id,
-      title,
-      chatType,
-    },
-    update: {
-      title,
-    },
-    where: {
-      id: chat.id,
-    },
-  });
-
-  cache.set(chat.id, true);
 };

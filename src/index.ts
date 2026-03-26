@@ -6,6 +6,7 @@ import { prisma } from './db';
 import { logger } from './logger';
 import { ensureQdrantCollections } from './qdrant-init';
 import { startScheduler } from './scheduler';
+import { handleError } from './utils/error-handler';
 
 bot.use(controllers);
 
@@ -18,24 +19,25 @@ bot.catch((err) => {
   } else if (e instanceof HttpError) {
     logger.error(e, 'Could not contact Telegram');
   } else {
-    logger.error(err);
-    logger.error(e, 'Unknown error');
+    handleError(e, `Error handling update ${ctx.update.update_id}`);
   }
 });
 
 await ensureQdrantCollections();
 startScheduler();
 
-bot.start().catch((e) => logger.error(e));
+bot.start().catch((e) => {
+  handleError(e, 'Failed to start bot');
+});
 
 logger.info('Bot started');
 
 process.on('uncaughtException', (err) => {
-  logger.error(`Caught exception: ${err}`);
+  handleError(err, 'Uncaught exception');
 });
 
 process.on('unhandledRejection', (err) => {
-  logger.error(`Caught rejection: ${err}`);
+  handleError(err, 'Unhandled rejection');
 });
 
 const shutdown = () => {

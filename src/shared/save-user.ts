@@ -2,6 +2,8 @@ import type { User } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import { logger } from '../logger';
+import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({
   max: 10000,
@@ -11,26 +13,30 @@ const cache = new LRUCache<number, true>({
 });
 
 export const saveUser = async (user: User) => {
-  if (cache.has(user.id)) {
-    return;
+  try {
+    if (cache.has(user.id)) {
+      return;
+    }
+
+    await prisma.user.upsert({
+      create: {
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        userName: user.username,
+      },
+      update: {
+        firstName: user.first_name,
+        lastName: user.last_name,
+        userName: user.username,
+      },
+      where: {
+        id: user.id,
+      },
+    });
+
+    cache.set(user.id, true);
+  } catch (error) {
+    handleError(error, `Error saving user ${user.id}`);
   }
-
-  await prisma.user.upsert({
-    create: {
-      id: user.id,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      userName: user.username,
-    },
-    update: {
-      firstName: user.first_name,
-      lastName: user.last_name,
-      userName: user.username,
-    },
-    where: {
-      id: user.id,
-    },
-  });
-
-  cache.set(user.id, true);
 };

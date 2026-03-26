@@ -10,6 +10,7 @@ import { logger } from '../logger';
 import { saveChat, saveMessage, saveUser } from '../shared';
 import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
 import { recordUserReaction } from '../tools/user/fact-impact-tracker';
+import { handleError } from '../utils/error-handler';
 
 interface Media {
   url: string;
@@ -106,6 +107,7 @@ const analyzer = async (ctx: BotContext) => {
 processMessageController.on(':text', async (ctx) => {
   try {
     if (!ctx.from || !ctx.chatId) {
+      logger.warn('Missing from or chatId in text message');
       return;
     }
 
@@ -177,7 +179,7 @@ processMessageController.on(':text', async (ctx) => {
       await aiController(ctx, undefined, userContext, chatContext);
     }
   } catch (error) {
-    logger.error(error);
+    handleError(error, 'Processing text message');
   }
 });
 
@@ -200,6 +202,7 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
 processMessageController.on('msg', async (ctx) => {
   try {
     if (!ctx.from || !ctx.chatId) {
+      logger.warn('Missing from or chatId in media message');
       return;
     }
 
@@ -220,6 +223,7 @@ processMessageController.on('msg', async (ctx) => {
     if (ctx.msg.photo) {
       const optimalPhoto = selectOptimalPhoto(ctx.msg.photo);
       if (!optimalPhoto) {
+        logger.warn('No optimal photo found');
         return;
       }
       const fileLink = await ctx.api.getFile(optimalPhoto.file_id);
@@ -283,6 +287,6 @@ processMessageController.on('msg', async (ctx) => {
       await aiController(ctx, imageDescription);
     }
   } catch (error) {
-    logger.error(error);
+    handleError(error, 'Processing media message');
   }
 });

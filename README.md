@@ -1,0 +1,105 @@
+# Phoronis Telegram Bot
+
+A sophisticated Telegram bot with AI capabilities, context awareness, and user behavior tracking.
+
+## Improvements Made
+
+### 1. Enhanced Error Handling
+- Added `handleError` utility function for consistent error logging
+- Added `isTelegramError` type guard for better error identification
+- Improved error handling throughout the application with better context information
+
+### 2. Better Type Safety
+- Added proper TypeScript types to all functions
+- Improved type definitions for database models and API responses
+- Enhanced type safety in message processing
+
+### 3. Robust Database Operations
+- Added try-catch blocks around database operations
+- Added error handling to saveChat, saveUser, and saveMessage functions
+- Better caching with error recovery
+
+### 4. Testing Framework Setup
+- Added vitest as dev dependency
+- Created basic test structure for error handling utilities
+- Prepared foundation for comprehensive unit testing
+
+## Architecture
+
+### Core Components
+- **Telegram Integration**: Grammy.js framework for Telegram API
+- **Database**: PostgreSQL with Prisma ORM
+- **AI Services**: OpenRouter API with Gemini models
+- **Context Management**: Qdrant vector database for context retrieval
+- **Observability**: Langfuse for prompt management and tracing
+
+### Code Structure
+```
+src/
+├── controllers/       - Bot message handlers and route logic
+├── ai/              - AI/LLM integration (LangChain, OpenRouter)
+├── tools/           - Utility functions organized by domain
+├── features/        - Feature implementations (selfie-saturday, etc.)
+├── shared/          - Shared utilities and helpers
+├── generated/prisma/ - Generated Prisma client
+├── bot.ts           - Bot initialization and context type
+├── db.ts            - Prisma client export
+├── config.ts        - Environment configuration and validation
+├── logger.ts        - Pino logger instance
+├── scheduler.ts     - Cron job scheduler
+└── index.ts         - Application entry point
+```
+
+## Development
+
+### Running the Bot
+```bash
+# Install dependencies
+bun install
+
+# Run in development mode with auto-reload
+bun run dev
+
+# Run in production mode
+bun run start
+
+# Run type checking
+bun run typecheck
+
+# Run linter
+bun run lint
+```
+
+### Testing
+```bash
+# Run unit tests
+bun run test:unit
+```
+
+## Configuration
+
+Create a `.env` file with the following variables:
+```
+TOKEN=your_telegram_bot_token
+OPEN_WEATHER_TOKEN=your_openweather_token
+DADATA_TOKEN=your_dadata_token
+YANDEX_CLOUD_TOKEN=your_yandex_cloud_token
+YANDEX_S3_ID=your_yandex_s3_id
+YANDEX_S3_SECRET=your_yandex_s3_secret
+OPENAI_API_KEY=your_openai_key
+OPENROUTER_API_KEY=your_openrouter_key
+QDRANT_BASE_URL=your_qdrant_url
+QDRANT_API_KEY=your_qdrant_api_key
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+```
+
+## Features
+
+- AI-powered responses with context awareness
+- User behavior tracking and fact analysis
+- Memory management tools
+- Image recognition and description
+- Custom greeting settings for chats
+- Private mode support
+- Media handling (photos, videos)

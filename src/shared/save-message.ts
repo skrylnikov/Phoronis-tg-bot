@@ -1,6 +1,7 @@
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import { handleError } from '../utils/error-handler';
 
 const messageCache = new LRUCache<string, boolean>({
   max: 10000,
@@ -19,21 +20,29 @@ async function checkMessageExists(
     return messageCache.get(key) || false;
   }
 
-  const message = await prisma.message.findUnique({
-    where: {
-      chatId_id: {
-        chatId,
-        id: messageId,
+  try {
+    const message = await prisma.message.findUnique({
+      where: {
+        chatId_id: {
+          chatId,
+          id: messageId,
+        },
       },
-    },
-    select: {
-      id: true,
-    },
-  });
+      select: {
+        id: true,
+      },
+    });
 
-  const exists = message !== null;
-  messageCache.set(key, exists);
-  return exists;
+    const exists = message !== null;
+    messageCache.set(key, exists);
+    return exists;
+  } catch (error) {
+    handleError(
+      error,
+      `Error checking message existence ${chatId}_${messageId}`,
+    );
+    return false;
+  }
 }
 
 async function findReplyId(
@@ -42,8 +51,13 @@ async function findReplyId(
 ): Promise<bigint | null> {
   if (!replyToMsgId) return null;
 
-  const exists = await checkMessageExists(chatId, replyToMsgId);
-  return exists ? replyToMsgId : null;
+  try {
+    const exists = await checkMessageExists(chatId, replyToMsgId);
+    return exists ? replyToMsgId : null;
+  } catch (error) {
+    handleError(error, `Error finding reply ID for ${chatId}_${replyToMsgId}`);
+    return null;
+  }
 }
 
 export const saveMessage = async (params: {
@@ -59,24 +73,29 @@ export const saveMessage = async (params: {
   sessionId?: string | null;
   private?: boolean | null;
 }) => {
-  const replyId = await findReplyId(
-    BigInt(params.chatId),
-    params.replyToMessageId ? BigInt(params.replyToMessageId) : undefined,
-  );
+  try {
+    const replyId = await findReplyId(
+      BigInt(params.chatId),
+      params.replyToMessageId ? BigInt(params.replyToMessageId) : undefined,
+    );
 
-  return prisma.message.create({
-    data: {
-      id: BigInt(params.id),
-      chatId: BigInt(params.chatId),
-      senderId: BigInt(params.senderId),
-      replyToMessageId: replyId,
-      sentAt: params.sentAt,
-      messageType: params.messageType,
-      text: params.text,
-      media: params.media,
-      summary: params.summary,
-      sessionId: params.sessionId,
-      private: params.private,
-    },
-  });
+    return prisma.message.create({
+      data: {
+        id: BigInt(params.id),
+        chatId: BigInt(params.chatId),
+        senderId: BigInt(params.senderId),
+        replyToMessageId: replyId,
+        sentAt: params.sentAt,
+        messageType: params.messageType,
+        text: params.text,
+        media: params.media,
+        summary: params.summary,
+        sessionId: params.sessionId,
+        private: params.private,
+      },
+    });
+  } catch (error) {
+    handleError(error, `Error saving message ${params.id}`);
+    throw error;
+  }
 };
