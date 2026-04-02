@@ -87,7 +87,7 @@ async function checkForSimilarMemories(
       .join('\n');
 
     const llmResult = await generateText({
-      model: openRouter('openai/gpt-oss-120b'),
+      model: openRouter('google/gemma-3n-e4b-it'),
       output: Output.object({ schema: memoryCheckSchema }),
       prompt: `Анализируй новую запись и существующие записи на предмет дубликатов и противоречий.
 

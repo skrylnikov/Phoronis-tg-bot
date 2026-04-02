@@ -110,7 +110,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
  ${messages.map((m) => m.summary || m.text).join('\n')}`;
 
     const result = await generateObject({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: openRouter('google/gemma-3n-e4b-it'),
       schema: userMetaInfoSchema,
       prompt: `
 ${systemPrompt}

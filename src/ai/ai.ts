@@ -20,4 +20,4 @@ export const openRouter = createOpenRouter({
   apiKey: openRouterToken,
 });
 
-export const textBeautifierModel = openRouter('google/gemini-2.5-flash-lite');
+export const textBeautifierModel = openRouter('google/gemma-3n-e4b-it');

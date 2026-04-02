@@ -126,7 +126,7 @@ async function checkForSimilarFacts(
       .join('\n');
 
     const llmResult = await generateText({
-      model: openRouter('qwen/qwen3.5-flash-02-23'),
+      model: openRouter('google/gemma-3n-e4b-it'),
       output: Output.object({ schema: factsCheckSchema }),
       prompt: `Анализируй новый факт и существующие факты на предмет дубликатов и противоречий.
 
@@ -359,7 +359,7 @@ ${formattedMessages}
 Извлеки новые факты о пользователе, стилях общения и интересах. НЕ повторяй существующие факты, а только дополняй их.`;
 
     const result = await generateObject({
-      model: openRouter('qwen/qwen3.5-flash-02-23'),
+      model: openRouter('google/gemma-3n-e4b-it'),
       schema: factExtractionSchema,
       prompt: `
 ${systemPrompt}
