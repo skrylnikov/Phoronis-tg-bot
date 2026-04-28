@@ -7,7 +7,7 @@ import type { BotContext } from '../bot';
 import { token } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
-import { saveChat, saveMessage, saveUser } from '../shared';
+import { canAnalyze, saveChat, saveMessage, saveUser } from '../shared';
 import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
 import { recordUserReaction } from '../tools/user/fact-impact-tracker';
 import { handleError } from '../utils/error-handler';
@@ -85,6 +85,16 @@ const analyzer = async (ctx: BotContext) => {
   });
 
   if (messageCount % 30 === 0) {
+    const userId = BigInt(ctx.from.id);
+    const chatId = BigInt(ctx.chatId);
+
+    if (!canAnalyze(userId, chatId)) {
+      logger.debug(
+        `Analysis limit exceeded for user ${ctx.from.id} in chat ${ctx.chatId}`,
+      );
+      return;
+    }
+
     const lastMessages = await prisma.message.findMany({
       where: {
         chatId: ctx.chatId,
@@ -100,7 +110,7 @@ const analyzer = async (ctx: BotContext) => {
       take: 30,
     });
 
-    await analyzeUserMetaInfo(BigInt(ctx.from.id), lastMessages.reverse());
+    await analyzeUserMetaInfo(userId, lastMessages.reverse());
   }
 };
 
