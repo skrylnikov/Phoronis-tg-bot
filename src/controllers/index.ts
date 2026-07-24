@@ -3,6 +3,7 @@ import { Composer } from 'grammy';
 import type { BotContext } from '../bot';
 import { askController } from './ask.js';
 import { featuresController } from './features';
+import { guestController } from './guest.js';
 import { meController } from './me.js';
 import { newChatMembersController } from './new-chat-members.js';
 import { privateController } from './private.js';
@@ -11,6 +12,8 @@ import { startController } from './start.js';
 import { voiceController } from './voice.js';
 
 export const controllers = new Composer<BotContext>();
+
+controllers.use(guestController);
 
 controllers.command('start', startController);
 

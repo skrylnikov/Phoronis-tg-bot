@@ -100,4 +100,7 @@ LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 - Image recognition and description
 - Custom greeting settings for chats
 - Private mode support
+- Guest Mode support for answering mentions in chats where the bot isn't a member
 - Media handling (photos, videos)
+
+Guest Mode must also be enabled in the bot settings through BotFather's MiniApp.
