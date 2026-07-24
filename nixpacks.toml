@@ -1,0 +1,8 @@
+[variables]
+NODE_ENV = 'production'
+
+[phases.install]
+cmds = ['bun install --frozen-lockfile --production --ignore-scripts']
+
+[start]
+cmd = 'bun run start'
