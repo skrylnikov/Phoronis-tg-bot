@@ -47,7 +47,7 @@ async function handleUserReaction(
   ctx: BotContext,
   messageText: string,
 ): Promise<void> {
-  if (!ctx.msg || !ctx.msg.reply_to_message || !ctx.from || !ctx.chatId) return;
+  if (!ctx.msg?.reply_to_message || !ctx.from || !ctx.chatId) return;
   logger.info('Handling user reaction for message');
   const botMessageId = ctx.msg.reply_to_message.message_id;
   if (!botMessageId) return;

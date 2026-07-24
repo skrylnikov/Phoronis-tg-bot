@@ -2,7 +2,6 @@ import type { Message, User } from '@prisma/client';
 import type { ModelMessage } from 'ai';
 import { format } from 'date-fns';
 import { unique } from 'remeda';
-import MD from 'telegramify-markdown';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
@@ -14,6 +13,7 @@ import { getTopUserFacts } from '../tools/user/fact-analyzer';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
 import { langfuse } from './langfuse';
+import { richMarkdownInstructions } from './rich-message';
 import { TelegramStreamSink } from './telegram-stream';
 
 function convertFactsToMetaInfo(
@@ -329,6 +329,7 @@ export const aiController = async (
       ),
       rules: [
         '- Используй tools когда это нужно',
+        richMarkdownInstructions,
         isShort && '- Отвечай кратко',
         isHelpful && '- Будь полезной и старайся помочь',
         isInterests &&
@@ -388,7 +389,7 @@ export const aiController = async (
 
     if (result) {
       clearInterval(typingInterval);
-      const reply = await streamSink.finish(result, MD(result, 'remove'));
+      const reply = await streamSink.finish(result);
       streamFinalized = true;
 
       if (options.persistResponse === false) {

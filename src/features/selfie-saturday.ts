@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
-import MD from 'telegramify-markdown';
 import { utilityModel } from '../ai/ai';
+import { sendWithRichFallback } from '../ai/rich-message';
 import { bot } from '../bot';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
@@ -11,7 +11,8 @@ async function generateSelfieMessage(): Promise<string> {
     const message = await generateText({
       model: utilityModel,
       prompt: `Придумай короткое и веселое сообщение с саркастичным подтекстом для чата, призывающее людей постить свои селфи в субботу.
-Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.`,
+Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.
+Используй Telegram Rich Markdown, если разметка уместна, и не добавляй внешние медиа по URL.`,
       temperature: 1,
     }).then((r) => r.text);
     return message;
@@ -30,12 +31,12 @@ export async function sendSelfieSaturdayMessage(
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    const reply = await bot.api.sendMessage(
-      targetChatId,
-      MD(message, 'remove'),
-      {
-        parse_mode: 'MarkdownV2',
-      },
+    const reply = await sendWithRichFallback(
+      message,
+      (rich) => bot.api.sendRichMessage(targetChatId, rich),
+      (text) =>
+        bot.api.sendMessage(targetChatId, text, { parse_mode: 'MarkdownV2' }),
+      (text) => bot.api.sendMessage(targetChatId, text),
     );
     logger.info(`Сообщение Селфи Субботы отправлено в чат ${targetChatId}`);
 

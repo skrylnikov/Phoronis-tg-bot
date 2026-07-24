@@ -1,7 +1,12 @@
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
+import {
+  createRichMessage,
+  maxRichMessageLength,
+  toMarkdownV2,
+} from './rich-message';
 
-const maxPreviewLength = 4096;
+const maxLegacyMessageLength = 4096;
 const thinkingText = 'Думаю…';
 
 function isMessageNotModified(error: unknown): boolean {
@@ -66,7 +71,10 @@ export class TelegramStreamSink {
         undefined,
       );
       try {
-        await ctx.replyWithDraft('', sink.draftOptions());
+        await ctx.replyWithRichMessageDraft(
+          { markdown: '<tg-thinking>Думаю…</tg-thinking>' },
+          sink.draftOptions(),
+        );
         sink.lastPublishedAt = Date.now();
       } catch (error) {
         sink.active = false;
@@ -83,21 +91,27 @@ export class TelegramStreamSink {
       ephemeralReceiverUserId,
     );
     try {
-      const message = await ctx.reply(thinkingText, {
-        ...(ephemeralReceiverUserId
-          ? {
-              receiver_user_id: ephemeralReceiverUserId,
-              ...(ctx.msg?.ephemeral_message_id
-                ? {
-                    reply_parameters: {
-                      ephemeral_message_id: ctx.msg.ephemeral_message_id,
-                    },
-                  }
-                : {}),
-            }
-          : { reply_to_message_id: ctx.msg?.message_id }),
-        ...sink.threadOptions(),
-      });
+      const message = ephemeralReceiverUserId
+        ? await ctx.reply(thinkingText, {
+            receiver_user_id: ephemeralReceiverUserId,
+            ...(ctx.msg?.ephemeral_message_id
+              ? {
+                  reply_parameters: {
+                    ephemeral_message_id: ctx.msg.ephemeral_message_id,
+                  },
+                }
+              : {}),
+            ...sink.threadOptions(),
+          })
+        : await ctx.replyWithRichMessage(
+            { markdown: thinkingText },
+            {
+              reply_parameters: {
+                message_id: ctx.msg?.message_id,
+              },
+              ...sink.threadOptions(),
+            },
+          );
       if (ephemeralReceiverUserId && !message.ephemeral_message_id) {
         throw new Error('Telegram did not return an ephemeral message ID');
       }
@@ -122,7 +136,12 @@ export class TelegramStreamSink {
       return;
     }
 
-    const preview = text.slice(0, maxPreviewLength);
+    const preview = text.slice(
+      0,
+      this.ephemeralReceiverUserId
+        ? maxLegacyMessageLength
+        : maxRichMessageLength,
+    );
     if (preview === this.lastPublishedText) {
       return;
     }
@@ -135,56 +154,46 @@ export class TelegramStreamSink {
     this.schedulePending();
   }
 
-  async finish(rawText: string, formattedText: string): Promise<StreamedReply> {
+  async finish(rawText: string): Promise<StreamedReply> {
     this.finalizing = true;
     this.clearPending();
     await this.publishPromise;
 
     if (this.ctx.chat?.type === 'private' || !this.groupMessage) {
-      return this.sendFinalReply(formattedText);
+      return this.sendFinalReply(rawText);
     }
 
     const chatId = this.ctx.chatId;
     if (!chatId) {
-      return this.sendFinalReply(formattedText);
+      return this.sendFinalReply(rawText);
     }
 
     if (this.ephemeralReceiverUserId) {
-      return this.finishEphemeral(rawText, formattedText);
+      return this.finishEphemeral(rawText);
     }
 
-    if (formattedText === this.lastPublishedText) {
+    if (rawText === this.lastPublishedText) {
       return this.groupMessage;
     }
 
-    try {
-      await this.ctx.api.editMessageText(
-        chatId,
-        this.groupMessage.message_id,
-        formattedText,
-        { parse_mode: 'MarkdownV2' },
-      );
-      return this.groupMessage;
-    } catch (formattedError) {
-      if (isMessageNotModified(formattedError)) {
-        return this.groupMessage;
-      }
-      logger.error(formattedError, 'Failed to finalize formatted stream');
+    const richMessage = createRichMessage(rawText);
+    if (richMessage) {
       try {
         await this.ctx.api.editMessageText(
           chatId,
           this.groupMessage.message_id,
-          rawText,
+          richMessage,
         );
         return this.groupMessage;
-      } catch (plainTextError) {
-        if (isMessageNotModified(plainTextError)) {
+      } catch (error) {
+        if (isMessageNotModified(error)) {
           return this.groupMessage;
         }
-        logger.error(plainTextError, 'Failed to finalize plain text stream');
-        return this.sendFinalReply(formattedText);
+        logger.error(error, 'Failed to finalize rich stream');
       }
     }
+
+    return this.finishGroupWithLegacyFallback(chatId, rawText);
   }
 
   async cancel(): Promise<void> {
@@ -248,7 +257,14 @@ export class TelegramStreamSink {
     this.publishPromise = (async () => {
       try {
         if (this.ctx.chat?.type === 'private') {
-          await this.ctx.replyWithDraft(text, this.draftOptions());
+          const richMessage = createRichMessage(text);
+          if (!richMessage) {
+            return;
+          }
+          await this.ctx.replyWithRichMessageDraft(
+            richMessage,
+            this.draftOptions(),
+          );
         } else if (this.ctx.chatId && this.groupMessage) {
           if (
             this.ephemeralReceiverUserId &&
@@ -261,17 +277,24 @@ export class TelegramStreamSink {
               text,
             );
           } else {
+            const richMessage = createRichMessage(text);
+            if (!richMessage) {
+              return;
+            }
             await this.ctx.api.editMessageText(
               this.ctx.chatId,
               this.groupMessage.message_id,
-              text,
+              richMessage,
             );
           }
         }
         this.lastPublishedText = text;
         this.lastPublishedAt = Date.now();
       } catch (error) {
-        this.active = false;
+        if (this.ephemeralReceiverUserId) {
+          this.active = false;
+        }
+        this.lastPublishedAt = Date.now();
         logger.error(error, 'Failed to publish Telegram stream update');
       }
     })();
@@ -291,18 +314,37 @@ export class TelegramStreamSink {
     this.pendingText = undefined;
   }
 
-  private sendFinalReply(formattedText: string): Promise<StreamedReply> {
-    return this.ctx.reply(formattedText, {
-      reply_to_message_id: this.ctx.msg?.message_id,
-      parse_mode: 'MarkdownV2',
-      ...this.threadOptions(),
-    });
+  private async sendFinalReply(rawText: string): Promise<StreamedReply> {
+    const richMessage = createRichMessage(rawText);
+    if (richMessage) {
+      try {
+        return await this.ctx.replyWithRichMessage(richMessage, {
+          reply_parameters: {
+            message_id: this.ctx.msg?.message_id,
+          },
+          ...this.threadOptions(),
+        });
+      } catch (error) {
+        logger.error(error, 'Failed to send final rich reply');
+      }
+    }
+
+    try {
+      return await this.ctx.reply(toMarkdownV2(rawText), {
+        reply_to_message_id: this.ctx.msg?.message_id,
+        parse_mode: 'MarkdownV2',
+        ...this.threadOptions(),
+      });
+    } catch (error) {
+      logger.error(error, 'Failed to send final MarkdownV2 reply');
+      return this.ctx.reply(rawText, {
+        reply_to_message_id: this.ctx.msg?.message_id,
+        ...this.threadOptions(),
+      });
+    }
   }
 
-  private async finishEphemeral(
-    rawText: string,
-    formattedText: string,
-  ): Promise<StreamedReply> {
+  private async finishEphemeral(rawText: string): Promise<StreamedReply> {
     const chatId = this.ctx.chatId;
     const ephemeralMessageId = this.groupMessage?.ephemeral_message_id;
     if (!chatId || !this.ephemeralReceiverUserId || !ephemeralMessageId) {
@@ -314,7 +356,7 @@ export class TelegramStreamSink {
         chatId,
         this.ephemeralReceiverUserId,
         ephemeralMessageId,
-        formattedText,
+        toMarkdownV2(rawText),
         { parse_mode: 'MarkdownV2' },
       );
     } catch (formattedError) {
@@ -340,6 +382,45 @@ export class TelegramStreamSink {
     }
 
     return this.groupMessage;
+  }
+
+  private async finishGroupWithLegacyFallback(
+    chatId: number,
+    rawText: string,
+  ): Promise<StreamedReply> {
+    const groupMessage = this.groupMessage;
+    if (!groupMessage) {
+      return this.sendFinalReply(rawText);
+    }
+
+    try {
+      await this.ctx.api.editMessageText(
+        chatId,
+        groupMessage.message_id,
+        toMarkdownV2(rawText),
+        { parse_mode: 'MarkdownV2' },
+      );
+      return groupMessage;
+    } catch (markdownError) {
+      if (isMessageNotModified(markdownError)) {
+        return groupMessage;
+      }
+      logger.error(markdownError, 'Failed to finalize MarkdownV2 stream');
+      try {
+        await this.ctx.api.editMessageText(
+          chatId,
+          groupMessage.message_id,
+          rawText,
+        );
+        return groupMessage;
+      } catch (plainTextError) {
+        if (isMessageNotModified(plainTextError)) {
+          return groupMessage;
+        }
+        logger.error(plainTextError, 'Failed to finalize plain text stream');
+        return this.sendFinalReply(rawText);
+      }
+    }
   }
 
   private threadOptions(): { message_thread_id?: number } {

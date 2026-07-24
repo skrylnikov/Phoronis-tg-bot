@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
-import MD from 'telegramify-markdown';
 import { utilityModel } from '../ai/ai';
+import { sendWithRichFallback } from '../ai/rich-message';
 import { bot } from '../bot';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
@@ -68,7 +68,7 @@ async function generateInktoberMessage(): Promise<string> {
 4. Хэштеги #inktober и #inktober${day}
 5. Подходящий эмодзи
 
-Сделай сообщение живым и вдохновляющим!`,
+Сделай сообщение живым и вдохновляющим! Используй Telegram Rich Markdown, если разметка уместна, и не добавляй внешние медиа по URL.`,
       temperature: 1,
     }).then((r) => r.text);
 
@@ -91,12 +91,12 @@ export async function sendInktoberMessage(
   try {
     // Убедимся, что chatId - это number или string для API Telegram
     const targetChatId = typeof chatId === 'bigint' ? Number(chatId) : chatId;
-    const reply = await bot.api.sendMessage(
-      targetChatId,
-      MD(message, 'remove'),
-      {
-        parse_mode: 'MarkdownV2',
-      },
+    const reply = await sendWithRichFallback(
+      message,
+      (rich) => bot.api.sendRichMessage(targetChatId, rich),
+      (text) =>
+        bot.api.sendMessage(targetChatId, text, { parse_mode: 'MarkdownV2' }),
+      (text) => bot.api.sendMessage(targetChatId, text),
     );
     logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
 

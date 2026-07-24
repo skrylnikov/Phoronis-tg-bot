@@ -2,7 +2,6 @@ import type { User } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({

@@ -1,8 +1,13 @@
-import { expandableBlockquote, fmt, italic } from '@grammyjs/parse-mode';
+import { fmt, italic } from '@grammyjs/parse-mode';
 import { generateText } from 'ai';
 import axios from 'axios';
 import ffmpeg from 'ffmpeg.js';
 import { langfuse, utilityModel } from '../ai';
+import {
+  createRichMessage,
+  richMarkdownInstructions,
+  toMarkdownV2,
+} from '../ai/rich-message';
 import type { BotContext } from '../bot';
 import { token } from '../config.js';
 
@@ -18,6 +23,8 @@ export const voiceController = async (ctx: BotContext) => {
     if (!info || !ctx.message || !ctx.chatId || !ctx.from) {
       return;
     }
+
+    const chatId = ctx.chatId;
 
     const { duration, file_id, file_size = 0 } = info;
     await ctx.replyWithChatAction('typing');
@@ -86,7 +93,7 @@ export const voiceController = async (ctx: BotContext) => {
       )} in ${JSON.stringify(ctx.chat)} : ${recognizedResult}`,
     );
 
-    let result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
+    const result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
 
     const [reply, beautifierPrompt, summarizePrompt, savedVoiceMessage] =
       await Promise.all([
@@ -122,7 +129,7 @@ export const voiceController = async (ctx: BotContext) => {
         }),
         generateText({
           model: utilityModel,
-          instructions: beautifierPrompt.compile(),
+          instructions: `${beautifierPrompt.compile()}\n${richMarkdownInstructions}`,
           messages: [
             {
               role: 'user',
@@ -134,7 +141,7 @@ export const voiceController = async (ctx: BotContext) => {
         summarizePrompt
           ? generateText({
               model: utilityModel,
-              instructions: summarizePrompt.compile({
+              instructions: `${summarizePrompt.compile({
                 author: [
                   ctx.from?.username ? `@${ctx.from?.username}` : null,
                   ctx.from?.first_name,
@@ -142,7 +149,7 @@ export const voiceController = async (ctx: BotContext) => {
                 ]
                   .filter(Boolean)
                   .join(' '),
-              }),
+              })}\n${richMarkdownInstructions}`,
               messages: [
                 {
                   role: 'user',
@@ -154,16 +161,35 @@ export const voiceController = async (ctx: BotContext) => {
           : null,
       ]);
 
-    result = summarizedResult
-      ? fmt`${summarizedResult.text}
+    const richMarkdown = summarizedResult
+      ? `## Краткое содержание\n\n${summarizedResult.text}\n\n<details><summary>Полная расшифровка</summary>\n\n${beautifiedResult.text}\n\n</details>`
+      : beautifiedResult.text;
+    const updateVoiceMessage = async (): Promise<void> => {
+      const richMessage = createRichMessage(richMarkdown);
+      if (richMessage) {
+        try {
+          await ctx.api.editMessageText(chatId, reply.message_id, richMessage);
+          return;
+        } catch (error) {
+          logger.error(error, 'Failed to update voice result as rich message');
+        }
+      }
 
-    ${expandableBlockquote}${beautifiedResult.text}${expandableBlockquote}`
-      : fmt`${beautifiedResult.text}`;
+      try {
+        await ctx.api.editMessageText(
+          chatId,
+          reply.message_id,
+          toMarkdownV2(richMarkdown),
+          { parse_mode: 'MarkdownV2' },
+        );
+      } catch (error) {
+        logger.error(error, 'Failed to update voice result as MarkdownV2');
+        await ctx.api.editMessageText(chatId, reply.message_id, richMarkdown);
+      }
+    };
 
     await Promise.all([
-      ctx.api.editMessageText(ctx.chatId, reply.message_id, result.text, {
-        entities: result.entities,
-      }),
+      updateVoiceMessage(),
       prisma.message.update({
         where: {
           chatId_id: {
