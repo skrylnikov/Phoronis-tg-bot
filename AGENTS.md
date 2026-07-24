@@ -33,7 +33,7 @@
 ### Naming Conventions
 - Variables and functions: `camelCase`
 - Types and interfaces: `PascalCase`
-- Constants: `camelCase` (e.g., `openRouterToken`, `token`)
+- Constants: `camelCase` (e.g., `routerAIToken`, `token`)
 - File names: `kebab-case` for folders and files (e.g., `meta-analyzer.ts`, `save-chat.ts`)
 - Prisma models: `PascalCase` (User, Chat, Message)
 
@@ -46,7 +46,7 @@
 ```
 src/
 ├── controllers/       - Bot message handlers and route logic
-├── ai/              - AI/LLM integration (LangChain, OpenRouter)
+├── ai/              - AI/LLM integration (LangChain, RouterAI)
 ├── tools/           - Utility functions organized by domain
 ├── features/        - Feature implementations (selfie-saturday, etc.)
 ├── shared/          - Shared utilities and helpers
@@ -84,11 +84,11 @@ src/
 
 ### AI Integration
 - Use LangChain for complex chains and AI SDK for simple embeddings
-- OpenRouter for model access via `@openrouter/ai-sdk-provider`
+- RouterAI for model access via `@ai-sdk/openai-compatible`
 - Langfuse for prompt management and observability
 - Embeddings with vector search in Qdrant
 - Stream responses where applicable
-- AI models defined in `src/ai/ai.ts`: `textBeautifierModel = openRouter('google/gemini-2.5-flash-lite')`
+- AI models are centralized in `src/ai/ai.ts` as `chatModel`, `utilityModel`, and `embeddingModel`
 - Use `generateText()` from 'ai' package for text generation
 - Use `telegramify-markdown` imported as `MD` for formatting AI responses
 
@@ -115,7 +115,7 @@ src/
 - Grammy framework for Telegram Bot API
 - Prisma ORM with PostgreSQL
 - LangChain for AI chains and workflows
-- AI SDK for embeddings with OpenRouter
+- AI SDK for embeddings with RouterAI
 - Qdrant for vector storage and search
 - Pino logger for structured logging
 - Remeda for functional utilities
@@ -126,9 +126,9 @@ src/
 ### Environment Variables
 - All required env vars are validated in `src/config.ts`
 - Missing env vars throw errors at startup
-- See `.env.example` for required variables (TOKEN, OPENROUTER_API_KEY, etc.)
-- Tokens exported from config: `import { token, openRouterToken } from './config'`
-- Required vars: TOKEN, OPEN_WEATHER_TOKEN, DADATA_TOKEN, YANDEX_CLOUD_TOKEN, YANDEX_S3_ID, YANDEX_S3_SECRET, OPENAI_API_KEY, OPENROUTER_API_KEY, QDRANT_BASE_URL, QDRANT_API_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
+- See `.env.example` for required variables (TOKEN, ROUTERAI_API_KEY, etc.)
+- Tokens exported from config: `import { token, routerAIToken } from './config'`
+- Required vars: TOKEN, OPEN_WEATHER_TOKEN, YANDEX_CLOUD_TOKEN, YANDEX_S3_ID, YANDEX_S3_SECRET, ROUTERAI_API_KEY, QDRANT_BASE_URL, QDRANT_API_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
 
 ### Message Processing Flow
 1. Save chat and user info (cached with LRU)

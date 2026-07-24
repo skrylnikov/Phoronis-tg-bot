@@ -2,7 +2,11 @@ import type { Message } from '@prisma/client';
 import type { Schemas } from '@qdrant/js-client-rest';
 import { embed, generateObject, generateText, Output } from 'ai';
 import { z } from 'zod';
-import { openRouter } from '../../ai/ai';
+import {
+  embeddingModel,
+  embeddingProviderOptions,
+  utilityModel,
+} from '../../ai/ai';
 import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
@@ -74,13 +78,9 @@ async function checkForSimilarFacts(
 ): Promise<FactCheckResult> {
   try {
     const result = await embed({
-      model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+      model: embeddingModel,
       value: content,
-      providerOptions: {
-        llamaGate: {
-          dimensions: 4096,
-        },
-      },
+      providerOptions: embeddingProviderOptions,
     });
 
     const mustConditions = [
@@ -126,7 +126,7 @@ async function checkForSimilarFacts(
       .join('\n');
 
     const llmResult = await generateText({
-      model: openRouter('google/gemma-3n-e4b-it'),
+      model: utilityModel,
       output: Output.object({ schema: factsCheckSchema }),
       prompt: `Анализируй новый факт и существующие факты на предмет дубликатов и противоречий.
 
@@ -359,7 +359,7 @@ ${formattedMessages}
 Извлеки новые факты о пользователе, стилях общения и интересах. НЕ повторяй существующие факты, а только дополняй их.`;
 
     const result = await generateObject({
-      model: openRouter('google/gemma-3n-e4b-it'),
+      model: utilityModel,
       schema: factExtractionSchema,
       prompt: `
 ${systemPrompt}

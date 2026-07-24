@@ -1,7 +1,7 @@
 import type { Message } from '@prisma/client';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openRouter } from '../../ai/ai';
+import { utilityModel } from '../../ai/ai';
 import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
@@ -110,7 +110,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
  ${messages.map((m) => m.summary || m.text).join('\n')}`;
 
     const result = await generateObject({
-      model: openRouter('google/gemma-3n-e4b-it'),
+      model: utilityModel,
       schema: userMetaInfoSchema,
       prompt: `
 ${systemPrompt}

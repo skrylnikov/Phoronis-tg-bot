@@ -2,7 +2,7 @@ import { expandableBlockquote, fmt, italic } from '@grammyjs/parse-mode';
 import { generateText } from 'ai';
 import axios from 'axios';
 import ffmpeg from 'ffmpeg.js';
-import { langfuse, textBeautifierModel } from '../ai';
+import { langfuse, utilityModel } from '../ai';
 import type { BotContext } from '../bot';
 import { token } from '../config.js';
 
@@ -121,7 +121,7 @@ export const voiceController = async (ctx: BotContext) => {
           replyToMessageId: ctx.message?.message_id,
         }),
         generateText({
-          model: textBeautifierModel,
+          model: utilityModel,
           messages: [
             {
               role: 'system',
@@ -136,7 +136,7 @@ export const voiceController = async (ctx: BotContext) => {
         }),
         summarizePrompt
           ? generateText({
-              model: textBeautifierModel,
+              model: utilityModel,
               messages: [
                 {
                   role: 'system',

@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import MD from 'telegramify-markdown';
-import { openRouter } from '../ai/ai';
+import { utilityModel } from '../ai/ai';
 import { bot } from '../bot';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
@@ -56,7 +56,7 @@ async function generateInktoberMessage(): Promise<string> {
     const theme = getThemeOfDay();
 
     const message = await generateText({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: utilityModel,
       prompt: `Сегодня ${day} октября - день ${day} из Inktober! 🎨
 
 Тема дня: ${theme}

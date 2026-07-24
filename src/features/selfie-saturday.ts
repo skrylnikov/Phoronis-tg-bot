@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import MD from 'telegramify-markdown';
-import { openRouter } from '../ai/ai';
+import { utilityModel } from '../ai/ai';
 import { bot } from '../bot';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
@@ -9,7 +9,7 @@ import { saveMessage } from '../shared';
 async function generateSelfieMessage(): Promise<string> {
   try {
     const message = await generateText({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: utilityModel,
       prompt: `Придумай короткое и веселое сообщение с саркастичным подтекстом для чата, призывающее людей постить свои селфи в субботу.
 Обязательно добавь хэштег #селфисуббота и один дурацкий эмодзи.`,
       temperature: 1,

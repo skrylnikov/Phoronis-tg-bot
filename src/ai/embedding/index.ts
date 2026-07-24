@@ -1,7 +1,7 @@
 import { embed } from 'ai';
 import { logger } from '../../logger';
 import { qdrantClient } from '../../qdrant';
-import { openRouter } from '../ai';
+import { embeddingModel, embeddingProviderOptions } from '../ai';
 
 const USER_SCORE_THRESHOLD = 0.6;
 const USER_LIMIT = 5;
@@ -60,13 +60,9 @@ export async function searchContext(
   try {
     console.time('Embedding search time');
     const result = await embed({
-      model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+      model: embeddingModel,
       value: content,
-      providerOptions: {
-        llamaGate: {
-          dimensions: 4096,
-        },
-      },
+      providerOptions: embeddingProviderOptions,
     });
     console.timeEnd('Embedding search time');
 

@@ -1,23 +1,21 @@
-// import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-// import { llamaGateToken, llamaGateBaseURL, openRouterToken } from '../config';
-import { openRouterToken } from '../config';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { routerAIToken } from '../config';
 
-// export const llamaGate = createOpenAICompatible({
-//   name: 'llamaGate',
-//   apiKey: llamaGateToken,
-//   baseURL: llamaGateBaseURL,
-//   includeUsage: true, // Include usage information in streaming responses
-//   fetch: (input, init) => {
-//     console.log(input),
-//     console.log(init)
-
-//     return fetch(input, init)
-//   }
-// });
-
-export const openRouter = createOpenRouter({
-  apiKey: openRouterToken,
+export const routerAI = createOpenAICompatible({
+  name: 'routerAI',
+  apiKey: routerAIToken,
+  baseURL: 'https://routerai.ru/api/v1',
+  supportsStructuredOutputs: true,
 });
 
-export const textBeautifierModel = openRouter('google/gemma-3n-e4b-it');
+export const chatModel = routerAI('google/gemini-3.6-flash');
+export const utilityModel = routerAI('nex-agi/nex-n2-mini');
+export const embeddingModel = routerAI.textEmbeddingModel(
+  'qwen/qwen3-embedding-8b',
+);
+
+export const embeddingProviderOptions = {
+  routerAI: {
+    dimensions: 4096,
+  },
+};

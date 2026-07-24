@@ -4,7 +4,7 @@ import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
-import { openRouter } from './ai';
+import { chatModel } from './ai';
 import { weatherTool, wikipediaTool } from './tools';
 import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
@@ -70,7 +70,7 @@ export const chatGeneration = async (
   });
 
   const response = await generateText({
-    model: openRouter('google/gemini-3-flash-preview'),
+    model: chatModel,
     messages: messages,
     tools: {
       get_weather: weatherTool,

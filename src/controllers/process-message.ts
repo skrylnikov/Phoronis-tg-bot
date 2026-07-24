@@ -1,7 +1,12 @@
 import type { PhotoSize } from '@grammyjs/types';
 import { generateText } from 'ai';
 import { Composer } from 'grammy';
-import { aiController, openRouter, searchContext, upsertMessage } from '../ai';
+import {
+  aiController,
+  searchContext,
+  upsertMessage,
+  utilityModel,
+} from '../ai';
 import { langfuse } from '../ai/langfuse';
 import type { BotContext } from '../bot';
 import { token } from '../config';
@@ -251,7 +256,7 @@ processMessageController.on('msg', async (ctx) => {
     const systemPrompt = prompt.compile();
 
     const response = await generateText({
-      model: openRouter('google/gemini-2.5-flash-lite'),
+      model: utilityModel,
       messages: [
         { role: 'system', content: systemPrompt },
         {

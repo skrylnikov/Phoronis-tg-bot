@@ -1,18 +1,5 @@
-import { generateText, Output } from 'ai';
-import { z } from 'zod';
-import { openRouter } from '../../ai/ai';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
-
-const reactionSchema = z.object({
-  reaction: z
-    .enum(['positive', 'negative', 'neutral', 'correction'])
-    .describe('Реакция пользователя на ответ'),
-  messageReaction: z
-    .enum(['continue', 'question', 'clarification', 'ignore', 'none'])
-    .describe('Тип продолжения диалога'),
-  confidence: z.number().min(0).max(1).describe('Уверенность в оценке (0-1)'),
-});
 
 export interface TelegramReaction {
   type: string;
@@ -20,7 +7,7 @@ export interface TelegramReaction {
 }
 
 export async function analyzeUserReaction(
-  botReply: string,
+  _botReply: string,
   userMessage?: string,
   telegramReactions?: TelegramReaction[],
 ) {
@@ -58,30 +45,6 @@ export async function analyzeUserReaction(
   }
 
   return null;
-
-  //   const result = await generateText({
-  //     model: openRouter('google/gemini-2.5-flash-lite'),
-  //     output: Output.object({ schema: reactionSchema }),
-  //     prompt: `Проанализируй реакцию пользователя на ответ бота.
-
-  // Ответ бота:
-  // "${botReply}"
-
-  // Ответ пользователя:
-  // "${userMessage}"
-
-  // Определи:
-  // 1. reaction: позитивная/негативная/нейтральная/исправление ошибки
-  // 2. messageReaction: продолжение диалога/уточняющий вопрос/пояснение/игнорирование/нет реакции
-  // 3. confidence: уверенность в оценке (0-1)`,
-  //     temperature: 0,
-  //   });
-
-  //   return {
-  //     reaction: result.output.reaction,
-  //     messageReaction: result.output.messageReaction,
-  //     confidence: result.output.confidence,
-  //   };
 }
 
 export async function recordUserReaction(

@@ -17,8 +17,8 @@ import type * as Prisma from "./prismaNamespace"
 
 const config: runtime.GetPrismaClientConfig = {
   "previewFeatures": [],
-  "clientVersion": "7.6.0",
-  "engineVersion": "75cbdc1eb7150937890ad5465d861175c6624711",
+  "clientVersion": "7.9.0",
+  "engineVersion": "e922089b7d7502aff4249d5da3420f6fa55fc6ad",
   "activeProvider": "postgresql",
   "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider   = \"prisma-client\"\n  output     = \"../src/generated/prisma\"\n  engineType = \"client\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel User {\n  id BigInt @id\n\n  firstName String?\n  lastName  String?\n  userName  String?\n  metaInfo  Json?   @default(\"{}\")\n\n  Message  Message[]\n  Memory   Memory[]\n  UserFact UserFact[]\n}\n\nenum ChatType {\n  PRIVATE\n  GROUP\n}\n\nmodel Chat {\n  id BigInt @id\n\n  title    String\n  chatType ChatType\n\n  name                  String?\n  greeting              String?\n  selfieSaturdayEnabled Boolean? @default(false)\n  inktoberEnabled       Boolean? @default(false)\n  privateModeEnabled    Boolean? @default(false)\n\n  Message Message[]\n  Memory  Memory[]\n}\n\nenum MessageType {\n  TEXT\n  MEDIA\n  VOICE\n}\n\nmodel Message {\n  id BigInt\n\n  chatId BigInt\n  chat   Chat   @relation(fields: [chatId], references: [id])\n\n  senderId BigInt\n  sender   User   @relation(fields: [senderId], references: [id])\n\n  sessionId        String?\n  replyToMessageId BigInt?\n  replyToMessage   Message? @relation(\"replies\", fields: [replyToMessageId, chatId], references: [id, chatId])\n\n  messageType MessageType\n\n  text    String?\n  media   String?\n  summary String?\n  sentAt  DateTime\n  private Boolean?  @default(false)\n  Replies Message[] @relation(\"replies\")\n\n  @@id([chatId, id])\n  @@index([sessionId])\n}\n\nmodel Memory {\n  id BigInt @id @default(autoincrement())\n\n  userId BigInt\n  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  chatId BigInt\n  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)\n\n  content   String\n  isUser    Boolean\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userId, isUser])\n  @@index([chatId, isUser])\n}\n\nenum FactType {\n  TEXT_STYLE\n  FACT\n  INTEREST\n  NEGATIVE_INTEREST\n}\n\nmodel UserFact {\n  id     BigInt @id @default(autoincrement())\n  userId BigInt\n  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  content         String\n  type            FactType\n  weight          Int       @default(1)\n  confidence      Float     @default(0.5)\n  sourceMessageId BigInt?\n  expiresAt       DateTime?\n\n  usageCount  Int       @default(0)\n  lastUsedAt  DateTime?\n  impactScore Float     @default(0)\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  FactImpact  FactImpact[]\n  FactHistory FactHistory[]\n\n  @@index([userId, type])\n  @@index([userId, updatedAt])\n  @@index([expiresAt])\n  @@index([impactScore])\n}\n\nmodel FactImpact {\n  id     BigInt   @id @default(autoincrement())\n  factId BigInt\n  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)\n\n  usedInMessageId BigInt\n  timestamp       DateTime @default(now())\n\n  userReaction    String?\n  messageReaction String?\n\n  @@index([factId])\n  @@index([usedInMessageId])\n  @@index([timestamp])\n}\n\nmodel FactHistory {\n  id     BigInt   @id @default(autoincrement())\n  factId BigInt\n  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)\n\n  previousContent String\n  newContent      String\n  weightChange    Int\n  changedAt       DateTime @default(now())\n  reason          String\n\n  @@index([factId])\n}\n",
   "runtimeDataModel": {
@@ -82,7 +82,7 @@ export interface PrismaClientConstructor {
     LogOpts extends LogOptions<Options> = LogOptions<Options>,
     OmitOpts extends Prisma.PrismaClientOptions['omit'] = Options extends { omit: infer U } ? U : Prisma.PrismaClientOptions['omit'],
     ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs
-  >(options: Prisma.Subset<Options, Prisma.PrismaClientOptions> ): PrismaClient<LogOpts, OmitOpts, ExtArgs>
+  >(options: Prisma.PrismaClientConstructorArgs<Options>): PrismaClient<LogOpts, OmitOpts, ExtArgs>
 }
 
 /**
@@ -103,7 +103,7 @@ export interface PrismaClientConstructor {
 
 export interface PrismaClient<
   in LogOpts extends Prisma.LogLevel = never,
-  in out OmitOpts extends Prisma.PrismaClientOptions['omit'] = undefined,
+  in out OmitOpts extends Prisma.PrismaClientOptions['omit'] = Prisma.PrismaClientOptions['omit'],
   in out ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs
 > {
   [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['other'] }
@@ -180,7 +180,7 @@ export interface PrismaClient<
    * 
    * Read more in our [docs](https://www.prisma.io/docs/orm/prisma-client/queries/transactions).
    */
-  $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { isolationLevel?: Prisma.TransactionIsolationLevel }): runtime.Types.Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
+  $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { maxWait?: number, timeout?: number, isolationLevel?: Prisma.TransactionIsolationLevel }): runtime.Types.Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
 
   $transaction<R>(fn: (prisma: Omit<PrismaClient, runtime.ITXClientDenyList>) => runtime.Types.Utils.JsPromise<R>, options?: { maxWait?: number, timeout?: number, isolationLevel?: Prisma.TransactionIsolationLevel }): runtime.Types.Utils.JsPromise<R>
 

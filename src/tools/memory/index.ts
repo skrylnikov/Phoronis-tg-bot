@@ -1,7 +1,11 @@
 import type { Schemas } from '@qdrant/js-client-rest';
 import { embed, generateText, Output } from 'ai';
 import { z } from 'zod';
-import { openRouter } from '../../ai/ai';
+import {
+  embeddingModel,
+  embeddingProviderOptions,
+  utilityModel,
+} from '../../ai/ai';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
 import { qdrantClient } from '../../qdrant';
@@ -41,13 +45,9 @@ async function checkForSimilarMemories(
 ): Promise<CheckSimilarResult> {
   try {
     const result = await embed({
-      model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+      model: embeddingModel,
       value: content,
-      providerOptions: {
-        llamaGate: {
-          dimensions: 4096,
-        },
-      },
+      providerOptions: embeddingProviderOptions,
     });
 
     const filter: Schemas['Filter'] = {
@@ -87,7 +87,7 @@ async function checkForSimilarMemories(
       .join('\n');
 
     const llmResult = await generateText({
-      model: openRouter('google/gemma-3n-e4b-it'),
+      model: utilityModel,
       output: Output.object({ schema: memoryCheckSchema }),
       prompt: `Анализируй новую запись и существующие записи на предмет дубликатов и противоречий.
 
@@ -175,13 +175,9 @@ export async function saveMemory(options: SaveMemoryOptions) {
 
     try {
       const result = await embed({
-        model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+        model: embeddingModel,
         value: content,
-        providerOptions: {
-          llamaGate: {
-            dimensions: 4096,
-          },
-        },
+        providerOptions: embeddingProviderOptions,
       });
 
       await upsertMemoryEmbedding(
@@ -210,13 +206,9 @@ export async function saveMemory(options: SaveMemoryOptions) {
 
     try {
       const result = await embed({
-        model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+        model: embeddingModel,
         value: content,
-        providerOptions: {
-          llamaGate: {
-            dimensions: 4096,
-          },
-        },
+        providerOptions: embeddingProviderOptions,
       });
 
       await upsertMemoryEmbedding(
@@ -245,13 +237,9 @@ export async function saveMemory(options: SaveMemoryOptions) {
 
   try {
     const result = await embed({
-      model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+      model: embeddingModel,
       value: content,
-      providerOptions: {
-        llamaGate: {
-          dimensions: 4096,
-        },
-      },
+      providerOptions: embeddingProviderOptions,
     });
 
     await upsertMemoryEmbedding(

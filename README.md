@@ -82,12 +82,10 @@ Create a `.env` file with the following variables:
 ```
 TOKEN=your_telegram_bot_token
 OPEN_WEATHER_TOKEN=your_openweather_token
-DADATA_TOKEN=your_dadata_token
 YANDEX_CLOUD_TOKEN=your_yandex_cloud_token
 YANDEX_S3_ID=your_yandex_s3_id
 YANDEX_S3_SECRET=your_yandex_s3_secret
-OPENAI_API_KEY=your_openai_key
-OPENROUTER_API_KEY=your_openrouter_key
+ROUTERAI_API_KEY=your_routerai_key
 QDRANT_BASE_URL=your_qdrant_url
 QDRANT_API_KEY=your_qdrant_api_key
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
@@ -96,7 +94,7 @@ LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 
 ## Features
 
-- AI-powered responses with context awareness
+- RouterAI-powered responses with context awareness
 - User behavior tracking and fact analysis
 - Memory management tools
 - Image recognition and description

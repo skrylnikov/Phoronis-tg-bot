@@ -1,7 +1,7 @@
 import { embed } from 'ai';
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
-import { openRouter } from '../../ai/ai';
+import { embeddingModel, embeddingProviderOptions } from '../../ai/ai';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
 import { qdrantClient } from '../../qdrant';
@@ -185,13 +185,9 @@ async function migrateUserMetaInfo(
       });
 
       const embeddingResult = await embed({
-        model: openRouter.textEmbeddingModel('qwen/qwen3-embedding-8b'),
+        model: embeddingModel,
         value: fact.content,
-        providerOptions: {
-          llamaGate: {
-            dimensions: 4096,
-          },
-        },
+        providerOptions: embeddingProviderOptions,
       });
 
       await qdrantClient.upsert('user-facts', {

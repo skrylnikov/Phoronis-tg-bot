@@ -237,22 +237,6 @@ featuresController.command('index', async (_ctx) => {
     //       };
     //     })
     //     .filter((message) => message);
-    //   const results = await embedMany({
-    //     model: llamaGate.textEmbeddingModel("auto"),
-    //     values: request.map((message) => message!.content),
-    //     providerOptions: {
-    //       llamaGate: {
-    //         dimensions: 4096,
-    //       },
-    //     },
-    //   });
-    //   await qdrantClient.upsert("messages", {
-    //     points: results.embeddings.map((result, index) => ({
-    //       id: request[index]!.id,
-    //       vector: result,
-    //       payload: request[index],
-    //     })),
-    //   });
     // }
     // await ctx.reply("Индексация завершена");
   } catch (error) {
