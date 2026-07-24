@@ -12,9 +12,10 @@ import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,
-  trace: LangfuseTraceClient,
+  trace: LangfuseTraceClient | undefined,
   ctx?: BotContext,
   onTextUpdate?: (text: string) => Promise<void> | void,
+  options: { readOnlyTools?: boolean } = {},
 ) => {
   const greetingTool = dynamicTool({
     description:
@@ -68,7 +69,7 @@ export const chatGeneration = async (
   const memoryTool = createMemoryTool(ctx);
   const clearMemoryTool = createClearMemoryTool(ctx);
 
-  trace.update({
+  trace?.update({
     input: JSON.stringify(messages),
   });
 
@@ -78,13 +79,18 @@ export const chatGeneration = async (
     model: chatModel,
     instructions: prompt.instructions,
     messages: prompt.messages,
-    tools: {
-      get_weather: weatherTool,
-      set_greeting: greetingTool,
-      wikipedia: wikipediaTool,
-      save_memory: memoryTool,
-      clear_memory: clearMemoryTool,
-    },
+    tools: options.readOnlyTools
+      ? {
+          get_weather: weatherTool,
+          wikipedia: wikipediaTool,
+        }
+      : {
+          get_weather: weatherTool,
+          set_greeting: greetingTool,
+          wikipedia: wikipediaTool,
+          save_memory: memoryTool,
+          clear_memory: clearMemoryTool,
+        },
     stopWhen: stepCountIs(5),
     temperature: 1,
   });
@@ -95,7 +101,7 @@ export const chatGeneration = async (
     onTextUpdate,
   );
 
-  trace.update({
+  trace?.update({
     output: JSON.stringify(text),
   });
 

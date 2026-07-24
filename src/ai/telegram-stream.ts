@@ -21,6 +21,10 @@ function isMessageNotModified(error: unknown): boolean {
 export interface StreamedReply {
   message_id: number;
   date: number;
+  ephemeral_message_id?: number;
+  receiver_user?: {
+    id: number;
+  };
   from?: {
     id: number;
   };
@@ -28,6 +32,7 @@ export interface StreamedReply {
 
 interface TelegramStreamOptions {
   intervalMs?: number;
+  ephemeralReceiverUserId?: number;
 }
 
 export class TelegramStreamSink {
@@ -44,6 +49,7 @@ export class TelegramStreamSink {
     private readonly ctx: BotContext,
     private readonly groupMessage: StreamedReply | undefined,
     private readonly intervalMs: number,
+    private readonly ephemeralReceiverUserId: number | undefined,
   ) {}
 
   static async create(
@@ -53,7 +59,12 @@ export class TelegramStreamSink {
     const intervalMs = options.intervalMs ?? 1000;
 
     if (ctx.chat?.type === 'private') {
-      const sink = new TelegramStreamSink(ctx, undefined, intervalMs);
+      const sink = new TelegramStreamSink(
+        ctx,
+        undefined,
+        intervalMs,
+        undefined,
+      );
       try {
         await ctx.replyWithDraft('', sink.draftOptions());
         sink.lastPublishedAt = Date.now();
@@ -64,15 +75,34 @@ export class TelegramStreamSink {
       return sink;
     }
 
-    const sink = new TelegramStreamSink(ctx, undefined, intervalMs);
+    const ephemeralReceiverUserId = options.ephemeralReceiverUserId;
+    const sink = new TelegramStreamSink(
+      ctx,
+      undefined,
+      intervalMs,
+      ephemeralReceiverUserId,
+    );
     try {
       const message = await ctx.reply(thinkingText, {
-        reply_to_message_id: ctx.msg?.message_id,
+        ...(ephemeralReceiverUserId
+          ? { receiver_user_id: ephemeralReceiverUserId }
+          : { reply_to_message_id: ctx.msg?.message_id }),
         ...sink.threadOptions(),
       });
-      return new TelegramStreamSink(ctx, message, intervalMs);
+      if (ephemeralReceiverUserId && !message.ephemeral_message_id) {
+        throw new Error('Telegram did not return an ephemeral message ID');
+      }
+      return new TelegramStreamSink(
+        ctx,
+        message,
+        intervalMs,
+        ephemeralReceiverUserId,
+      );
     } catch (error) {
       logger.error(error, 'Failed to create streaming placeholder');
+      if (ephemeralReceiverUserId) {
+        throw error;
+      }
       sink.active = false;
       return sink;
     }
@@ -108,6 +138,10 @@ export class TelegramStreamSink {
     const chatId = this.ctx.chatId;
     if (!chatId) {
       return this.sendFinalReply(formattedText);
+    }
+
+    if (this.ephemeralReceiverUserId) {
+      return this.finishEphemeral(rawText, formattedText);
     }
 
     if (formattedText === this.lastPublishedText) {
@@ -159,7 +193,18 @@ export class TelegramStreamSink {
     }
 
     try {
-      await this.ctx.api.deleteMessage(chatId, this.groupMessage.message_id);
+      if (
+        this.ephemeralReceiverUserId &&
+        this.groupMessage.ephemeral_message_id
+      ) {
+        await this.ctx.api.deleteEphemeralMessage(
+          chatId,
+          this.ephemeralReceiverUserId,
+          this.groupMessage.ephemeral_message_id,
+        );
+      } else {
+        await this.ctx.api.deleteMessage(chatId, this.groupMessage.message_id);
+      }
     } catch (error) {
       logger.error(error, 'Failed to remove streaming placeholder');
     }
@@ -196,11 +241,23 @@ export class TelegramStreamSink {
         if (this.ctx.chat?.type === 'private') {
           await this.ctx.replyWithDraft(text, this.draftOptions());
         } else if (this.ctx.chatId && this.groupMessage) {
-          await this.ctx.api.editMessageText(
-            this.ctx.chatId,
-            this.groupMessage.message_id,
-            text,
-          );
+          if (
+            this.ephemeralReceiverUserId &&
+            this.groupMessage.ephemeral_message_id
+          ) {
+            await this.ctx.api.editEphemeralMessageText(
+              this.ctx.chatId,
+              this.ephemeralReceiverUserId,
+              this.groupMessage.ephemeral_message_id,
+              text,
+            );
+          } else {
+            await this.ctx.api.editMessageText(
+              this.ctx.chatId,
+              this.groupMessage.message_id,
+              text,
+            );
+          }
         }
         this.lastPublishedText = text;
         this.lastPublishedAt = Date.now();
@@ -231,6 +288,49 @@ export class TelegramStreamSink {
       parse_mode: 'MarkdownV2',
       ...this.threadOptions(),
     });
+  }
+
+  private async finishEphemeral(
+    rawText: string,
+    formattedText: string,
+  ): Promise<StreamedReply> {
+    const chatId = this.ctx.chatId;
+    const ephemeralMessageId = this.groupMessage?.ephemeral_message_id;
+    if (!chatId || !this.ephemeralReceiverUserId || !ephemeralMessageId) {
+      throw new Error('Missing ephemeral message target');
+    }
+
+    try {
+      await this.ctx.api.editEphemeralMessageText(
+        chatId,
+        this.ephemeralReceiverUserId,
+        ephemeralMessageId,
+        formattedText,
+        { parse_mode: 'MarkdownV2' },
+      );
+    } catch (formattedError) {
+      if (isMessageNotModified(formattedError)) {
+        return this.groupMessage;
+      }
+      logger.error(
+        formattedError,
+        'Failed to finalize formatted ephemeral stream',
+      );
+      try {
+        await this.ctx.api.editEphemeralMessageText(
+          chatId,
+          this.ephemeralReceiverUserId,
+          ephemeralMessageId,
+          rawText,
+        );
+      } catch (plainTextError) {
+        if (!isMessageNotModified(plainTextError)) {
+          throw plainTextError;
+        }
+      }
+    }
+
+    return this.groupMessage;
   }
 
   private threadOptions(): { message_thread_id?: number } {

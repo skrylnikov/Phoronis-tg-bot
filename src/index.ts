@@ -1,5 +1,6 @@
 import { GrammyError, HttpError } from 'grammy';
 import { bot } from './bot';
+import { registerBotCommands } from './bot-commands';
 
 import { controllers } from './controllers';
 import { prisma } from './db';
@@ -24,6 +25,7 @@ bot.catch((err) => {
 });
 
 await ensureQdrantCollections();
+await registerBotCommands(bot.api);
 startScheduler();
 
 bot.start().catch((e) => {

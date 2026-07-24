@@ -1,6 +1,7 @@
 import { Composer } from 'grammy';
 
 import type { BotContext } from '../bot';
+import { askController } from './ask.js';
 import { featuresController } from './features';
 import { meController } from './me.js';
 import { newChatMembersController } from './new-chat-members.js';
@@ -16,6 +17,8 @@ controllers.command('start', startController);
 controllers.command('me', meController);
 
 controllers.command('private', privateController);
+
+controllers.command('ask', askController);
 
 controllers.use(featuresController);
 

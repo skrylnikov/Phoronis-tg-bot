@@ -12,7 +12,9 @@ import { TelegramStreamSink } from '../ai/telegram-stream';
 
 interface TestContext {
   context: BotContext;
+  deleteEphemeralMessage: ReturnType<typeof vi.fn>;
   deleteMessage: ReturnType<typeof vi.fn>;
+  editEphemeralMessageText: ReturnType<typeof vi.fn>;
   editMessageText: ReturnType<typeof vi.fn>;
   reply: ReturnType<typeof vi.fn>;
   replyWithDraft: ReturnType<typeof vi.fn>;
@@ -23,13 +25,21 @@ function createContext(
   isTopic = false,
 ): TestContext {
   const replyWithDraft = vi.fn().mockResolvedValue(true);
-  const reply = vi.fn().mockResolvedValue({
-    message_id: 100,
-    date: 10,
-    from: { id: 999 },
-  });
+  const reply = vi.fn().mockImplementation((_text, options) =>
+    Promise.resolve({
+      message_id: options?.receiver_user_id ? 0 : 100,
+      ephemeral_message_id: options?.receiver_user_id ? 501 : undefined,
+      receiver_user: options?.receiver_user_id
+        ? { id: options.receiver_user_id }
+        : undefined,
+      date: 10,
+      from: { id: 999 },
+    }),
+  );
   const editMessageText = vi.fn().mockResolvedValue(true);
+  const editEphemeralMessageText = vi.fn().mockResolvedValue(true);
   const deleteMessage = vi.fn().mockResolvedValue(true);
+  const deleteEphemeralMessage = vi.fn().mockResolvedValue(true);
 
   const context = {
     chat: { id: -100, type },
@@ -43,14 +53,18 @@ function createContext(
     reply,
     replyWithDraft,
     api: {
+      deleteEphemeralMessage,
       deleteMessage,
+      editEphemeralMessageText,
       editMessageText,
     },
   } as unknown as BotContext;
 
   return {
     context,
+    deleteEphemeralMessage,
     deleteMessage,
+    editEphemeralMessageText,
     editMessageText,
     reply,
     replyWithDraft,
@@ -133,6 +147,53 @@ describe('TelegramStreamSink', () => {
       { parse_mode: 'MarkdownV2' },
     );
     expect(testContext.reply).toHaveBeenCalledTimes(1);
+  });
+
+  it('streams and finalizes an ephemeral group message for one user', async () => {
+    const testContext = createContext('supergroup');
+    const sink = await TelegramStreamSink.create(testContext.context, {
+      ephemeralReceiverUserId: 123,
+    });
+
+    expect(testContext.reply).toHaveBeenCalledWith('Думаю…', {
+      receiver_user_id: 123,
+    });
+
+    sink.update('Черновик');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(testContext.editEphemeralMessageText).toHaveBeenCalledWith(
+      -100,
+      123,
+      501,
+      'Черновик',
+    );
+
+    const reply = await sink.finish('Финал', '*Финал*');
+    expect(reply.ephemeral_message_id).toBe(501);
+    expect(testContext.editEphemeralMessageText).toHaveBeenLastCalledWith(
+      -100,
+      123,
+      501,
+      '*Финал*',
+      { parse_mode: 'MarkdownV2' },
+    );
+    expect(testContext.editMessageText).not.toHaveBeenCalled();
+  });
+
+  it('deletes an unfinished ephemeral placeholder', async () => {
+    const testContext = createContext('group');
+    const sink = await TelegramStreamSink.create(testContext.context, {
+      ephemeralReceiverUserId: 123,
+    });
+
+    await sink.cancel();
+
+    expect(testContext.deleteEphemeralMessage).toHaveBeenCalledWith(
+      -100,
+      123,
+      501,
+    );
+    expect(testContext.deleteMessage).not.toHaveBeenCalled();
   });
 
   it('does not duplicate a group reply when the last stream update is final', async () => {

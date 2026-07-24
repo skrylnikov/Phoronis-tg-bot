@@ -12,6 +12,7 @@ import { getRecentMemoriesForUsers } from '../tools/memory';
 import { extractMentionedUserIds } from '../tools/shared/entities';
 import { getTopUserFacts } from '../tools/user/fact-analyzer';
 import { chatGeneration } from './chat-generation';
+import { searchContext } from './embedding';
 import { langfuse } from './langfuse';
 import { TelegramStreamSink } from './telegram-stream';
 
@@ -104,29 +105,60 @@ const getThreadBySessionId = async (
   return result;
 };
 
+interface AiControllerOptions {
+  messageText?: string;
+  ephemeralReceiverUserId?: number;
+  persistResponse?: boolean;
+  readOnlyTools?: boolean;
+  resolveContext?: boolean;
+}
+
 export const aiController = async (
   ctx: BotContext,
   imageDescription?: string,
   userContext?: string[] | null,
   chatContext?: string[] | null,
+  options: AiControllerOptions = {},
 ) => {
-  if (!ctx.msg?.text && !ctx.msg?.caption) {
+  const msg = ctx.msg;
+  const chat = ctx.chat;
+  const text = options.messageText || msg?.text || msg?.caption;
+  if (!msg || !chat || !text) {
     return;
   }
 
   let streamSink: TelegramStreamSink | undefined;
   let streamFinalized = false;
-  const typingInterval = setInterval(() => {
-    void ctx.replyWithChatAction('typing').catch((error) => {
-      logger.error(error, 'Failed to update Telegram typing status');
-    });
-  }, 5000);
+  const typingInterval = options.ephemeralReceiverUserId
+    ? undefined
+    : setInterval(() => {
+        void ctx.replyWithChatAction('typing').catch((error) => {
+          logger.error(error, 'Failed to update Telegram typing status');
+        });
+      }, 5000);
 
   try {
-    await ctx.replyWithChatAction('typing');
-    streamSink = await TelegramStreamSink.create(ctx);
+    if (!options.ephemeralReceiverUserId) {
+      await ctx.replyWithChatAction('typing');
+    }
+    streamSink = await TelegramStreamSink.create(ctx, {
+      ephemeralReceiverUserId: options.ephemeralReceiverUserId,
+    });
 
-    const text = ctx.msg.text || ctx.msg.caption;
+    if (options.resolveContext && ctx.from && ctx.chatId) {
+      const replyText =
+        msg.reply_to_message?.text?.trim() ||
+        msg.reply_to_message?.caption?.trim();
+      const query = replyText ? `Q: ${replyText}\n\nA: ${text}` : text;
+      const resolvedContext = await searchContext(
+        query,
+        ctx.from.id,
+        ctx.chatId,
+        chat.type === 'private',
+      );
+      userContext = resolvedContext.userContext;
+      chatContext = resolvedContext.chatContext;
+    }
 
     const rawMessages: Array<{
       role: 'system' | 'user' | 'assistant';
@@ -135,32 +167,34 @@ export const aiController = async (
 
     let list: Awaited<ReturnType<typeof getThread>> = [];
 
-    const replyToMessage = await prisma.message.findUnique({
-      where: {
-        chatId_id: {
-          chatId: ctx.chatId ?? 0,
-          id: ctx.msg?.message_id ?? 0,
-        },
-      },
-      select: {
-        id: true,
-        sessionId: true,
-      },
-    });
+    const replyToMessage = options.ephemeralReceiverUserId
+      ? null
+      : await prisma.message.findUnique({
+          where: {
+            chatId_id: {
+              chatId: ctx.chatId ?? 0,
+              id: msg.message_id,
+            },
+          },
+          select: {
+            id: true,
+            sessionId: true,
+          },
+        });
 
     const sessionId = replyToMessage?.sessionId || sessionIdGenerator();
 
-    if (ctx.msg.reply_to_message) {
+    if (msg.reply_to_message) {
       if (replyToMessage?.sessionId) {
         list = await getThreadBySessionId(
           ctx.chatId ?? 0,
-          BigInt(ctx.msg.reply_to_message.message_id),
+          BigInt(msg.reply_to_message.message_id),
           replyToMessage.sessionId,
         );
       } else {
         list = await getThread(
           ctx.chatId ?? 0,
-          BigInt(ctx.msg.reply_to_message.message_id),
+          BigInt(msg.reply_to_message.message_id),
         );
       }
     }
@@ -260,20 +294,23 @@ export const aiController = async (
     const userFactsPromises = userList.map((user) => getTopUserFacts(user.id));
     const userFactsResults = await Promise.all(userFactsPromises);
 
-    const trace = langfuse.trace({
-      name: 'chat-generation',
-      sessionId,
-      userId: ctx.from?.id?.toString() || null,
-      metadata: {
-        userName: [
-          ctx.from?.username ? `@${ctx.from?.username}` : null,
-          ctx.from?.first_name,
-          ctx.from?.last_name,
-        ]
-          .filter(Boolean)
-          .join(' '),
-      },
-    });
+    const trace =
+      options.persistResponse === false
+        ? undefined
+        : langfuse.trace({
+            name: 'chat-generation',
+            sessionId,
+            userId: ctx.from?.id?.toString() || null,
+            metadata: {
+              userName: [
+                ctx.from?.username ? `@${ctx.from?.username}` : null,
+                ctx.from?.first_name,
+                ctx.from?.last_name,
+              ]
+                .filter(Boolean)
+                .join(' '),
+            },
+          });
 
     const isHelpful = Math.random() < 0.3;
     const isUseUsername = Math.random() < 0.2;
@@ -332,8 +369,12 @@ export const aiController = async (
       ...(rawMessages as ModelMessage[]),
     ];
 
-    const result = await chatGeneration(messages, trace, ctx, (streamedText) =>
-      streamSink?.update(streamedText),
+    const result = await chatGeneration(
+      messages,
+      trace,
+      ctx,
+      (streamedText) => streamSink?.update(streamedText),
+      { readOnlyTools: options.readOnlyTools },
     );
 
     // logger.debug(
@@ -349,6 +390,10 @@ export const aiController = async (
       clearInterval(typingInterval);
       const reply = await streamSink.finish(result, MD(result, 'remove'));
       streamFinalized = true;
+
+      if (options.persistResponse === false) {
+        return;
+      }
 
       try {
         await saveMessage({
