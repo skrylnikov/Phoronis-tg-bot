@@ -4,6 +4,20 @@ import { logger } from '../logger';
 const maxPreviewLength = 4096;
 const thinkingText = 'Думаю…';
 
+function isMessageNotModified(error: unknown): boolean {
+  const description =
+    typeof error === 'object' &&
+    error !== null &&
+    'description' in error &&
+    typeof error.description === 'string'
+      ? error.description
+      : error instanceof Error
+        ? error.message
+        : '';
+
+  return description.toLowerCase().includes('message is not modified');
+}
+
 export interface StreamedReply {
   message_id: number;
   date: number;
@@ -96,6 +110,10 @@ export class TelegramStreamSink {
       return this.sendFinalReply(formattedText);
     }
 
+    if (formattedText === this.lastPublishedText) {
+      return this.groupMessage;
+    }
+
     try {
       await this.ctx.api.editMessageText(
         chatId,
@@ -105,6 +123,9 @@ export class TelegramStreamSink {
       );
       return this.groupMessage;
     } catch (formattedError) {
+      if (isMessageNotModified(formattedError)) {
+        return this.groupMessage;
+      }
       logger.error(formattedError, 'Failed to finalize formatted stream');
       try {
         await this.ctx.api.editMessageText(
@@ -114,6 +135,9 @@ export class TelegramStreamSink {
         );
         return this.groupMessage;
       } catch (plainTextError) {
+        if (isMessageNotModified(plainTextError)) {
+          return this.groupMessage;
+        }
         logger.error(plainTextError, 'Failed to finalize plain text stream');
         return this.sendFinalReply(formattedText);
       }

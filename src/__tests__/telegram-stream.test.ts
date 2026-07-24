@@ -135,6 +135,34 @@ describe('TelegramStreamSink', () => {
     expect(testContext.reply).toHaveBeenCalledTimes(1);
   });
 
+  it('does not duplicate a group reply when the last stream update is final', async () => {
+    const testContext = createContext('group');
+    const sink = await TelegramStreamSink.create(testContext.context);
+
+    sink.update('Да норм всё');
+    await vi.advanceTimersByTimeAsync(1000);
+    const reply = await sink.finish('Да норм всё', 'Да норм всё');
+
+    expect(reply.message_id).toBe(100);
+    expect(testContext.editMessageText).toHaveBeenCalledOnce();
+    expect(testContext.reply).toHaveBeenCalledOnce();
+  });
+
+  it('treats Telegram message-not-modified errors as successful finalization', async () => {
+    const testContext = createContext('group');
+    testContext.editMessageText.mockRejectedValue({
+      description: 'Bad Request: message is not modified',
+      error_code: 400,
+    });
+    const sink = await TelegramStreamSink.create(testContext.context);
+
+    const reply = await sink.finish('Финал', 'Финал\\!');
+
+    expect(reply.message_id).toBe(100);
+    expect(testContext.editMessageText).toHaveBeenCalledOnce();
+    expect(testContext.reply).toHaveBeenCalledOnce();
+  });
+
   it('caps draft previews at the Telegram message limit', async () => {
     const testContext = createContext('private');
     const sink = await TelegramStreamSink.create(testContext.context);
