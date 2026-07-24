@@ -19,7 +19,7 @@ function createContext(
       chat: { id: -100, type },
       chatId: -100,
       from: { id: 123 },
-      msg: { message_id: 0, date: 1, text },
+      msg: { message_id: 0, ephemeral_message_id: 321, date: 1, text },
       reply,
     } as unknown as BotContext,
     reply,
@@ -64,6 +64,7 @@ describe('askController', () => {
 
     expect(reply).toHaveBeenCalledWith('Использование: /ask ваш вопрос', {
       receiver_user_id: 123,
+      reply_parameters: { ephemeral_message_id: 321 },
     });
     expect(aiController).not.toHaveBeenCalled();
   });

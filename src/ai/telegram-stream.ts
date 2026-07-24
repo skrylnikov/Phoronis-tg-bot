@@ -85,7 +85,16 @@ export class TelegramStreamSink {
     try {
       const message = await ctx.reply(thinkingText, {
         ...(ephemeralReceiverUserId
-          ? { receiver_user_id: ephemeralReceiverUserId }
+          ? {
+              receiver_user_id: ephemeralReceiverUserId,
+              ...(ctx.msg?.ephemeral_message_id
+                ? {
+                    reply_parameters: {
+                      ephemeral_message_id: ctx.msg.ephemeral_message_id,
+                    },
+                  }
+                : {}),
+            }
           : { reply_to_message_id: ctx.msg?.message_id }),
         ...sink.threadOptions(),
       });

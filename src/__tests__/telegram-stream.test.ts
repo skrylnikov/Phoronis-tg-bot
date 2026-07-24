@@ -46,6 +46,7 @@ function createContext(
     chatId: -100,
     msg: {
       message_id: 42,
+      ephemeral_message_id: 321,
       is_topic_message: isTopic,
       message_thread_id: isTopic ? 77 : undefined,
     },
@@ -157,6 +158,7 @@ describe('TelegramStreamSink', () => {
 
     expect(testContext.reply).toHaveBeenCalledWith('Думаю…', {
       receiver_user_id: 123,
+      reply_parameters: { ephemeral_message_id: 321 },
     });
 
     sink.update('Черновик');

@@ -24,7 +24,16 @@ export const askController = async (ctx: BotContext) => {
 
   const question = extractAskQuestion(ctx.msg.text);
   if (!question) {
-    await ctx.reply(usageText, { receiver_user_id: ctx.from.id });
+    await ctx.reply(usageText, {
+      receiver_user_id: ctx.from.id,
+      ...(ctx.msg.ephemeral_message_id
+        ? {
+            reply_parameters: {
+              ephemeral_message_id: ctx.msg.ephemeral_message_id,
+            },
+          }
+        : {}),
+    });
     return;
   }
 
