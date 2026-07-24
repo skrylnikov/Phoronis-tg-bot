@@ -13,6 +13,7 @@ import { extractMentionedUserIds } from '../tools/shared/entities';
 import { getTopUserFacts } from '../tools/user/fact-analyzer';
 import { chatGeneration } from './chat-generation';
 import { langfuse } from './langfuse';
+import { TelegramStreamSink } from './telegram-stream';
 
 function convertFactsToMetaInfo(
   facts: Awaited<ReturnType<typeof getTopUserFacts>>,
@@ -113,12 +114,17 @@ export const aiController = async (
     return;
   }
 
-  const typingInterval = setInterval(async () => {
-    await ctx.replyWithChatAction('typing');
+  let streamSink: TelegramStreamSink | undefined;
+  let streamFinalized = false;
+  const typingInterval = setInterval(() => {
+    void ctx.replyWithChatAction('typing').catch((error) => {
+      logger.error(error, 'Failed to update Telegram typing status');
+    });
   }, 5000);
 
   try {
     await ctx.replyWithChatAction('typing');
+    streamSink = await TelegramStreamSink.create(ctx);
 
     const text = ctx.msg.text || ctx.msg.caption;
 
@@ -326,7 +332,9 @@ export const aiController = async (
       ...(rawMessages as ModelMessage[]),
     ];
 
-    const result = await chatGeneration(messages, trace, ctx);
+    const result = await chatGeneration(messages, trace, ctx, (streamedText) =>
+      streamSink?.update(streamedText),
+    );
 
     // logger.debug(
     //   `AI request for user ${JSON.stringify({
@@ -339,10 +347,8 @@ export const aiController = async (
 
     if (result) {
       clearInterval(typingInterval);
-      const reply = await ctx.reply(MD(result.toString(), 'remove'), {
-        reply_to_message_id: ctx.msg?.message_id,
-        parse_mode: 'MarkdownV2',
-      });
+      const reply = await streamSink.finish(result, MD(result, 'remove'));
+      streamFinalized = true;
 
       try {
         await saveMessage({
@@ -369,7 +375,10 @@ export const aiController = async (
     }
   } catch (error) {
     logger.error(error);
+  } finally {
+    clearInterval(typingInterval);
+    if (!streamFinalized) {
+      await streamSink?.cancel();
+    }
   }
-
-  clearInterval(typingInterval);
 };

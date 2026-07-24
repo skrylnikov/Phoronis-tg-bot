@@ -1,10 +1,12 @@
 import type { ModelMessage } from 'ai';
-import { dynamicTool, generateText, stepCountIs } from 'ai';
+import { dynamicTool, stepCountIs, streamText } from 'ai';
 import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
 import { chatModel } from './ai';
+import { splitSystemMessages } from './prompt';
+import { collectStreamedText } from './stream-text';
 import { weatherTool, wikipediaTool } from './tools';
 import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
@@ -12,6 +14,7 @@ export const chatGeneration = async (
   messages: Array<ModelMessage>,
   trace: LangfuseTraceClient,
   ctx?: BotContext,
+  onTextUpdate?: (text: string) => Promise<void> | void,
 ) => {
   const greetingTool = dynamicTool({
     description:
@@ -69,9 +72,12 @@ export const chatGeneration = async (
     input: JSON.stringify(messages),
   });
 
-  const response = await generateText({
+  const prompt = splitSystemMessages(messages);
+
+  const response = streamText({
     model: chatModel,
-    messages: messages,
+    instructions: prompt.instructions,
+    messages: prompt.messages,
     tools: {
       get_weather: weatherTool,
       set_greeting: greetingTool,
@@ -83,9 +89,15 @@ export const chatGeneration = async (
     temperature: 1,
   });
 
+  const text = await collectStreamedText(
+    response.textStream,
+    response.text,
+    onTextUpdate,
+  );
+
   trace.update({
-    output: JSON.stringify(response.text),
+    output: JSON.stringify(text),
   });
 
-  return response.text;
+  return text;
 };

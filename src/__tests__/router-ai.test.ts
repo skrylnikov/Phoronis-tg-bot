@@ -1,4 +1,4 @@
-import { embed, generateText, Output, stepCountIs, tool } from 'ai';
+import { embed, generateText, Output, stepCountIs, streamText, tool } from 'ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -12,11 +12,13 @@ import {
   embeddingProviderOptions,
   utilityModel,
 } from '../ai/ai';
+import { splitSystemMessages } from '../ai/prompt';
 
 interface RequestBody {
   model?: string;
   messages?: Array<{
-    content?: Array<{ type?: string; image_url?: { url?: string } }>;
+    role?: string;
+    content?: string | Array<{ type?: string; image_url?: { url?: string } }>;
   }>;
   response_format?: { type?: string };
 }
@@ -25,6 +27,28 @@ function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { 'content-type': 'application/json' },
   });
+}
+
+function streamResponse(chunks: unknown[]): Response {
+  return new Response(
+    `${chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join('')}data: [DONE]\n\n`,
+    {
+      headers: { 'content-type': 'text/event-stream' },
+    },
+  );
+}
+
+function chatChunk(
+  delta: Record<string, unknown>,
+  finishReason: 'stop' | 'tool_calls' | null,
+) {
+  return {
+    id: 'chatcmpl-stream-test',
+    object: 'chat.completion.chunk',
+    created: 1,
+    model: 'test',
+    choices: [{ index: 0, delta, finish_reason: finishReason }],
+  };
 }
 
 function chatResponse(
@@ -57,6 +81,70 @@ afterEach(() => {
 });
 
 describe('RouterAI models', () => {
+  it('streams text after completing a tool call', async () => {
+    const requestBodies: RequestBody[] = [];
+    const responses = [
+      streamResponse([
+        chatChunk(
+          {
+            role: 'assistant',
+            tool_calls: [
+              {
+                index: 0,
+                id: 'call-stream',
+                type: 'function',
+                function: {
+                  name: 'lookup',
+                  arguments: '{"value":"test"}',
+                },
+              },
+            ],
+          },
+          null,
+        ),
+        chatChunk({}, 'tool_calls'),
+      ]),
+      streamResponse([
+        chatChunk({ role: 'assistant', content: 'го' }, null),
+        chatChunk({ content: 'тово' }, null),
+        chatChunk({}, 'stop'),
+      ]),
+    ];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        requestBodies.push(JSON.parse(String(init?.body)) as RequestBody);
+        const response = responses.shift();
+        if (!response) {
+          throw new Error('Unexpected RouterAI request');
+        }
+        return response;
+      }),
+    );
+
+    const result = streamText({
+      model: chatModel,
+      prompt: 'Use the lookup tool',
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => value,
+        }),
+      },
+      stopWhen: stepCountIs(5),
+    });
+
+    const chunks: string[] = [];
+    for await (const chunk of result.textStream) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['го', 'тово']);
+    expect(await result.text).toBe('готово');
+    expect(requestBodies).toHaveLength(2);
+  });
+
   it('runs sequential tool calls through Gemini 3.6 Flash', async () => {
     const requestBodies: RequestBody[] = [];
     const responses = [
@@ -85,9 +173,15 @@ describe('RouterAI models', () => {
       }),
     );
 
+    const prompt = splitSystemMessages([
+      { role: 'system', content: 'Use tools when needed' },
+      { role: 'user', content: 'Run both tools' },
+    ]);
+
     const result = await generateText({
       model: chatModel,
-      prompt: 'Run both tools',
+      instructions: prompt.instructions,
+      messages: prompt.messages,
       tools: {
         first: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -102,6 +196,10 @@ describe('RouterAI models', () => {
     });
 
     expect(result.text).toBe('done');
+    expect(requestBodies[0]?.messages?.[0]).toEqual({
+      role: 'system',
+      content: 'Use tools when needed',
+    });
     expect(requestBodies).toHaveLength(3);
     expect(
       requestBodies.every((body) => body.model === 'google/gemini-3.6-flash'),
@@ -156,8 +254,9 @@ describe('RouterAI models', () => {
     });
 
     expect(requestBody.model).toBe('nex-agi/nex-n2-mini');
-    expect(requestBody.messages?.[0]?.content?.[0]?.type).toBe('image_url');
-    expect(requestBody.messages?.[0]?.content?.[0]?.image_url?.url).toMatch(
+    const content = requestBody.messages?.[0]?.content;
+    expect(Array.isArray(content) && content[0]?.type).toBe('image_url');
+    expect(Array.isArray(content) && content[0]?.image_url?.url).toMatch(
       /^data:image\/jpeg;base64,/,
     );
   });

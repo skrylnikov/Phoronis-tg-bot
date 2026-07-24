@@ -257,8 +257,8 @@ processMessageController.on('msg', async (ctx) => {
 
     const response = await generateText({
       model: utilityModel,
+      instructions: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: media.map((m) => ({

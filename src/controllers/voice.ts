@@ -122,11 +122,8 @@ export const voiceController = async (ctx: BotContext) => {
         }),
         generateText({
           model: utilityModel,
+          instructions: beautifierPrompt.compile(),
           messages: [
-            {
-              role: 'system',
-              content: beautifierPrompt.compile(),
-            },
             {
               role: 'user',
               content: recognizedResult,
@@ -137,19 +134,16 @@ export const voiceController = async (ctx: BotContext) => {
         summarizePrompt
           ? generateText({
               model: utilityModel,
+              instructions: summarizePrompt.compile({
+                author: [
+                  ctx.from?.username ? `@${ctx.from?.username}` : null,
+                  ctx.from?.first_name,
+                  ctx.from?.last_name,
+                ]
+                  .filter(Boolean)
+                  .join(' '),
+              }),
               messages: [
-                {
-                  role: 'system',
-                  content: summarizePrompt.compile({
-                    author: [
-                      ctx.from?.username ? `@${ctx.from?.username}` : null,
-                      ctx.from?.first_name,
-                      ctx.from?.last_name,
-                    ]
-                      .filter(Boolean)
-                      .join(' '),
-                  }),
-                },
                 {
                   role: 'user',
                   content: recognizedResult,
