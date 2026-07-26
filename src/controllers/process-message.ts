@@ -262,8 +262,12 @@ processMessageController.on('msg', async (ctx) => {
         {
           role: 'user',
           content: media.map((m) => ({
-            type: 'image',
-            image: new URL(m.url),
+            type: 'file',
+            mediaType: m.mimeType,
+            data: {
+              type: 'url',
+              url: new URL(m.url),
+            },
           })),
         },
       ],

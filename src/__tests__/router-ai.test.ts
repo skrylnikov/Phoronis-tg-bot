@@ -244,9 +244,12 @@ describe('RouterAI models', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([1, 2, 3]),
+              type: 'file',
               mediaType: 'image/jpeg',
+              data: {
+                type: 'data',
+                data: new Uint8Array([1, 2, 3]),
+              },
             },
           ],
         },
