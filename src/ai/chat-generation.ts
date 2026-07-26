@@ -7,7 +7,12 @@ import { prisma } from '../db';
 import { chatModel } from './ai';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
-import { weatherTool, wikipediaTool } from './tools';
+import {
+  canUseMissedMessagesTool,
+  createMissedMessagesTool,
+  weatherTool,
+  wikipediaTool,
+} from './tools';
 import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
@@ -68,6 +73,10 @@ export const chatGeneration = async (
 
   const memoryTool = createMemoryTool(ctx);
   const clearMemoryTool = createClearMemoryTool(ctx);
+  const canReadGroupHistory = canUseMissedMessagesTool(
+    ctx,
+    Boolean(options.readOnlyTools),
+  );
 
   trace?.update({
     input: JSON.stringify(messages),
@@ -90,6 +99,9 @@ export const chatGeneration = async (
           wikipedia: wikipediaTool,
           save_memory: memoryTool,
           clear_memory: clearMemoryTool,
+          ...(canReadGroupHistory
+            ? { get_missed_messages: createMissedMessagesTool(ctx) }
+            : {}),
         },
     stopWhen: stepCountIs(5),
     temperature: 1,
