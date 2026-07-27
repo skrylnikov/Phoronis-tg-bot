@@ -1,9 +1,9 @@
 FROM oven/bun:1.3.9-alpine AS dependencies
 
 WORKDIR /app
-COPY package.json bun.lock tsconfig.json ./
+COPY package.json bun.lock tsconfig.json prisma.config.ts ./
 COPY prisma ./prisma
-RUN bun install --frozen-lockfile
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build bun install --frozen-lockfile
 
 FROM oven/bun:1.3.9-alpine AS runtime
 
@@ -13,7 +13,7 @@ ENV NODE_ENV=production
 ENV HEALTH_PORT=3000
 
 COPY --from=dependencies /app/node_modules ./node_modules
-COPY package.json bun.lock tsconfig.json ./
+COPY package.json bun.lock tsconfig.json prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
 
