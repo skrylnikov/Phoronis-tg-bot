@@ -1,4 +1,3 @@
-import type { Message } from '@prisma/client';
 import type { Schemas } from '@qdrant/js-client-rest';
 import { embed, generateObject, generateText, Output } from 'ai';
 import { z } from 'zod';
@@ -9,6 +8,7 @@ import {
 } from '../../ai/ai';
 import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
+import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import { qdrantClient } from '../../qdrant';
 

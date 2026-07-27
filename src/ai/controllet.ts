@@ -1,10 +1,10 @@
-import type { Message, User } from '@prisma/client';
 import type { ModelMessage } from 'ai';
 import { format } from 'date-fns';
 import { unique } from 'remeda';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
+import type { Message, User } from '../generated/prisma/client';
 import { logger } from '../logger';
 import { saveMessage } from '../shared';
 import { getRecentMemoriesForUsers } from '../tools/memory';

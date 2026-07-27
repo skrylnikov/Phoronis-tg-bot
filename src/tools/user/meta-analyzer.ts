@@ -1,9 +1,9 @@
-import type { Message } from '@prisma/client';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { utilityModel } from '../../ai/ai';
 import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
+import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 
 const userMetaInfoSchema = z.object({
