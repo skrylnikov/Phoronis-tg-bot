@@ -1,6 +1,9 @@
 import { logger } from './logger';
 import { qdrantClient } from './qdrant';
 
+const VECTOR_SIZE = 4096;
+const COLLECTIONS = ['messages', 'memories', 'user-facts'] as const;
+
 export async function ensureQdrantCollections() {
   try {
     const collections = await qdrantClient.getCollections();
@@ -8,19 +11,22 @@ export async function ensureQdrantCollections() {
       collections.collections.map((c: { name: string }) => c.name),
     );
 
-    if (!existingCollections.has('user-facts')) {
-      await qdrantClient.createCollection('user-facts', {
-        vectors: {
-          size: 4096,
-          distance: 'Cosine',
-        },
-        optimizers_config: {
-          indexing_threshold: 20000,
-        },
-      });
-      logger.info('Created Qdrant collection: user-facts');
+    for (const collection of COLLECTIONS) {
+      if (!existingCollections.has(collection)) {
+        await qdrantClient.createCollection(collection, {
+          vectors: {
+            size: VECTOR_SIZE,
+            distance: 'Cosine',
+          },
+          optimizers_config: {
+            indexing_threshold: 20000,
+          },
+        });
+        logger.info({ collection }, 'Created Qdrant collection');
+      }
     }
   } catch (error) {
     logger.error(error, 'Error ensuring Qdrant collections');
+    throw error;
   }
 }

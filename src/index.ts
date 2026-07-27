@@ -4,12 +4,15 @@ import { registerBotCommands } from './bot-commands';
 
 import { controllers } from './controllers';
 import { prisma } from './db';
+import { startHealthServer } from './health';
 import { logger } from './logger';
 import { ensureQdrantCollections } from './qdrant-init';
 import { startScheduler } from './scheduler';
 import { handleError } from './utils/error-handler';
 
 bot.use(controllers);
+
+const healthServer = startHealthServer();
 
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -44,6 +47,7 @@ process.on('unhandledRejection', (err) => {
 
 const shutdown = () => {
   logger.info('Shutting down the bot');
+  healthServer.stop();
   return Promise.all([bot.stop(), prisma.$disconnect()]);
 };
 
