@@ -22,12 +22,19 @@
     "bun": ">=1.2.0"
   },
   "packageManager": "bun@1.3.9",
+  "overrides": {
+    "fast-uri": "3.1.4",
+    "form-data": "4.0.6",
+    "js-yaml": "4.3.0",
+    "langsmith": "0.6.0",
+    "lodash": "4.18.0",
+    "undici": "6.27.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.5.5",
     "@grammyjs/types": "^4.0.0",
     "@types/bun": "^1.3.14",
     "@types/ffmpeg.js": "^3.1.6",
-    "prisma": "7.9.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
@@ -35,8 +42,8 @@
     "@ai-sdk/openai-compatible": "^3.0.14",
     "@grammyjs/parse-mode": "^2.3.0",
     "@langchain/community": "^1.1.29",
-    "@prisma/adapter-pg": "7.9.0",
-    "@prisma/client": "7.9.0",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
     "@qdrant/js-client-rest": "^1.18.0",
     "ai": "^7.0.37",
     "axios": "1.18.1",
@@ -49,6 +56,7 @@
     "node-cron": "^4.6.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3",
+    "prisma": "7.9.1",
     "remeda": "^2.39.0",
     "s3mini": "^0.9.5",
     "telegramify-markdown": "^1.3.3",
