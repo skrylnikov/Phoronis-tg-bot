@@ -8,7 +8,7 @@ ENV HEALTH_PORT=3000
 RUN apk upgrade --no-cache
 COPY package.json bun.lock tsconfig.json prisma.config.ts ./
 COPY prisma ./prisma
-RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build bun install --frozen-lockfile --production --omit=dev --omit=optional --omit=peer
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build bun install --frozen-lockfile --production --omit=dev --omit=optional
 COPY src ./src
 
 USER bun
