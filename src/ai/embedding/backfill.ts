@@ -232,7 +232,7 @@ async function runWorker(): Promise<void> {
     } catch (error) {
       logger.warn(
         {
-          error,
+          err: error,
           entity: activeEntity,
           failedRecords: activeEntity === 'health' ? 0 : 1,
           retryMs,

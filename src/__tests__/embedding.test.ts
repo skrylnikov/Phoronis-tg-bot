@@ -111,6 +111,26 @@ describe('local embeddings', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('splits background passages into TEI batches of at most two', async () => {
+    const bodies: Array<{ inputs: string[] }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body)) as { inputs: string[] };
+        bodies.push(body);
+        return embeddingResponse(body.inputs.map(() => embedding));
+      }),
+    );
+
+    const result = await embedPassages(['один', 'два', 'три']);
+
+    expect(result).toHaveLength(3);
+    expect(bodies.map((body) => body.inputs)).toEqual([
+      ['passage: один', 'passage: два'],
+      ['passage: три'],
+    ]);
+  });
+
   it('reconstructs reply-aware message search text', () => {
     expect(formatMessageSearchText('ответ', 'вопрос')).toBe(
       'Q: вопрос\n\nA: ответ',

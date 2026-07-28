@@ -8,6 +8,7 @@ import { logger } from '../../logger';
 const EMBEDDING_DIMENSIONS = 384;
 const BACKGROUND_TIMEOUT_MS = 30_000;
 const INTERACTIVE_IDLE_POLL_MS = 25;
+const BACKGROUND_TEI_BATCH_SIZE = 2;
 
 let interactiveRequests = 0;
 
@@ -119,12 +120,23 @@ export async function embedQueryAndPassage(
 }
 
 export async function embedPassages(contents: string[]): Promise<number[][]> {
-  await waitForInteractiveEmbeddings();
-  return requestEmbeddings(
-    contents.map((content) => `passage: ${content}`),
-    BACKGROUND_TIMEOUT_MS,
-    'background',
-  );
+  const embeddings: number[][] = [];
+  for (
+    let index = 0;
+    index < contents.length;
+    index += BACKGROUND_TEI_BATCH_SIZE
+  ) {
+    await waitForInteractiveEmbeddings();
+    const batch = contents.slice(index, index + BACKGROUND_TEI_BATCH_SIZE);
+    embeddings.push(
+      ...(await requestEmbeddings(
+        batch.map((content) => `passage: ${content}`),
+        BACKGROUND_TIMEOUT_MS,
+        'background',
+      )),
+    );
+  }
+  return embeddings;
 }
 
 export async function checkEmbeddingHealth(timeoutMs = 500): Promise<boolean> {
