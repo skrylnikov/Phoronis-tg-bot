@@ -1,50 +1,64 @@
-import { embed } from 'ai';
 import { logger } from '../../logger';
-import { qdrantClient } from '../../qdrant';
-import { embeddingModel, embeddingProviderOptions } from '../ai';
+import { requestEmbeddingBackfill } from './backfill';
+import { embedQuery, embedQueryAndPassage } from './client';
+import {
+  searchChatMessageContext,
+  searchUserMessageContext,
+  updateMessageEmbedding,
+} from './store';
 
-const USER_SCORE_THRESHOLD = 0.6;
+const USER_SCORE_THRESHOLD = 0.82;
 const USER_LIMIT = 5;
-const CHAT_SCORE_THRESHOLD = 0.7;
+const CHAT_SCORE_THRESHOLD = 0.85;
 const CHAT_LIMIT = 3;
 
 export interface SearchContextResult {
   userContext: string[] | null;
   chatContext: string[] | null;
-  embedding?: number[];
 }
 
-interface UpsertParams {
+export interface MessageEmbeddingIdentity {
   messageId: number;
-  embedding: number[];
-  content: string;
-  text: string | undefined;
   chatId: number;
-  userId: number;
 }
 
-async function upsertMessageEmbedding({
-  messageId,
-  embedding,
-  content,
-  text,
-  chatId,
-  userId,
-}: UpsertParams) {
-  await qdrantClient.upsert('messages', {
-    points: [
-      {
-        id: messageId,
-        vector: embedding,
-        payload: {
-          content,
-          text,
-          chatId,
-          userId,
-        },
-      },
-    ],
-  });
+async function searchWithEmbedding(
+  embedding: number[],
+  userId: number,
+  chatId: number,
+  isPrivateChat: boolean,
+): Promise<SearchContextResult> {
+  const startedAt = performance.now();
+  const [userContext, chatContext] = await Promise.all([
+    searchUserMessageContext(
+      BigInt(userId),
+      embedding,
+      USER_SCORE_THRESHOLD,
+      USER_LIMIT,
+    ),
+    isPrivateChat
+      ? Promise.resolve([])
+      : searchChatMessageContext(
+          BigInt(chatId),
+          embedding,
+          CHAT_SCORE_THRESHOLD,
+          CHAT_LIMIT,
+        ),
+  ]);
+
+  logger.info(
+    {
+      durationMs: Math.round(performance.now() - startedAt),
+      userResults: userContext.length,
+      chatResults: chatContext.length,
+    },
+    'Vector context search completed',
+  );
+
+  return {
+    userContext: userContext.length > 0 ? userContext : null,
+    chatContext: chatContext.length > 0 ? chatContext : null,
+  };
 }
 
 export async function searchContext(
@@ -58,86 +72,61 @@ export async function searchContext(
   }
 
   try {
-    console.time('Embedding search time');
-    const result = await embed({
-      model: embeddingModel,
-      value: content,
-      providerOptions: embeddingProviderOptions,
-    });
-    console.timeEnd('Embedding search time');
-
-    console.time('Qdrant search time');
-    const [userSearchResult, chatSearchResult] = await Promise.all([
-      qdrantClient.search('messages', {
-        vector: result.embedding,
-        filter: {
-          must: [
-            {
-              key: 'userId',
-              match: {
-                value: userId,
-              },
-            },
-          ],
-        },
-        score_threshold: USER_SCORE_THRESHOLD,
-        limit: USER_LIMIT,
-        with_payload: true,
-        timeout: 3000,
-      }),
-      !isPrivateChat
-        ? qdrantClient.search('messages', {
-            vector: result.embedding,
-            filter: {
-              must: [
-                {
-                  key: 'chatId',
-                  match: {
-                    value: chatId,
-                  },
-                },
-              ],
-            },
-            score_threshold: CHAT_SCORE_THRESHOLD,
-            limit: CHAT_LIMIT,
-            with_payload: true,
-            timeout: 3000,
-          })
-        : null,
-    ]);
-    console.timeEnd('Qdrant search time');
-
-    const userContext =
-      userSearchResult.length > 0
-        ? userSearchResult.map((x) => x.payload?.content as string)
-        : null;
-
-    const chatContext =
-      chatSearchResult && chatSearchResult.length > 0
-        ? chatSearchResult.map((x) => x.payload?.content as string)
-        : null;
-
-    return { userContext, chatContext, embedding: result.embedding };
+    const embedding = await embedQuery(content);
+    return await searchWithEmbedding(embedding, userId, chatId, isPrivateChat);
   } catch (error) {
-    logger.error(error, 'Embeding search error:');
-    return { userContext: null, chatContext: null, embedding: undefined };
+    logger.warn({ error }, 'Interactive context embedding failed');
+    return { userContext: null, chatContext: null };
   }
 }
 
-export function upsertMessage(
-  messageId: number,
-  embedding: number[],
+export async function searchAndIndexMessage(
+  identity: MessageEmbeddingIdentity,
   content: string,
-  text: string | undefined,
-  chatId: number,
   userId: number,
-) {
-  upsertMessageEmbedding({
-    messageId,
-    embedding,
-    content,
-    text,
-    chatId,
-    userId,
-  }).catch((error) => logger.error(error));
+  isPrivateChat: boolean,
+): Promise<SearchContextResult> {
+  if (content.length <= 10) {
+    requestEmbeddingBackfill();
+    return { userContext: null, chatContext: null };
+  }
+
+  try {
+    const { queryEmbedding, passageEmbedding } =
+      await embedQueryAndPassage(content);
+    const context = await searchWithEmbedding(
+      queryEmbedding,
+      userId,
+      identity.chatId,
+      isPrivateChat,
+    );
+
+    try {
+      await updateMessageEmbedding(
+        BigInt(identity.chatId),
+        BigInt(identity.messageId),
+        content,
+        passageEmbedding,
+      );
+    } catch (error) {
+      logger.warn({ error }, 'Failed to persist interactive message embedding');
+      requestEmbeddingBackfill();
+    }
+    return context;
+  } catch (error) {
+    logger.warn({ error }, 'Interactive message embedding failed');
+    requestEmbeddingBackfill();
+    return { userContext: null, chatContext: null };
+  }
 }
+
+export function queueMessageEmbedding(): void {
+  requestEmbeddingBackfill();
+}
+
+export {
+  startEmbeddingBackfill,
+  stopEmbeddingBackfill,
+} from './backfill';
+export { checkEmbeddingHealth } from './client';
+export { formatMessageSearchText } from './format';

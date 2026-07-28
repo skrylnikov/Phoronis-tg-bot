@@ -4,6 +4,7 @@ import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
+import { logger } from '../logger';
 import { chatModel } from './ai';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
@@ -84,6 +85,8 @@ export const chatGeneration = async (
 
   const prompt = splitSystemMessages(messages);
 
+  const generationStartedAt = performance.now();
+  let firstTextAt: number | null = null;
   const response = streamText({
     model: chatModel,
     instructions: prompt.instructions,
@@ -107,10 +110,31 @@ export const chatGeneration = async (
     temperature: 1,
   });
 
+  async function* measuredTextStream() {
+    for await (const delta of response.textStream) {
+      if (delta && firstTextAt === null) {
+        firstTextAt = performance.now();
+      }
+      yield delta;
+    }
+  }
+
   const text = await collectStreamedText(
-    response.textStream,
+    measuredTextStream(),
     response.text,
     onTextUpdate,
+  );
+
+  const completedAt = performance.now();
+  logger.info(
+    {
+      ttftMs:
+        firstTextAt === null
+          ? null
+          : Math.round(firstTextAt - generationStartedAt),
+      totalMs: Math.round(completedAt - generationStartedAt),
+    },
+    'Chat generation completed',
   );
 
   trace?.update({

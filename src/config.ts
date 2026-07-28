@@ -15,12 +15,23 @@ export const yandexS3Secret =
   process.env.YANDEX_S3_SECRET || showError('token not found in .env');
 export const routerAIToken =
   process.env.ROUTERAI_API_KEY || showError('token not found in .env');
-export const qdrantBaseURL =
-  process.env.QDRANT_BASE_URL || showError('token not found in .env');
-export const qdrantApiKey =
-  process.env.QDRANT_API_KEY || showError('token not found in .env');
+export const embeddingBaseURL =
+  process.env.EMBEDDING_BASE_URL ||
+  showError('EMBEDDING_BASE_URL not found in .env');
+export const embeddingModel =
+  process.env.EMBEDDING_MODEL || 'intfloat/multilingual-e5-small';
+export const embeddingVersion = Number(process.env.EMBEDDING_VERSION || '1');
+export const embeddingTimeoutMs = Number(
+  process.env.EMBEDDING_TIMEOUT_MS || '2000',
+);
 
-console.log('Using Qdrant Base URL:', qdrantBaseURL);
+if (!Number.isInteger(embeddingVersion) || embeddingVersion < 1) {
+  showError('EMBEDDING_VERSION must be a positive integer');
+}
+
+if (!Number.isFinite(embeddingTimeoutMs) || embeddingTimeoutMs < 1) {
+  showError('EMBEDDING_TIMEOUT_MS must be a positive number');
+}
 
 export const langfuseConfig = {
   secretKey:

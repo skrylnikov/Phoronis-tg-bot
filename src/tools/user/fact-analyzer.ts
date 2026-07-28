@@ -1,16 +1,15 @@
-import type { Schemas } from '@qdrant/js-client-rest';
-import { embed, generateObject, generateText, Output } from 'ai';
+import { generateObject, generateText, Output } from 'ai';
 import { z } from 'zod';
+import { utilityModel } from '../../ai/ai';
+import { embedQueryAndPassage } from '../../ai/embedding/client';
 import {
-  embeddingModel,
-  embeddingProviderOptions,
-  utilityModel,
-} from '../../ai/ai';
+  searchSimilarFacts,
+  updateFactEmbedding,
+} from '../../ai/embedding/store';
 import { langfuse } from '../../ai/langfuse';
 import { prisma } from '../../db';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
-import { qdrantClient } from '../../qdrant';
 
 type FactType = 'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST';
 
@@ -37,7 +36,7 @@ const factsCheckSchema = z.object({
   reason: z.string().describe('Объяснение решения'),
 });
 
-const SEARCH_THRESHOLD = 0.6;
+const SEARCH_THRESHOLD = 0.82;
 
 interface FactCheckResult {
   isDuplicate: boolean;
@@ -77,52 +76,26 @@ async function checkForSimilarFacts(
   type?: FactType,
 ): Promise<FactCheckResult> {
   try {
-    const result = await embed({
-      model: embeddingModel,
-      value: content,
-      providerOptions: embeddingProviderOptions,
-    });
-
-    const mustConditions = [
-      {
-        key: 'userId',
-        match: {
-          value: userId.toString(),
-        },
-      },
-    ];
-
-    if (type) {
-      mustConditions.push({
-        key: 'type',
-        match: {
-          value: type,
-        },
-      });
-    }
-
-    const filter: Schemas['Filter'] = {
-      must: mustConditions,
-    };
-
-    const searchResults = await qdrantClient.search('user-facts', {
-      vector: result.embedding,
-      filter,
-      score_threshold: SEARCH_THRESHOLD,
-      limit: 5,
-      with_payload: true,
-    });
+    const { queryEmbedding, passageEmbedding } =
+      await embedQueryAndPassage(content);
+    const searchResults = await searchSimilarFacts(
+      userId,
+      queryEmbedding,
+      SEARCH_THRESHOLD,
+      5,
+      type,
+    );
 
     if (searchResults.length === 0) {
       return {
         isDuplicate: false,
         isContradiction: false,
-        embedding: result.embedding,
+        embedding: passageEmbedding,
       };
     }
 
     const candidates = searchResults
-      .map((r) => `[ID: ${String(r.id)}] ${r.payload?.content as string}`)
+      .map((result) => `[ID: ${String(result.id)}] ${result.content}`)
       .join('\n');
 
     const llmResult = await generateText({
@@ -151,7 +124,7 @@ ${candidates}
         isDuplicate: true,
         isContradiction: false,
         similarFactId: BigInt(llmResult.output.duplicateId),
-        embedding: result.embedding,
+        embedding: passageEmbedding,
       };
     }
 
@@ -160,41 +133,19 @@ ${candidates}
         isDuplicate: false,
         isContradiction: true,
         similarFactId: BigInt(llmResult.output.contradictionId),
-        embedding: result.embedding,
+        embedding: passageEmbedding,
       };
     }
 
     return {
       isDuplicate: false,
       isContradiction: false,
-      embedding: result.embedding,
+      embedding: passageEmbedding,
     };
   } catch (error) {
     logger.error(error, 'Error checking for similar facts');
     return { isDuplicate: false, isContradiction: false };
   }
-}
-
-async function upsertFactEmbedding(
-  factId: bigint,
-  content: string,
-  userId: bigint,
-  type: FactType,
-  embedding: number[],
-) {
-  await qdrantClient.upsert('user-facts', {
-    points: [
-      {
-        id: Number(factId),
-        vector: embedding,
-        payload: {
-          content,
-          userId: userId.toString(),
-          type,
-        },
-      },
-    ],
-  });
 }
 
 async function createFactHistory(
@@ -247,11 +198,8 @@ async function saveUserFact(
       );
 
       if (checkResult.embedding) {
-        await upsertFactEmbedding(
+        await updateFactEmbedding(
           checkResult.similarFactId,
-          content,
-          userId,
-          existingFact.type,
           checkResult.embedding,
         );
       }
@@ -284,11 +232,8 @@ async function saveUserFact(
       );
 
       if (checkResult.embedding) {
-        await upsertFactEmbedding(
+        await updateFactEmbedding(
           checkResult.similarFactId,
-          content,
-          userId,
-          existingFact.type,
           checkResult.embedding,
         );
       }
@@ -308,13 +253,7 @@ async function saveUserFact(
   });
 
   if (checkResult.embedding) {
-    await upsertFactEmbedding(
-      fact.id,
-      content,
-      userId,
-      type,
-      checkResult.embedding,
-    );
+    await updateFactEmbedding(fact.id, checkResult.embedding);
   }
 
   return fact.id;

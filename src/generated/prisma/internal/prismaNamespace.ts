@@ -1015,6 +1015,8 @@ export const MessageScalarFieldEnum = {
   text: 'text',
   media: 'media',
   summary: 'summary',
+  searchText: 'searchText',
+  embeddingVersion: 'embeddingVersion',
   sentAt: 'sentAt',
   private: 'private'
 } as const
@@ -1028,6 +1030,7 @@ export const MemoryScalarFieldEnum = {
   chatId: 'chatId',
   content: 'content',
   isUser: 'isUser',
+  embeddingVersion: 'embeddingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1047,6 +1050,7 @@ export const UserFactScalarFieldEnum = {
   usageCount: 'usageCount',
   lastUsedAt: 'lastUsedAt',
   impactScore: 'impactScore',
+  embeddingVersion: 'embeddingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1204,6 +1208,20 @@ export type ListEnumMessageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1228,20 +1246,6 @@ export type EnumFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
  * Reference to a field of type 'FactType[]'
  */
 export type ListEnumFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FactType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 

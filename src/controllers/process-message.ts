@@ -3,8 +3,8 @@ import { generateText } from 'ai';
 import { Composer } from 'grammy';
 import {
   aiController,
-  searchContext,
-  upsertMessage,
+  queueMessageEmbedding,
+  searchAndIndexMessage,
   utilityModel,
 } from '../ai';
 import { langfuse } from '../ai/langfuse';
@@ -161,37 +161,31 @@ processMessageController.on(':text', async (ctx) => {
     const messageText = (ctx.msg.text || ctx.msg.caption || '').trim();
 
     const content = replyToMessageText
-      ? `Q: ${replyToMessageText} \n\n A: ${messageText}`
+      ? `Q: ${replyToMessageText}\n\nA: ${messageText}`
       : messageText;
 
-    const { userContext, chatContext, embedding } = await searchContext(
-      content,
-      ctx.from.id,
-      ctx.chatId,
-      ctx.chat.type === 'private',
-    );
-
-    if (!isPrivateMode && embedding) {
-      upsertMessage(
-        ctx.msg.message_id,
-        embedding,
-        content,
-        ctx.msg.text,
-        ctx.chatId,
-        ctx.from.id,
-      );
-    }
-
-    if (
+    const shouldRespond =
       ctx.msg.text?.toLowerCase().startsWith('ио') ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === 'private'
-    ) {
+      ctx.chat.type === 'private';
+
+    if (shouldRespond) {
+      const { userContext, chatContext } = isPrivateMode
+        ? { userContext: null, chatContext: null }
+        : await searchAndIndexMessage(
+            { messageId: ctx.msg.message_id, chatId: ctx.chatId },
+            content,
+            ctx.from.id,
+            ctx.chat.type === 'private',
+          );
+
       if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
         await handleUserReaction(ctx, ctx.msg.text);
       }
 
       await aiController(ctx, undefined, userContext, chatContext);
+    } else if (!isPrivateMode) {
+      queueMessageEmbedding();
     }
   } catch (error) {
     handleError(error, 'Processing text message');

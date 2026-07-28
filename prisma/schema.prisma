@@ -72,12 +72,16 @@ model Message {
   text    String?
   media   String?
   summary String?
+  searchText       String?
+  embedding        Unsupported("vector(384)")?
+  embeddingVersion Int?
   sentAt  DateTime
   private Boolean? @default(false)
   Replies Message[] @relation("replies")
 
   @@id([chatId, id])
   @@index([sessionId])
+  @@index([senderId])
 }
 
 model Memory {
@@ -91,6 +95,8 @@ model Memory {
 
   content   String
   isUser    Boolean
+  embedding        Unsupported("vector(384)")?
+  embeddingVersion Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -120,6 +126,8 @@ model UserFact {
   usageCount       Int      @default(0)
   lastUsedAt       DateTime?
   impactScore      Float    @default(0)
+  embedding        Unsupported("vector(384)")?
+  embeddingVersion Int?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

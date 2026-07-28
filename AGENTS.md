@@ -83,12 +83,12 @@ src/
 - Register controllers in `src/controllers/index.ts` to compose middleware
 
 ### AI Integration
-- Use LangChain for complex chains and AI SDK for simple embeddings
+- Use LangChain for complex chains and AI SDK for text generation
 - RouterAI for model access via `@ai-sdk/openai-compatible`
 - Langfuse for prompt management and observability
-- Embeddings with vector search in Qdrant
+- Local TEI embeddings with vector search in PostgreSQL/pgvector
 - Stream responses where applicable
-- AI models are centralized in `src/ai/ai.ts` as `chatModel`, `utilityModel`, and `embeddingModel`
+- Chat models are centralized in `src/ai/ai.ts`; embedding access is in `src/ai/embedding/`
 - Use `generateText()` from 'ai' package for text generation
 - Use `telegramify-markdown` imported as `MD` for formatting AI responses
 
@@ -115,8 +115,8 @@ src/
 - Grammy framework for Telegram Bot API
 - Prisma ORM with PostgreSQL
 - LangChain for AI chains and workflows
-- AI SDK for embeddings with RouterAI
-- Qdrant for vector storage and search
+- Text Embeddings Inference for local multilingual embeddings
+- pgvector for vector storage and search in PostgreSQL
 - Pino logger for structured logging
 - Remeda for functional utilities
 - LRU Cache for performance optimization
@@ -128,14 +128,14 @@ src/
 - Missing env vars throw errors at startup
 - See `.env.example` for required variables (TOKEN, ROUTERAI_API_KEY, etc.)
 - Tokens exported from config: `import { token, routerAIToken } from './config'`
-- Required vars: TOKEN, OPEN_WEATHER_TOKEN, YANDEX_CLOUD_TOKEN, YANDEX_S3_ID, YANDEX_S3_SECRET, ROUTERAI_API_KEY, QDRANT_BASE_URL, QDRANT_API_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
+- Required vars: TOKEN, OPEN_WEATHER_TOKEN, YANDEX_CLOUD_TOKEN, YANDEX_S3_ID, YANDEX_S3_SECRET, ROUTERAI_API_KEY, EMBEDDING_BASE_URL, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
 
 ### Message Processing Flow
 1. Save chat and user info (cached with LRU)
 2. Check if bot should respond (greeting enabled, private chat, or @mention)
 3. Save message to database
-4. Generate embeddings for text content
-5. Search Qdrant for similar user messages (context retrieval)
+4. Generate local embeddings for text content
+5. Search pgvector for similar user messages (context retrieval)
 6. AI generates response using LangChain/AI SDK
 7. Response formatted with telegramify-markdown
 8. Bot reply sent and logged to database

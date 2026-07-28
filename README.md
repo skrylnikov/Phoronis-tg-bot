@@ -30,7 +30,7 @@ A sophisticated Telegram bot with AI capabilities, context awareness, and user b
 - **Telegram Integration**: Grammy.js framework for Telegram API
 - **Database**: PostgreSQL with Prisma ORM
 - **AI Services**: OpenRouter API with Gemini models
-- **Context Management**: Qdrant vector database for context retrieval
+- **Context Management**: PostgreSQL with pgvector and local multilingual embeddings
 - **Observability**: Langfuse for prompt management and tracing
 
 ### Code Structure
@@ -86,8 +86,10 @@ YANDEX_CLOUD_TOKEN=your_yandex_cloud_token
 YANDEX_S3_ID=your_yandex_s3_id
 YANDEX_S3_SECRET=your_yandex_s3_secret
 ROUTERAI_API_KEY=your_routerai_key
-QDRANT_BASE_URL=your_qdrant_url
-QDRANT_API_KEY=your_qdrant_api_key
+EMBEDDING_BASE_URL=http://localhost:3001
+EMBEDDING_MODEL=intfloat/multilingual-e5-small
+EMBEDDING_VERSION=1
+EMBEDDING_TIMEOUT_MS=2000
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 ```

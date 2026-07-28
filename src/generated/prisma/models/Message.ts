@@ -31,6 +31,7 @@ export type MessageAvgAggregateOutputType = {
   chatId: number | null
   senderId: number | null
   replyToMessageId: number | null
+  embeddingVersion: number | null
 }
 
 export type MessageSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type MessageSumAggregateOutputType = {
   chatId: bigint | null
   senderId: bigint | null
   replyToMessageId: bigint | null
+  embeddingVersion: number | null
 }
 
 export type MessageMinAggregateOutputType = {
@@ -50,6 +52,8 @@ export type MessageMinAggregateOutputType = {
   text: string | null
   media: string | null
   summary: string | null
+  searchText: string | null
+  embeddingVersion: number | null
   sentAt: Date | null
   private: boolean | null
 }
@@ -64,6 +68,8 @@ export type MessageMaxAggregateOutputType = {
   text: string | null
   media: string | null
   summary: string | null
+  searchText: string | null
+  embeddingVersion: number | null
   sentAt: Date | null
   private: boolean | null
 }
@@ -78,6 +84,8 @@ export type MessageCountAggregateOutputType = {
   text: number
   media: number
   summary: number
+  searchText: number
+  embeddingVersion: number
   sentAt: number
   private: number
   _all: number
@@ -89,6 +97,7 @@ export type MessageAvgAggregateInputType = {
   chatId?: true
   senderId?: true
   replyToMessageId?: true
+  embeddingVersion?: true
 }
 
 export type MessageSumAggregateInputType = {
@@ -96,6 +105,7 @@ export type MessageSumAggregateInputType = {
   chatId?: true
   senderId?: true
   replyToMessageId?: true
+  embeddingVersion?: true
 }
 
 export type MessageMinAggregateInputType = {
@@ -108,6 +118,8 @@ export type MessageMinAggregateInputType = {
   text?: true
   media?: true
   summary?: true
+  searchText?: true
+  embeddingVersion?: true
   sentAt?: true
   private?: true
 }
@@ -122,6 +134,8 @@ export type MessageMaxAggregateInputType = {
   text?: true
   media?: true
   summary?: true
+  searchText?: true
+  embeddingVersion?: true
   sentAt?: true
   private?: true
 }
@@ -136,6 +150,8 @@ export type MessageCountAggregateInputType = {
   text?: true
   media?: true
   summary?: true
+  searchText?: true
+  embeddingVersion?: true
   sentAt?: true
   private?: true
   _all?: true
@@ -237,6 +253,8 @@ export type MessageGroupByOutputType = {
   text: string | null
   media: string | null
   summary: string | null
+  searchText: string | null
+  embeddingVersion: number | null
   sentAt: Date
   private: boolean | null
   _count: MessageCountAggregateOutputType | null
@@ -274,6 +292,8 @@ export type MessageWhereInput = {
   text?: Prisma.StringNullableFilter<"Message"> | string | null
   media?: Prisma.StringNullableFilter<"Message"> | string | null
   summary?: Prisma.StringNullableFilter<"Message"> | string | null
+  searchText?: Prisma.StringNullableFilter<"Message"> | string | null
+  embeddingVersion?: Prisma.IntNullableFilter<"Message"> | number | null
   sentAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   private?: Prisma.BoolNullableFilter<"Message"> | boolean | null
   chat?: Prisma.XOR<Prisma.ChatScalarRelationFilter, Prisma.ChatWhereInput>
@@ -292,6 +312,8 @@ export type MessageOrderByWithRelationInput = {
   text?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  searchText?: Prisma.SortOrderInput | Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   private?: Prisma.SortOrderInput | Prisma.SortOrder
   chat?: Prisma.ChatOrderByWithRelationInput
@@ -314,6 +336,8 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   text?: Prisma.StringNullableFilter<"Message"> | string | null
   media?: Prisma.StringNullableFilter<"Message"> | string | null
   summary?: Prisma.StringNullableFilter<"Message"> | string | null
+  searchText?: Prisma.StringNullableFilter<"Message"> | string | null
+  embeddingVersion?: Prisma.IntNullableFilter<"Message"> | number | null
   sentAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   private?: Prisma.BoolNullableFilter<"Message"> | boolean | null
   chat?: Prisma.XOR<Prisma.ChatScalarRelationFilter, Prisma.ChatWhereInput>
@@ -332,6 +356,8 @@ export type MessageOrderByWithAggregationInput = {
   text?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  searchText?: Prisma.SortOrderInput | Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   private?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
@@ -354,6 +380,8 @@ export type MessageScalarWhereWithAggregatesInput = {
   text?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   media?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   summary?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
+  searchText?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
+  embeddingVersion?: Prisma.IntNullableWithAggregatesFilter<"Message"> | number | null
   sentAt?: Prisma.DateTimeWithAggregatesFilter<"Message"> | Date | string
   private?: Prisma.BoolNullableWithAggregatesFilter<"Message"> | boolean | null
 }
@@ -365,6 +393,8 @@ export type MessageCreateInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   chat: Prisma.ChatCreateNestedOneWithoutMessageInput
@@ -383,6 +413,8 @@ export type MessageUncheckedCreateInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
@@ -395,6 +427,8 @@ export type MessageUpdateInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   chat?: Prisma.ChatUpdateOneRequiredWithoutMessageNestedInput
@@ -413,6 +447,8 @@ export type MessageUncheckedUpdateInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
@@ -428,6 +464,8 @@ export type MessageCreateManyInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
 }
@@ -439,6 +477,8 @@ export type MessageUpdateManyMutationInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -453,6 +493,8 @@ export type MessageUncheckedUpdateManyInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -487,6 +529,8 @@ export type MessageCountOrderByAggregateInput = {
   text?: Prisma.SortOrder
   media?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  searchText?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   private?: Prisma.SortOrder
 }
@@ -496,6 +540,7 @@ export type MessageAvgOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type MessageMaxOrderByAggregateInput = {
@@ -508,6 +553,8 @@ export type MessageMaxOrderByAggregateInput = {
   text?: Prisma.SortOrder
   media?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  searchText?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   private?: Prisma.SortOrder
 }
@@ -522,6 +569,8 @@ export type MessageMinOrderByAggregateInput = {
   text?: Prisma.SortOrder
   media?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  searchText?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   private?: Prisma.SortOrder
 }
@@ -531,6 +580,7 @@ export type MessageSumOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type MessageCreateNestedManyWithoutSenderInput = {
@@ -641,6 +691,14 @@ export type EnumMessageTypeFieldUpdateOperationsInput = {
   set?: $Enums.MessageType
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
@@ -698,6 +756,8 @@ export type MessageCreateWithoutSenderInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   chat: Prisma.ChatCreateNestedOneWithoutMessageInput
@@ -714,6 +774,8 @@ export type MessageUncheckedCreateWithoutSenderInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
@@ -758,6 +820,8 @@ export type MessageScalarWhereInput = {
   text?: Prisma.StringNullableFilter<"Message"> | string | null
   media?: Prisma.StringNullableFilter<"Message"> | string | null
   summary?: Prisma.StringNullableFilter<"Message"> | string | null
+  searchText?: Prisma.StringNullableFilter<"Message"> | string | null
+  embeddingVersion?: Prisma.IntNullableFilter<"Message"> | number | null
   sentAt?: Prisma.DateTimeFilter<"Message"> | Date | string
   private?: Prisma.BoolNullableFilter<"Message"> | boolean | null
 }
@@ -769,6 +833,8 @@ export type MessageCreateWithoutChatInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   sender: Prisma.UserCreateNestedOneWithoutMessageInput
@@ -785,6 +851,8 @@ export type MessageUncheckedCreateWithoutChatInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
@@ -823,6 +891,8 @@ export type MessageCreateWithoutRepliesInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   chat: Prisma.ChatCreateNestedOneWithoutMessageInput
@@ -840,6 +910,8 @@ export type MessageUncheckedCreateWithoutRepliesInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
 }
@@ -856,6 +928,8 @@ export type MessageCreateWithoutReplyToMessageInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   chat: Prisma.ChatCreateNestedOneWithoutMessageInput
@@ -871,6 +945,8 @@ export type MessageUncheckedCreateWithoutReplyToMessageInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
@@ -904,6 +980,8 @@ export type MessageUpdateWithoutRepliesInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   chat?: Prisma.ChatUpdateOneRequiredWithoutMessageNestedInput
@@ -921,6 +999,8 @@ export type MessageUncheckedUpdateWithoutRepliesInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -950,6 +1030,8 @@ export type MessageCreateManySenderInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
 }
@@ -961,6 +1043,8 @@ export type MessageUpdateWithoutSenderInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   chat?: Prisma.ChatUpdateOneRequiredWithoutMessageNestedInput
@@ -977,6 +1061,8 @@ export type MessageUncheckedUpdateWithoutSenderInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
@@ -991,6 +1077,8 @@ export type MessageUncheckedUpdateManyWithoutSenderInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -1004,6 +1092,8 @@ export type MessageCreateManyChatInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
 }
@@ -1015,6 +1105,8 @@ export type MessageUpdateWithoutChatInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   sender?: Prisma.UserUpdateOneRequiredWithoutMessageNestedInput
@@ -1031,6 +1123,8 @@ export type MessageUncheckedUpdateWithoutChatInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
@@ -1045,6 +1139,8 @@ export type MessageUncheckedUpdateManyWithoutChatInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -1057,6 +1153,8 @@ export type MessageCreateManyReplyToMessageInput = {
   text?: string | null
   media?: string | null
   summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
   sentAt: Date | string
   private?: boolean | null
 }
@@ -1068,6 +1166,8 @@ export type MessageUpdateWithoutReplyToMessageInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   chat?: Prisma.ChatUpdateOneRequiredWithoutMessageNestedInput
@@ -1083,6 +1183,8 @@ export type MessageUncheckedUpdateWithoutReplyToMessageInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
@@ -1096,6 +1198,8 @@ export type MessageUncheckedUpdateManyWithoutReplyToMessageInput = {
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
 }
@@ -1141,6 +1245,8 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   text?: boolean
   media?: boolean
   summary?: boolean
+  searchText?: boolean
+  embeddingVersion?: boolean
   sentAt?: boolean
   private?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
@@ -1160,6 +1266,8 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   text?: boolean
   media?: boolean
   summary?: boolean
+  searchText?: boolean
+  embeddingVersion?: boolean
   sentAt?: boolean
   private?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
@@ -1177,6 +1285,8 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   text?: boolean
   media?: boolean
   summary?: boolean
+  searchText?: boolean
+  embeddingVersion?: boolean
   sentAt?: boolean
   private?: boolean
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
@@ -1194,11 +1304,13 @@ export type MessageSelectScalar = {
   text?: boolean
   media?: boolean
   summary?: boolean
+  searchText?: boolean
+  embeddingVersion?: boolean
   sentAt?: boolean
   private?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatId" | "senderId" | "sessionId" | "replyToMessageId" | "messageType" | "text" | "media" | "summary" | "sentAt" | "private", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatId" | "senderId" | "sessionId" | "replyToMessageId" | "messageType" | "text" | "media" | "summary" | "searchText" | "embeddingVersion" | "sentAt" | "private", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
   sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1235,6 +1347,8 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     text: string | null
     media: string | null
     summary: string | null
+    searchText: string | null
+    embeddingVersion: number | null
     sentAt: Date
     private: boolean | null
   }, ExtArgs["result"]["message"]>
@@ -1673,6 +1787,8 @@ export interface MessageFieldRefs {
   readonly text: Prisma.FieldRef<"Message", 'String'>
   readonly media: Prisma.FieldRef<"Message", 'String'>
   readonly summary: Prisma.FieldRef<"Message", 'String'>
+  readonly searchText: Prisma.FieldRef<"Message", 'String'>
+  readonly embeddingVersion: Prisma.FieldRef<"Message", 'Int'>
   readonly sentAt: Prisma.FieldRef<"Message", 'DateTime'>
   readonly private: Prisma.FieldRef<"Message", 'Boolean'>
 }

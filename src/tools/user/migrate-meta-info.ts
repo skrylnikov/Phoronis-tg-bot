@@ -1,10 +1,7 @@
-import { embed } from 'ai';
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
-import { embeddingModel, embeddingProviderOptions } from '../../ai/ai';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
-import { qdrantClient } from '../../qdrant';
 
 const userMetaInfoSchema = z.object({
   interests: z
@@ -113,38 +110,6 @@ function convertMetaInfoToFacts(metaInfo: UserMetaInfo): FactItem[] {
   return facts;
 }
 
-async function checkFactExistsInQdrant(
-  userId: bigint,
-  content: string,
-): Promise<boolean> {
-  try {
-    const scrollResult = await qdrantClient.scroll('user-facts', {
-      filter: {
-        must: [
-          {
-            key: 'userId',
-            match: {
-              value: userId.toString(),
-            },
-          },
-          {
-            key: 'content',
-            match: {
-              value: content,
-            },
-          },
-        ],
-      },
-      limit: 1,
-    });
-
-    return scrollResult.points.length > 0;
-  } catch (error) {
-    logger.error(error, 'Error checking fact existence in Qdrant');
-    return false;
-  }
-}
-
 async function migrateUserMetaInfo(
   userId: bigint,
   metaInfo: UserMetaInfo,
@@ -167,13 +132,8 @@ async function migrateUserMetaInfo(
       continue;
     }
 
-    const existsInQdrant = await checkFactExistsInQdrant(userId, fact.content);
-    if (existsInQdrant) {
-      continue;
-    }
-
     try {
-      const createdFact = await prisma.userFact.create({
+      await prisma.userFact.create({
         data: {
           userId,
           content: fact.content,
@@ -182,26 +142,6 @@ async function migrateUserMetaInfo(
           createdAt: MIGRATION_DATE,
           updatedAt: MIGRATION_DATE,
         },
-      });
-
-      const embeddingResult = await embed({
-        model: embeddingModel,
-        value: fact.content,
-        providerOptions: embeddingProviderOptions,
-      });
-
-      await qdrantClient.upsert('user-facts', {
-        points: [
-          {
-            id: Number(createdFact.id),
-            vector: embeddingResult.embedding,
-            payload: {
-              content: fact.content,
-              userId: userId.toString(),
-              type: fact.type,
-            },
-          },
-        ],
       });
 
       migratedCount++;

@@ -1,14 +1,12 @@
-import type { Schemas } from '@qdrant/js-client-rest';
-import { embed, generateText, Output } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
+import { utilityModel } from '../../ai/ai';
+import { embedQueryAndPassage } from '../../ai/embedding/client';
 import {
-  embeddingModel,
-  embeddingProviderOptions,
-  utilityModel,
-} from '../../ai/ai';
+  searchSimilarMemories,
+  updateMemoryEmbedding,
+} from '../../ai/embedding/store';
 import { prisma } from '../../db';
-import { logger } from '../../logger';
-import { qdrantClient } from '../../qdrant';
 
 interface SaveMemoryOptions {
   userId: number;
@@ -21,9 +19,10 @@ interface CheckSimilarResult {
   isDuplicate: boolean;
   isContradiction: boolean;
   similarMemoryId?: bigint;
+  embedding?: number[];
 }
 
-const SEARCH_THRESHOLD = 0.6;
+const SEARCH_THRESHOLD = 0.82;
 
 const memoryCheckSchema = z.object({
   duplicateId: z
@@ -44,45 +43,29 @@ async function checkForSimilarMemories(
   isUser: boolean,
 ): Promise<CheckSimilarResult> {
   try {
-    const result = await embed({
-      model: embeddingModel,
-      value: content,
-      providerOptions: embeddingProviderOptions,
-    });
-
-    const filter: Schemas['Filter'] = {
-      must: [
-        {
-          key: 'isUser',
-          match: {
-            value: isUser,
-          },
-        },
-        {
-          key: isUser ? 'userId' : 'chatId',
-          match: {
-            value: isUser ? userId : chatId,
-          },
-        },
-      ],
-    };
-
-    const searchResults = await qdrantClient.search('memories', {
-      vector: result.embedding,
-      filter,
-      score_threshold: SEARCH_THRESHOLD,
-      limit: 5,
-      with_payload: true,
-    });
+    const { queryEmbedding, passageEmbedding } =
+      await embedQueryAndPassage(content);
+    const searchResults = await searchSimilarMemories(
+      BigInt(userId),
+      BigInt(chatId),
+      isUser,
+      queryEmbedding,
+      SEARCH_THRESHOLD,
+      5,
+    );
 
     if (searchResults.length === 0) {
-      return { isDuplicate: false, isContradiction: false };
+      return {
+        isDuplicate: false,
+        isContradiction: false,
+        embedding: passageEmbedding,
+      };
     }
 
     const candidates = searchResults
       .map(
-        (r, i) =>
-          `${i + 1}. [ID: ${String(r.id)}] ${r.payload?.content as string}`,
+        (result, index) =>
+          `${index + 1}. [ID: ${String(result.id)}] ${result.content}`,
       )
       .join('\n');
 
@@ -112,6 +95,7 @@ ${candidates}
         isDuplicate: true,
         isContradiction: false,
         similarMemoryId: BigInt(llmResult.output.duplicateId),
+        embedding: passageEmbedding,
       };
     }
 
@@ -120,38 +104,19 @@ ${candidates}
         isDuplicate: false,
         isContradiction: true,
         similarMemoryId: BigInt(llmResult.output.contradictionId),
+        embedding: passageEmbedding,
       };
     }
 
-    return { isDuplicate: false, isContradiction: false };
+    return {
+      isDuplicate: false,
+      isContradiction: false,
+      embedding: passageEmbedding,
+    };
   } catch (error) {
     console.error('Error checking for similar memories:', error);
     return { isDuplicate: false, isContradiction: false };
   }
-}
-
-async function upsertMemoryEmbedding(
-  memoryId: bigint,
-  embedding: number[],
-  content: string,
-  userId: number,
-  chatId: number,
-  isUser: boolean,
-) {
-  await qdrantClient.upsert('memories', {
-    points: [
-      {
-        id: Number(memoryId),
-        vector: embedding,
-        payload: {
-          content,
-          userId,
-          chatId,
-          isUser,
-        },
-      },
-    ],
-  });
 }
 
 export async function saveMemory(options: SaveMemoryOptions) {
@@ -173,23 +138,11 @@ export async function saveMemory(options: SaveMemoryOptions) {
       },
     });
 
-    try {
-      const result = await embed({
-        model: embeddingModel,
-        value: content,
-        providerOptions: embeddingProviderOptions,
-      });
-
-      await upsertMemoryEmbedding(
+    if (checkResult.embedding) {
+      await updateMemoryEmbedding(
         checkResult.similarMemoryId,
-        result.embedding,
-        content,
-        userId,
-        chatId,
-        isUser,
+        checkResult.embedding,
       );
-    } catch (error) {
-      console.error('Error updating duplicate memory embedding:', error);
     }
 
     return checkResult.similarMemoryId;
@@ -204,23 +157,11 @@ export async function saveMemory(options: SaveMemoryOptions) {
       },
     });
 
-    try {
-      const result = await embed({
-        model: embeddingModel,
-        value: content,
-        providerOptions: embeddingProviderOptions,
-      });
-
-      await upsertMemoryEmbedding(
+    if (checkResult.embedding) {
+      await updateMemoryEmbedding(
         checkResult.similarMemoryId,
-        result.embedding,
-        content,
-        userId,
-        chatId,
-        isUser,
+        checkResult.embedding,
       );
-    } catch (error) {
-      console.error('Error updating contradiction memory embedding:', error);
     }
 
     return checkResult.similarMemoryId;
@@ -235,23 +176,8 @@ export async function saveMemory(options: SaveMemoryOptions) {
     },
   });
 
-  try {
-    const result = await embed({
-      model: embeddingModel,
-      value: content,
-      providerOptions: embeddingProviderOptions,
-    });
-
-    await upsertMemoryEmbedding(
-      memory.id,
-      result.embedding,
-      content,
-      userId,
-      chatId,
-      isUser,
-    );
-  } catch (error) {
-    console.error('Error embedding memory:', error);
+  if (checkResult.embedding) {
+    await updateMemoryEmbedding(memory.id, checkResult.embedding);
   }
 
   return memory.id;
@@ -310,14 +236,6 @@ export async function clearMemories(
   await prisma.memory.deleteMany({
     where: { id: { in: ids } },
   });
-
-  try {
-    await qdrantClient.delete('memories', {
-      points: ids.map((id) => Number(id)),
-    });
-  } catch (error) {
-    logger.error(error, 'clearMemories: Qdrant delete failed');
-  }
 
   return rows.length;
 }

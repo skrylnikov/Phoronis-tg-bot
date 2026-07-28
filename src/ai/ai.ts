@@ -10,12 +10,3 @@ export const routerAI = createOpenAICompatible({
 
 export const chatModel = routerAI('google/gemini-3.6-flash');
 export const utilityModel = routerAI('nex-agi/nex-n2-mini');
-export const embeddingModel = routerAI.textEmbeddingModel(
-  'qwen/qwen3-embedding-8b',
-);
-
-export const embeddingProviderOptions = {
-  routerAI: {
-    dimensions: 4096,
-  },
-};

@@ -1,12 +1,11 @@
 import { GrammyError, HttpError } from 'grammy';
+import { startEmbeddingBackfill, stopEmbeddingBackfill } from './ai/embedding';
 import { bot } from './bot';
 import { registerBotCommands } from './bot-commands';
-
 import { controllers } from './controllers';
 import { prisma } from './db';
 import { startHealthServer } from './health';
 import { logger } from './logger';
-import { ensureQdrantCollections } from './qdrant-init';
 import { startScheduler } from './scheduler';
 import { handleError } from './utils/error-handler';
 
@@ -27,9 +26,9 @@ bot.catch((err) => {
   }
 });
 
-await ensureQdrantCollections();
 await registerBotCommands(bot.api);
 startScheduler();
+startEmbeddingBackfill();
 
 bot.start().catch((e) => {
   handleError(e, 'Failed to start bot');
@@ -45,10 +44,11 @@ process.on('unhandledRejection', (err) => {
   handleError(err, 'Unhandled rejection');
 });
 
-const shutdown = () => {
+const shutdown = async () => {
   logger.info('Shutting down the bot');
   healthServer.stop();
-  return Promise.all([bot.stop(), prisma.$disconnect()]);
+  await stopEmbeddingBackfill();
+  await Promise.all([bot.stop(), prisma.$disconnect()]);
 };
 
 // Stopping the bot when the Node.js process

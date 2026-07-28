@@ -1,4 +1,4 @@
-import { embed, generateText, Output, stepCountIs, streamText, tool } from 'ai';
+import { generateText, Output, stepCountIs, streamText, tool } from 'ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -6,12 +6,7 @@ vi.mock('../config', () => ({
   routerAIToken: 'test-routerai-token',
 }));
 
-import {
-  chatModel,
-  embeddingModel,
-  embeddingProviderOptions,
-  utilityModel,
-} from '../ai/ai';
+import { chatModel, utilityModel } from '../ai/ai';
 import { splitSystemMessages } from '../ai/prompt';
 
 interface RequestBody {
@@ -262,34 +257,5 @@ describe('RouterAI models', () => {
     expect(Array.isArray(content) && content[0]?.image_url?.url).toMatch(
       /^data:image\/jpeg;base64,/,
     );
-  });
-
-  it('requests and accepts a 4096-dimensional Qwen embedding', async () => {
-    const embedding = Array.from({ length: 4096 }, (_, index) => index / 4096);
-    let requestBody: { model?: string; dimensions?: number } = {};
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        requestBody = JSON.parse(String(init?.body)) as typeof requestBody;
-        return jsonResponse({
-          object: 'list',
-          data: [{ object: 'embedding', index: 0, embedding }],
-          model: 'qwen/qwen3-embedding-8b',
-          usage: { prompt_tokens: 1, total_tokens: 1 },
-        });
-      }),
-    );
-
-    const result = await embed({
-      model: embeddingModel,
-      value: 'test',
-      providerOptions: embeddingProviderOptions,
-    });
-
-    expect(requestBody).toMatchObject({
-      model: 'qwen/qwen3-embedding-8b',
-      dimensions: 4096,
-    });
-    expect(result.embedding).toHaveLength(4096);
   });
 });

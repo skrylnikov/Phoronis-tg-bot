@@ -1,7 +1,6 @@
 import { serve } from 'bun';
-import { prisma } from './db';
+import { getReadinessResponse } from './health-readiness';
 import { logger } from './logger';
-import { qdrantClient } from './qdrant';
 
 const DEFAULT_HEALTH_PORT = 3000;
 
@@ -19,16 +18,7 @@ export function startHealthServer() {
       }
 
       if (path === '/readyz') {
-        try {
-          await Promise.all([
-            prisma.$queryRaw`SELECT 1`,
-            qdrantClient.getCollections(),
-          ]);
-          return Response.json({ status: 'ready' });
-        } catch (error) {
-          logger.warn({ error }, 'Readiness check failed');
-          return Response.json({ status: 'not-ready' }, { status: 503 });
-        }
+        return getReadinessResponse();
       }
 
       return new Response('Not found', { status: 404 });

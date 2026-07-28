@@ -34,6 +34,7 @@ export type UserFactAvgAggregateOutputType = {
   sourceMessageId: number | null
   usageCount: number | null
   impactScore: number | null
+  embeddingVersion: number | null
 }
 
 export type UserFactSumAggregateOutputType = {
@@ -44,6 +45,7 @@ export type UserFactSumAggregateOutputType = {
   sourceMessageId: bigint | null
   usageCount: number | null
   impactScore: number | null
+  embeddingVersion: number | null
 }
 
 export type UserFactMinAggregateOutputType = {
@@ -58,6 +60,7 @@ export type UserFactMinAggregateOutputType = {
   usageCount: number | null
   lastUsedAt: Date | null
   impactScore: number | null
+  embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -74,6 +77,7 @@ export type UserFactMaxAggregateOutputType = {
   usageCount: number | null
   lastUsedAt: Date | null
   impactScore: number | null
+  embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -90,6 +94,7 @@ export type UserFactCountAggregateOutputType = {
   usageCount: number
   lastUsedAt: number
   impactScore: number
+  embeddingVersion: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -104,6 +109,7 @@ export type UserFactAvgAggregateInputType = {
   sourceMessageId?: true
   usageCount?: true
   impactScore?: true
+  embeddingVersion?: true
 }
 
 export type UserFactSumAggregateInputType = {
@@ -114,6 +120,7 @@ export type UserFactSumAggregateInputType = {
   sourceMessageId?: true
   usageCount?: true
   impactScore?: true
+  embeddingVersion?: true
 }
 
 export type UserFactMinAggregateInputType = {
@@ -128,6 +135,7 @@ export type UserFactMinAggregateInputType = {
   usageCount?: true
   lastUsedAt?: true
   impactScore?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -144,6 +152,7 @@ export type UserFactMaxAggregateInputType = {
   usageCount?: true
   lastUsedAt?: true
   impactScore?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -160,6 +169,7 @@ export type UserFactCountAggregateInputType = {
   usageCount?: true
   lastUsedAt?: true
   impactScore?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -263,6 +273,7 @@ export type UserFactGroupByOutputType = {
   usageCount: number
   lastUsedAt: Date | null
   impactScore: number
+  embeddingVersion: number | null
   createdAt: Date
   updatedAt: Date
   _count: UserFactCountAggregateOutputType | null
@@ -302,6 +313,7 @@ export type UserFactWhereInput = {
   usageCount?: Prisma.IntFilter<"UserFact"> | number
   lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
   impactScore?: Prisma.FloatFilter<"UserFact"> | number
+  embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -321,6 +333,7 @@ export type UserFactOrderByWithRelationInput = {
   usageCount?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -343,6 +356,7 @@ export type UserFactWhereUniqueInput = Prisma.AtLeast<{
   usageCount?: Prisma.IntFilter<"UserFact"> | number
   lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
   impactScore?: Prisma.FloatFilter<"UserFact"> | number
+  embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -362,6 +376,7 @@ export type UserFactOrderByWithAggregationInput = {
   usageCount?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserFactCountOrderByAggregateInput
@@ -386,6 +401,7 @@ export type UserFactScalarWhereWithAggregatesInput = {
   usageCount?: Prisma.IntWithAggregatesFilter<"UserFact"> | number
   lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserFact"> | Date | string | null
   impactScore?: Prisma.FloatWithAggregatesFilter<"UserFact"> | number
+  embeddingVersion?: Prisma.IntNullableWithAggregatesFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"UserFact"> | Date | string
 }
@@ -401,6 +417,7 @@ export type UserFactCreateInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
@@ -420,6 +437,7 @@ export type UserFactUncheckedCreateInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
@@ -437,6 +455,7 @@ export type UserFactUpdateInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
@@ -456,6 +475,7 @@ export type UserFactUncheckedUpdateInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
@@ -474,6 +494,7 @@ export type UserFactCreateManyInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -489,6 +510,7 @@ export type UserFactUpdateManyMutationInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -505,6 +527,7 @@ export type UserFactUncheckedUpdateManyInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -531,6 +554,7 @@ export type UserFactCountOrderByAggregateInput = {
   usageCount?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -543,6 +567,7 @@ export type UserFactAvgOrderByAggregateInput = {
   sourceMessageId?: Prisma.SortOrder
   usageCount?: Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type UserFactMaxOrderByAggregateInput = {
@@ -557,6 +582,7 @@ export type UserFactMaxOrderByAggregateInput = {
   usageCount?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -573,6 +599,7 @@ export type UserFactMinOrderByAggregateInput = {
   usageCount?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -585,6 +612,7 @@ export type UserFactSumOrderByAggregateInput = {
   sourceMessageId?: Prisma.SortOrder
   usageCount?: Prisma.SortOrder
   impactScore?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type UserFactScalarRelationFilter = {
@@ -697,6 +725,7 @@ export type UserFactCreateWithoutUserInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
@@ -714,6 +743,7 @@ export type UserFactUncheckedCreateWithoutUserInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
@@ -761,6 +791,7 @@ export type UserFactScalarWhereInput = {
   usageCount?: Prisma.IntFilter<"UserFact"> | number
   lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
   impactScore?: Prisma.FloatFilter<"UserFact"> | number
+  embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
 }
@@ -776,6 +807,7 @@ export type UserFactCreateWithoutFactImpactInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
@@ -794,6 +826,7 @@ export type UserFactUncheckedCreateWithoutFactImpactInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
@@ -826,6 +859,7 @@ export type UserFactUpdateWithoutFactImpactInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
@@ -844,6 +878,7 @@ export type UserFactUncheckedUpdateWithoutFactImpactInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
@@ -860,6 +895,7 @@ export type UserFactCreateWithoutFactHistoryInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
@@ -878,6 +914,7 @@ export type UserFactUncheckedCreateWithoutFactHistoryInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
@@ -910,6 +947,7 @@ export type UserFactUpdateWithoutFactHistoryInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
@@ -928,6 +966,7 @@ export type UserFactUncheckedUpdateWithoutFactHistoryInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
@@ -944,6 +983,7 @@ export type UserFactCreateManyUserInput = {
   usageCount?: number
   lastUsedAt?: Date | string | null
   impactScore?: number
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -959,6 +999,7 @@ export type UserFactUpdateWithoutUserInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
@@ -976,6 +1017,7 @@ export type UserFactUncheckedUpdateWithoutUserInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
@@ -993,6 +1035,7 @@ export type UserFactUncheckedUpdateManyWithoutUserInput = {
   usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1049,6 +1092,7 @@ export type UserFactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   usageCount?: boolean
   lastUsedAt?: boolean
   impactScore?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1069,6 +1113,7 @@ export type UserFactSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   usageCount?: boolean
   lastUsedAt?: boolean
   impactScore?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1086,6 +1131,7 @@ export type UserFactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   usageCount?: boolean
   lastUsedAt?: boolean
   impactScore?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1103,11 +1149,12 @@ export type UserFactSelectScalar = {
   usageCount?: boolean
   lastUsedAt?: boolean
   impactScore?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserFactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "content" | "type" | "weight" | "confidence" | "sourceMessageId" | "expiresAt" | "usageCount" | "lastUsedAt" | "impactScore" | "createdAt" | "updatedAt", ExtArgs["result"]["userFact"]>
+export type UserFactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "content" | "type" | "weight" | "confidence" | "sourceMessageId" | "expiresAt" | "usageCount" | "lastUsedAt" | "impactScore" | "embeddingVersion" | "createdAt" | "updatedAt", ExtArgs["result"]["userFact"]>
 export type UserFactInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   FactImpact?: boolean | Prisma.UserFact$FactImpactArgs<ExtArgs>
@@ -1140,6 +1187,7 @@ export type $UserFactPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     usageCount: number
     lastUsedAt: Date | null
     impactScore: number
+    embeddingVersion: number | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["userFact"]>
@@ -1579,6 +1627,7 @@ export interface UserFactFieldRefs {
   readonly usageCount: Prisma.FieldRef<"UserFact", 'Int'>
   readonly lastUsedAt: Prisma.FieldRef<"UserFact", 'DateTime'>
   readonly impactScore: Prisma.FieldRef<"UserFact", 'Float'>
+  readonly embeddingVersion: Prisma.FieldRef<"UserFact", 'Int'>
   readonly createdAt: Prisma.FieldRef<"UserFact", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"UserFact", 'DateTime'>
 }

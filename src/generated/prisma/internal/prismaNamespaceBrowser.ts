@@ -111,6 +111,8 @@ export const MessageScalarFieldEnum = {
   text: 'text',
   media: 'media',
   summary: 'summary',
+  searchText: 'searchText',
+  embeddingVersion: 'embeddingVersion',
   sentAt: 'sentAt',
   private: 'private'
 } as const
@@ -124,6 +126,7 @@ export const MemoryScalarFieldEnum = {
   chatId: 'chatId',
   content: 'content',
   isUser: 'isUser',
+  embeddingVersion: 'embeddingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -143,6 +146,7 @@ export const UserFactScalarFieldEnum = {
   usageCount: 'usageCount',
   lastUsedAt: 'lastUsedAt',
   impactScore: 'impactScore',
+  embeddingVersion: 'embeddingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

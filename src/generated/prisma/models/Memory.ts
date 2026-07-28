@@ -30,12 +30,14 @@ export type MemoryAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   chatId: number | null
+  embeddingVersion: number | null
 }
 
 export type MemorySumAggregateOutputType = {
   id: bigint | null
   userId: bigint | null
   chatId: bigint | null
+  embeddingVersion: number | null
 }
 
 export type MemoryMinAggregateOutputType = {
@@ -44,6 +46,7 @@ export type MemoryMinAggregateOutputType = {
   chatId: bigint | null
   content: string | null
   isUser: boolean | null
+  embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,6 +57,7 @@ export type MemoryMaxAggregateOutputType = {
   chatId: bigint | null
   content: string | null
   isUser: boolean | null
+  embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -64,6 +68,7 @@ export type MemoryCountAggregateOutputType = {
   chatId: number
   content: number
   isUser: number
+  embeddingVersion: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -74,12 +79,14 @@ export type MemoryAvgAggregateInputType = {
   id?: true
   userId?: true
   chatId?: true
+  embeddingVersion?: true
 }
 
 export type MemorySumAggregateInputType = {
   id?: true
   userId?: true
   chatId?: true
+  embeddingVersion?: true
 }
 
 export type MemoryMinAggregateInputType = {
@@ -88,6 +95,7 @@ export type MemoryMinAggregateInputType = {
   chatId?: true
   content?: true
   isUser?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -98,6 +106,7 @@ export type MemoryMaxAggregateInputType = {
   chatId?: true
   content?: true
   isUser?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -108,6 +117,7 @@ export type MemoryCountAggregateInputType = {
   chatId?: true
   content?: true
   isUser?: true
+  embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -205,6 +215,7 @@ export type MemoryGroupByOutputType = {
   chatId: bigint
   content: string
   isUser: boolean
+  embeddingVersion: number | null
   createdAt: Date
   updatedAt: Date
   _count: MemoryCountAggregateOutputType | null
@@ -238,6 +249,7 @@ export type MemoryWhereInput = {
   chatId?: Prisma.BigIntFilter<"Memory"> | bigint | number
   content?: Prisma.StringFilter<"Memory"> | string
   isUser?: Prisma.BoolFilter<"Memory"> | boolean
+  embeddingVersion?: Prisma.IntNullableFilter<"Memory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -250,6 +262,7 @@ export type MemoryOrderByWithRelationInput = {
   chatId?: Prisma.SortOrder
   content?: Prisma.SortOrder
   isUser?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -265,6 +278,7 @@ export type MemoryWhereUniqueInput = Prisma.AtLeast<{
   chatId?: Prisma.BigIntFilter<"Memory"> | bigint | number
   content?: Prisma.StringFilter<"Memory"> | string
   isUser?: Prisma.BoolFilter<"Memory"> | boolean
+  embeddingVersion?: Prisma.IntNullableFilter<"Memory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -277,6 +291,7 @@ export type MemoryOrderByWithAggregationInput = {
   chatId?: Prisma.SortOrder
   content?: Prisma.SortOrder
   isUser?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MemoryCountOrderByAggregateInput
@@ -295,6 +310,7 @@ export type MemoryScalarWhereWithAggregatesInput = {
   chatId?: Prisma.BigIntWithAggregatesFilter<"Memory"> | bigint | number
   content?: Prisma.StringWithAggregatesFilter<"Memory"> | string
   isUser?: Prisma.BoolWithAggregatesFilter<"Memory"> | boolean
+  embeddingVersion?: Prisma.IntNullableWithAggregatesFilter<"Memory"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Memory"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Memory"> | Date | string
 }
@@ -303,6 +319,7 @@ export type MemoryCreateInput = {
   id?: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutMemoryInput
@@ -315,6 +332,7 @@ export type MemoryUncheckedCreateInput = {
   chatId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -323,6 +341,7 @@ export type MemoryUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutMemoryNestedInput
@@ -335,6 +354,7 @@ export type MemoryUncheckedUpdateInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -345,6 +365,7 @@ export type MemoryCreateManyInput = {
   chatId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -353,6 +374,7 @@ export type MemoryUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -363,6 +385,7 @@ export type MemoryUncheckedUpdateManyInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -383,6 +406,7 @@ export type MemoryCountOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   content?: Prisma.SortOrder
   isUser?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -391,6 +415,7 @@ export type MemoryAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type MemoryMaxOrderByAggregateInput = {
@@ -399,6 +424,7 @@ export type MemoryMaxOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   content?: Prisma.SortOrder
   isUser?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -409,6 +435,7 @@ export type MemoryMinOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   content?: Prisma.SortOrder
   isUser?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -417,6 +444,7 @@ export type MemorySumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
+  embeddingVersion?: Prisma.SortOrder
 }
 
 export type MemoryCreateNestedManyWithoutUserInput = {
@@ -511,6 +539,7 @@ export type MemoryCreateWithoutUserInput = {
   id?: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   chat: Prisma.ChatCreateNestedOneWithoutMemoryInput
@@ -521,6 +550,7 @@ export type MemoryUncheckedCreateWithoutUserInput = {
   chatId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -560,6 +590,7 @@ export type MemoryScalarWhereInput = {
   chatId?: Prisma.BigIntFilter<"Memory"> | bigint | number
   content?: Prisma.StringFilter<"Memory"> | string
   isUser?: Prisma.BoolFilter<"Memory"> | boolean
+  embeddingVersion?: Prisma.IntNullableFilter<"Memory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Memory"> | Date | string
 }
@@ -568,6 +599,7 @@ export type MemoryCreateWithoutChatInput = {
   id?: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutMemoryInput
@@ -578,6 +610,7 @@ export type MemoryUncheckedCreateWithoutChatInput = {
   userId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -613,6 +646,7 @@ export type MemoryCreateManyUserInput = {
   chatId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -621,6 +655,7 @@ export type MemoryUpdateWithoutUserInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chat?: Prisma.ChatUpdateOneRequiredWithoutMemoryNestedInput
@@ -631,6 +666,7 @@ export type MemoryUncheckedUpdateWithoutUserInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -640,6 +676,7 @@ export type MemoryUncheckedUpdateManyWithoutUserInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -649,6 +686,7 @@ export type MemoryCreateManyChatInput = {
   userId: bigint | number
   content: string
   isUser: boolean
+  embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -657,6 +695,7 @@ export type MemoryUpdateWithoutChatInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutMemoryNestedInput
@@ -667,6 +706,7 @@ export type MemoryUncheckedUpdateWithoutChatInput = {
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -676,6 +716,7 @@ export type MemoryUncheckedUpdateManyWithoutChatInput = {
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   content?: Prisma.StringFieldUpdateOperationsInput | string
   isUser?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -688,6 +729,7 @@ export type MemorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   chatId?: boolean
   content?: boolean
   isUser?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -700,6 +742,7 @@ export type MemorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   chatId?: boolean
   content?: boolean
   isUser?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -712,6 +755,7 @@ export type MemorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   chatId?: boolean
   content?: boolean
   isUser?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -724,11 +768,12 @@ export type MemorySelectScalar = {
   chatId?: boolean
   content?: boolean
   isUser?: boolean
+  embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MemoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "chatId" | "content" | "isUser" | "createdAt" | "updatedAt", ExtArgs["result"]["memory"]>
+export type MemoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "chatId" | "content" | "isUser" | "embeddingVersion" | "createdAt" | "updatedAt", ExtArgs["result"]["memory"]>
 export type MemoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
@@ -754,6 +799,7 @@ export type $MemoryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     chatId: bigint
     content: string
     isUser: boolean
+    embeddingVersion: number | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["memory"]>
@@ -1186,6 +1232,7 @@ export interface MemoryFieldRefs {
   readonly chatId: Prisma.FieldRef<"Memory", 'BigInt'>
   readonly content: Prisma.FieldRef<"Memory", 'String'>
   readonly isUser: Prisma.FieldRef<"Memory", 'Boolean'>
+  readonly embeddingVersion: Prisma.FieldRef<"Memory", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Memory", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Memory", 'DateTime'>
 }

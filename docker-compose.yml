@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18.1-alpine3.23
+    image: pgvector/pgvector:0.8.2-pg18-trixie
     container_name: phoronis_postgres
     environment:
       POSTGRES_USER: postgres
@@ -11,16 +11,28 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     restart: unless-stopped
-  
-  qdrant:
-    image: qdrant/qdrant:v1.16
-    container_name: phoronis_qdrant
+
+  embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:${TEI_IMAGE_TAG:-cpu-arm64-1.9}
+    container_name: phoronis_embeddings
+    command:
+      - --model-id
+      - intfloat/multilingual-e5-small
+      - --revision
+      - 614241f622f53c4eeff9890bdc4f31cfecc418b3
+      - --max-concurrent-requests
+      - "2"
+      - --max-batch-tokens
+      - "1024"
+      - --max-client-batch-size
+      - "16"
+      - --auto-truncate
     ports:
-      - "6333:6333"
+      - "3001:80"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - embeddings_cache:/data
     restart: unless-stopped
 
 volumes:
-  postgres_data: 
-  qdrant_data:
+  postgres_data:
+  embeddings_cache:
