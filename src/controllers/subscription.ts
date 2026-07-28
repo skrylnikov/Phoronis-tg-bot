@@ -211,7 +211,7 @@ export async function limitsController(ctx: BotContext): Promise<void> {
     `• Основные ответы: ${formatQuota(personal.PRIMARY_RESPONSE)}`,
     `• Изображения: ${formatQuota(personal.IMAGE)}`,
     `• Войсы: ${formatQuota(personal.VOICE)}`,
-    `• Анализы: ${formatQuota(personal.ANALYSIS)}`,
+    `• Запоминание контекста: ${formatQuota(personal.ANALYSIS)}`,
   ];
   if (overview.chat) {
     lines.push(
@@ -220,7 +220,7 @@ export async function limitsController(ctx: BotContext): Promise<void> {
       `• Ответы: ${formatQuota(overview.chat.PRIMARY_RESPONSE)}`,
       `• Изображения: ${formatQuota(overview.chat.IMAGE)}`,
       `• Войсы: ${formatQuota(overview.chat.VOICE)}`,
-      `• Анализы: ${formatQuota(overview.chat.ANALYSIS)}`,
+      `• Запоминание контекста: ${formatQuota(overview.chat.ANALYSIS)}`,
     );
   }
   await ctx.reply(lines.join('\n'));
