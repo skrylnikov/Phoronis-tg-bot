@@ -45,7 +45,8 @@ function planFromValue(value: string): SubscriptionPlan | null {
 const paymentTermsText = `Условия подписки Phoronis
 
 • Это разовая покупка за Telegram Stars без автоматического продления.
-• Подписка увеличивает ваши дневные лимиты и добавляет общий дневной пул выбранной группе.
+• Подписка прибавляет лимиты к вашим бесплатным дневным лимитам и добавляет групповые лимиты каждому участнику выбранной группы.
+• Подписки, оформленные для одной группы, складываются. Каждый участник тратит групповые лимиты независимо от остальных; в группе они расходуются раньше личных.
 • Дни новой покупки добавляются после уже оплаченного срока. Лимиты одновременно активных покупок суммируются и обновляются ежедневно по московскому времени.
 • Пока действует подписка, можно купить такой же или более дорогой тариф. Более дешёвый тариф станет доступен после её окончания.
 • Неиспользованные дневные лимиты не переносятся и не обмениваются на деньги или Stars.
@@ -53,6 +54,10 @@ const paymentTermsText = `Условия подписки Phoronis
 • При возврате соответствующие дни и лимиты отзываются. По вопросам оплаты используйте /paysupport.
 
 Нажимая «Принимаю условия», вы подтверждаете согласие с этими условиями. Версия: ${paymentTermsVersion}.`;
+
+const acceptedPaymentTermsText = `${paymentTermsText}
+
+✅ Условия приняты`;
 
 function subscriptionKeyboard(
   token: string,
@@ -74,7 +79,7 @@ export async function subscribeController(ctx: BotContext): Promise<void> {
   if (!ctx.from || !ctx.chatId || !chat) return;
   if (!isGroup(ctx)) {
     await ctx.reply(
-      'Откройте /subscribe в группе, которой хотите подарить общие лимиты.',
+      'Откройте /subscribe в группе, которой хотите подарить групповые лимиты.',
     );
     return;
   }
@@ -135,6 +140,8 @@ export async function subscriptionCallbackController(
       await ctx.answerCallbackQuery({ text: 'Ссылка устарела' });
       return;
     }
+    await ctx.editMessageText(acceptedPaymentTermsText);
+    await ctx.editMessageReplyMarkup();
     const [options, minimumPlan] = await Promise.all([
       getPurchaseOptions(ctx.from.id),
       getMinimumPurchasablePlan(ctx.from.id),
@@ -215,7 +222,7 @@ export async function limitsController(ctx: BotContext): Promise<void> {
   });
   const personal = overview.personal;
   const lines = [
-    'Ваши лимиты на сегодня:',
+    'Личные лимиты на сегодня:',
     `• Основные ответы: ${formatQuota(personal.PRIMARY_RESPONSE)}`,
     `• Изображения: ${formatQuota(personal.IMAGE)}`,
     `• Войсы: ${formatQuota(personal.VOICE)}`,
@@ -224,7 +231,7 @@ export async function limitsController(ctx: BotContext): Promise<void> {
   if (overview.chat) {
     lines.push(
       '',
-      'Общий пул чата:',
+      'Групповые лимиты для вас в этом чате:',
       `• Ответы: ${formatQuota(overview.chat.PRIMARY_RESPONSE)}`,
       `• Изображения: ${formatQuota(overview.chat.IMAGE)}`,
       `• Войсы: ${formatQuota(overview.chat.VOICE)}`,
@@ -241,7 +248,7 @@ export async function subscriptionStatusController(
   const subscription = await getActiveSubscription(ctx.from.id);
   if (!subscription) {
     await ctx.reply(
-      'Активной подписки нет. Откройте /subscribe в группе, которой хотите подарить лимиты.',
+      'Активной подписки нет. Откройте /subscribe в группе, которой хотите подарить групповые лимиты.',
     );
     return;
   }

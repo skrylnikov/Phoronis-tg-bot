@@ -38,7 +38,11 @@ const { prisma } = vi.hoisted(() => {
 
 vi.mock('../db', () => ({ prisma }));
 
-import { reserveQuota } from '../shared/quota-service';
+import {
+  getQuotaOverview,
+  releaseQuota,
+  reserveQuota,
+} from '../shared/quota-service';
 import {
   activatePayment,
   createPaymentOrder,
@@ -260,6 +264,132 @@ describe('cumulative quotas', () => {
     const query = prisma.$queryRaw.mock.calls[0]?.[0] as {
       values: unknown[];
     };
-    expect(query.values.at(-1)).toBe(35);
+    expect(query.values.at(-1)).toBe(38);
+  });
+
+  it('gives every group member the full combined group quota', async () => {
+    prisma.subscription.findMany.mockResolvedValue([
+      { plan: 'WEEK' },
+      { plan: 'MONTH' },
+    ]);
+
+    await reserveQuota({
+      userId: 123,
+      chatId: -100,
+      isGroup: true,
+      kind: 'PRIMARY_RESPONSE',
+      now: new Date('2026-07-28T12:00:00.000Z'),
+    });
+    await reserveQuota({
+      userId: 456,
+      chatId: -100,
+      isGroup: true,
+      kind: 'PRIMARY_RESPONSE',
+      now: new Date('2026-07-28T12:00:00.000Z'),
+    });
+
+    const firstQuery = prisma.$queryRaw.mock.calls[0]?.[0] as {
+      values: unknown[];
+    };
+    const secondQuery = prisma.$queryRaw.mock.calls[1]?.[0] as {
+      values: unknown[];
+    };
+    expect(firstQuery.values).toEqual(
+      expect.arrayContaining(['CHAT', 123n, -100n, 'PRIMARY_RESPONSE', 4]),
+    );
+    expect(secondQuery.values).toEqual(
+      expect.arrayContaining(['CHAT', 456n, -100n, 'PRIMARY_RESPONSE', 4]),
+    );
+  });
+
+  it('falls back to the personal quota after a group quota is exhausted', async () => {
+    prisma.subscription.findMany
+      .mockResolvedValueOnce([{ plan: 'WEEK' }])
+      .mockResolvedValueOnce([{ plan: 'WEEK' }]);
+    prisma.$queryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ count: 1 }]);
+
+    const reservation = await reserveQuota({
+      userId: 123,
+      chatId: -100,
+      isGroup: true,
+      kind: 'PRIMARY_RESPONSE',
+      now: new Date('2026-07-28T12:00:00.000Z'),
+    });
+
+    expect(reservation).toMatchObject({
+      allowed: true,
+      source: 'USER',
+      ownerId: 123n,
+      chatId: 0n,
+    });
+    const personalQuery = prisma.$queryRaw.mock.calls[1]?.[0] as {
+      values: unknown[];
+    };
+    expect(personalQuery.values).toEqual(
+      expect.arrayContaining(['USER', 123n, 0n, 'PRIMARY_RESPONSE', 13]),
+    );
+  });
+
+  it('releases the exact user and group reservation after an error', async () => {
+    prisma.subscription.findMany.mockResolvedValue([{ plan: 'WEEK' }]);
+
+    const reservation = await reserveQuota({
+      userId: 123,
+      chatId: -100,
+      isGroup: true,
+      kind: 'IMAGE',
+      now: new Date('2026-07-28T12:00:00.000Z'),
+    });
+    await releaseQuota(reservation);
+
+    expect(prisma.quotaUsage.updateMany).toHaveBeenCalledWith({
+      where: {
+        scope: 'CHAT',
+        ownerId: 123n,
+        chatId: -100n,
+        kind: 'IMAGE',
+        date: new Date('2026-07-28T00:00:00.000Z'),
+        count: { gt: 0 },
+      },
+      data: { count: { decrement: 1 } },
+    });
+  });
+
+  it('reports personal and group usage independently in a group', async () => {
+    const now = new Date('2026-07-28T12:00:00.000Z');
+    prisma.subscription.findMany
+      .mockResolvedValueOnce([{ plan: 'WEEK', endsAt: now }])
+      .mockResolvedValueOnce([
+        { plan: 'WEEK', endsAt: now },
+        { plan: 'MONTH', endsAt: now },
+      ]);
+    prisma.quotaUsage.findMany.mockResolvedValue([
+      {
+        scope: 'USER',
+        ownerId: 123n,
+        chatId: 0n,
+        kind: 'PRIMARY_RESPONSE',
+        count: 2,
+      },
+      {
+        scope: 'CHAT',
+        ownerId: 123n,
+        chatId: -100n,
+        kind: 'PRIMARY_RESPONSE',
+        count: 3,
+      },
+    ]);
+
+    const overview = await getQuotaOverview({
+      userId: 123,
+      chatId: -100,
+      isGroup: true,
+      now,
+    });
+
+    expect(overview.personal.PRIMARY_RESPONSE).toEqual({ limit: 13, used: 2 });
+    expect(overview.chat?.PRIMARY_RESPONSE).toEqual({ limit: 4, used: 3 });
   });
 });

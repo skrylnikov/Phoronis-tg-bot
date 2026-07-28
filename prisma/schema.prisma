@@ -147,11 +147,12 @@ model QuotaUsage {
   id      String     @id @default(cuid())
   scope   QuotaScope
   ownerId BigInt
+  chatId  BigInt     @default(0)
   kind    QuotaKind
   date    DateTime   @db.Date
   count   Int        @default(0)
 
-  @@unique([scope, ownerId, kind, date])
+  @@unique([scope, ownerId, chatId, kind, date])
 }
 
 model LimitNotice {

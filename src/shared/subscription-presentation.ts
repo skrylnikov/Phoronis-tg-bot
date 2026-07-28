@@ -1,11 +1,15 @@
-import { type PlanDetails, planDetails } from './quota-service';
+import {
+  getPersonalDailyLimits,
+  planDetails,
+  type QuotaKind,
+} from './quota-service';
 import { getPlanTitle, type PurchaseOption } from './subscriptions';
 
 function formatLimit(value: number): string {
   return value === Infinity ? 'безлимит' : String(value);
 }
 
-function formatQuotaList(details: PlanDetails['personal']): string[] {
+function formatQuotaList(details: Record<QuotaKind, number>): string[] {
   return [
     `• Основные ответы: ${formatLimit(details.PRIMARY_RESPONSE)}`,
     `• Изображения: ${formatLimit(details.IMAGE)}`,
@@ -33,6 +37,7 @@ export function formatSubscriptionCatalog(
 ): string {
   const cards = options.map((option) => {
     const details = planDetails[option.plan];
+    const personalLimits = getPersonalDailyLimits([{ plan: option.plan }]);
     return [
       `«${getPlanTitle(option.plan)}»`,
       ...formatPlanPrice({
@@ -41,15 +46,15 @@ export function formatSubscriptionCatalog(
         discountPercent: option.actualDiscount,
       }),
       'Личные лимиты в день:',
-      ...formatQuotaList(details.personal),
-      'Общий пул группы в день:',
+      ...formatQuotaList(personalLimits),
+      'Групповые лимиты для каждого участника в день:',
       ...formatQuotaList(details.chat),
     ].join('\n');
   });
 
   return [
     'Тарифы Phoronis',
-    'Личные лимиты действуют для вас, а общий пул — для группы, в которой вы начали покупку.',
+    'Личный тариф прибавляется к бесплатным лимитам. Подписки одной группы складываются, а её групповой лимит получает каждый участник отдельно.',
     'Все лимиты обновляются ежедневно в 00:00 МСК. «Безлимит» относится только к личному анализу контекста.',
     '',
     cards.join('\n\n'),
@@ -63,7 +68,7 @@ export function formatInvoiceDescription(input: {
   expiresAt: Date;
 }): string {
   return [
-    'Личные лимиты и подарок общих лимитов группе.',
+    'Личные лимиты и групповые лимиты для каждого участника выбранного чата.',
     ...formatPlanPrice({
       baseAmount: input.baseAmount,
       amount: input.amount,

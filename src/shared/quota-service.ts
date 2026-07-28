@@ -90,6 +90,7 @@ export interface QuotaReservation {
   allowed: boolean;
   source?: QuotaScope;
   ownerId?: bigint;
+  chatId?: bigint;
   kind: QuotaKind;
   day: Date;
 }
@@ -163,6 +164,24 @@ function sumLimits(
   ) as Record<QuotaKind, number>;
 }
 
+export function getPersonalDailyLimits(
+  subscriptions: Array<{ plan: SubscriptionPlan }>,
+): Record<QuotaKind, number> {
+  const paidLimits = sumLimits(subscriptions, 'personal');
+  return Object.fromEntries(
+    (Object.keys(freeLimits) as QuotaKind[]).map((kind) => {
+      const freeLimit = freeLimits[kind];
+      const paidLimit = paidLimits[kind];
+      return [
+        kind,
+        freeLimit === Infinity || paidLimit === Infinity
+          ? Infinity
+          : freeLimit + paidLimit,
+      ];
+    }),
+  ) as Record<QuotaKind, number>;
+}
+
 function summarizeSubscriptions<
   T extends { plan: SubscriptionPlan; endsAt: Date },
 >(subscriptions: T[]): (T & { endsAt: Date }) | null {
@@ -180,6 +199,7 @@ function summarizeSubscriptions<
 async function reserve(
   scope: QuotaScope,
   ownerId: bigint,
+  chatId: bigint,
   kind: QuotaKind,
   day: Date,
   limit: number,
@@ -188,9 +208,9 @@ async function reserve(
   if (limit <= 0) return false;
 
   const result = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
-    INSERT INTO "QuotaUsage" ("id", "scope", "ownerId", "kind", "date", "count")
-    VALUES (${crypto.randomUUID()}, ${scope}::"QuotaScope", ${ownerId}, ${kind}::"QuotaKind", ${day}, 1)
-    ON CONFLICT ("scope", "ownerId", "kind", "date") DO UPDATE
+    INSERT INTO "QuotaUsage" ("id", "scope", "ownerId", "chatId", "kind", "date", "count")
+    VALUES (${crypto.randomUUID()}, ${scope}::"QuotaScope", ${ownerId}, ${chatId}, ${kind}::"QuotaKind", ${day}, 1)
+    ON CONFLICT ("scope", "ownerId", "chatId", "kind", "date") DO UPDATE
     SET "count" = "QuotaUsage"."count" + 1
     WHERE "QuotaUsage"."count" < ${limit}
     RETURNING "count"
@@ -202,13 +222,19 @@ async function reserve(
 export async function releaseQuota(
   reservation: QuotaReservation,
 ): Promise<void> {
-  if (!reservation.allowed || !reservation.source || !reservation.ownerId)
+  if (
+    !reservation.allowed ||
+    !reservation.source ||
+    !reservation.ownerId ||
+    reservation.chatId === undefined
+  )
     return;
 
   await prisma.quotaUsage.updateMany({
     where: {
       scope: reservation.source,
       ownerId: reservation.ownerId,
+      chatId: reservation.chatId,
       kind: reservation.kind,
       date: reservation.day,
       count: { gt: 0 },
@@ -234,12 +260,13 @@ export async function reserveQuota(input: {
     const chatLimit = sumLimits(chatSubscriptions, 'chat')[input.kind];
     if (
       chatSubscriptions.length > 0 &&
-      (await reserve('CHAT', chatId, input.kind, day, chatLimit))
+      (await reserve('CHAT', userId, chatId, input.kind, day, chatLimit))
     ) {
       return {
         allowed: true,
         source: 'CHAT',
-        ownerId: chatId,
+        ownerId: userId,
+        chatId,
         kind: input.kind,
         day,
       };
@@ -247,16 +274,14 @@ export async function reserveQuota(input: {
   }
 
   const userSubscriptions = await getActiveUserSubscriptions(userId, now);
-  const userLimit =
-    userSubscriptions.length > 0
-      ? sumLimits(userSubscriptions, 'personal')[input.kind]
-      : freeLimits[input.kind];
-  const allowed = await reserve('USER', userId, input.kind, day, userLimit);
+  const userLimit = getPersonalDailyLimits(userSubscriptions)[input.kind];
+  const allowed = await reserve('USER', userId, 0n, input.kind, day, userLimit);
 
   return {
     allowed,
     source: allowed ? 'USER' : undefined,
     ownerId: allowed ? userId : undefined,
+    chatId: allowed ? 0n : undefined,
     kind: input.kind,
     day,
   };
@@ -280,22 +305,27 @@ export async function getQuotaOverview(input: {
     where: {
       date: day,
       OR: [
-        { scope: 'USER', ownerId: userId },
-        ...(chatId ? [{ scope: 'CHAT' as const, ownerId: chatId }] : []),
+        { scope: 'USER', ownerId: userId, chatId: 0n },
+        ...(chatId
+          ? [{ scope: 'CHAT' as const, ownerId: userId, chatId }]
+          : []),
       ],
     },
   });
-  const used = (scope: QuotaScope, ownerId: bigint, kind: QuotaKind) =>
+  const used = (
+    scope: QuotaScope,
+    ownerId: bigint,
+    usageChatId: bigint,
+    kind: QuotaKind,
+  ) =>
     usages.find(
       (usage) =>
         usage.scope === scope &&
         usage.ownerId === ownerId &&
+        usage.chatId === usageChatId &&
         usage.kind === kind,
     )?.count ?? 0;
-  const personalLimits =
-    userSubscriptions.length > 0
-      ? sumLimits(userSubscriptions, 'personal')
-      : freeLimits;
+  const personalLimits = getPersonalDailyLimits(userSubscriptions);
   const chatLimits = sumLimits(chatSubscriptions, 'chat');
 
   return {
@@ -305,7 +335,10 @@ export async function getQuotaOverview(input: {
     personal: Object.fromEntries(
       (Object.keys(freeLimits) as QuotaKind[]).map((kind) => [
         kind,
-        { limit: personalLimits[kind], used: used('USER', userId, kind) },
+        {
+          limit: personalLimits[kind],
+          used: used('USER', userId, 0n, kind),
+        },
       ]),
     ) as Record<QuotaKind, { limit: number; used: number }>,
     chat:
@@ -315,7 +348,7 @@ export async function getQuotaOverview(input: {
               kind,
               {
                 limit: chatLimits[kind],
-                used: used('CHAT', chatId, kind),
+                used: used('CHAT', userId, chatId, kind),
               },
             ]),
           ) as Record<QuotaKind, { limit: number; used: number }>)

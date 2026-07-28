@@ -21,6 +21,7 @@ import {
   termsController,
 } from './subscription.js';
 import { voiceController } from './voice.js';
+import { whatsNewCallbackController, whatsNewController } from './whats-new.js';
 
 export const controllers = new Composer<BotContext>();
 
@@ -39,8 +40,10 @@ controllers.command('limits', limitsController);
 controllers.command('subscription', subscriptionStatusController);
 controllers.command('terms', termsController);
 controllers.command('paysupport', paymentSupportController);
+controllers.command('whatsnew', whatsNewController);
 
 controllers.callbackQuery(/^subscription:/, subscriptionCallbackController);
+controllers.callbackQuery(/^whatsnew:/, whatsNewCallbackController);
 controllers.on('pre_checkout_query', preCheckoutController);
 controllers.on(':successful_payment', successfulPaymentController);
 controllers.on(':refunded_payment', refundedPaymentController);

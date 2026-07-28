@@ -28,11 +28,13 @@ export type AggregateQuotaUsage = {
 
 export type QuotaUsageAvgAggregateOutputType = {
   ownerId: number | null
+  chatId: number | null
   count: number | null
 }
 
 export type QuotaUsageSumAggregateOutputType = {
   ownerId: bigint | null
+  chatId: bigint | null
   count: number | null
 }
 
@@ -40,6 +42,7 @@ export type QuotaUsageMinAggregateOutputType = {
   id: string | null
   scope: $Enums.QuotaScope | null
   ownerId: bigint | null
+  chatId: bigint | null
   kind: $Enums.QuotaKind | null
   date: Date | null
   count: number | null
@@ -49,6 +52,7 @@ export type QuotaUsageMaxAggregateOutputType = {
   id: string | null
   scope: $Enums.QuotaScope | null
   ownerId: bigint | null
+  chatId: bigint | null
   kind: $Enums.QuotaKind | null
   date: Date | null
   count: number | null
@@ -58,6 +62,7 @@ export type QuotaUsageCountAggregateOutputType = {
   id: number
   scope: number
   ownerId: number
+  chatId: number
   kind: number
   date: number
   count: number
@@ -67,11 +72,13 @@ export type QuotaUsageCountAggregateOutputType = {
 
 export type QuotaUsageAvgAggregateInputType = {
   ownerId?: true
+  chatId?: true
   count?: true
 }
 
 export type QuotaUsageSumAggregateInputType = {
   ownerId?: true
+  chatId?: true
   count?: true
 }
 
@@ -79,6 +86,7 @@ export type QuotaUsageMinAggregateInputType = {
   id?: true
   scope?: true
   ownerId?: true
+  chatId?: true
   kind?: true
   date?: true
   count?: true
@@ -88,6 +96,7 @@ export type QuotaUsageMaxAggregateInputType = {
   id?: true
   scope?: true
   ownerId?: true
+  chatId?: true
   kind?: true
   date?: true
   count?: true
@@ -97,6 +106,7 @@ export type QuotaUsageCountAggregateInputType = {
   id?: true
   scope?: true
   ownerId?: true
+  chatId?: true
   kind?: true
   date?: true
   count?: true
@@ -193,6 +203,7 @@ export type QuotaUsageGroupByOutputType = {
   id: string
   scope: $Enums.QuotaScope
   ownerId: bigint
+  chatId: bigint
   kind: $Enums.QuotaKind
   date: Date
   count: number
@@ -225,6 +236,7 @@ export type QuotaUsageWhereInput = {
   id?: Prisma.StringFilter<"QuotaUsage"> | string
   scope?: Prisma.EnumQuotaScopeFilter<"QuotaUsage"> | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFilter<"QuotaUsage"> | bigint | number
+  chatId?: Prisma.BigIntFilter<"QuotaUsage"> | bigint | number
   kind?: Prisma.EnumQuotaKindFilter<"QuotaUsage"> | $Enums.QuotaKind
   date?: Prisma.DateTimeFilter<"QuotaUsage"> | Date | string
   count?: Prisma.IntFilter<"QuotaUsage"> | number
@@ -234,6 +246,7 @@ export type QuotaUsageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   date?: Prisma.SortOrder
   count?: Prisma.SortOrder
@@ -241,21 +254,23 @@ export type QuotaUsageOrderByWithRelationInput = {
 
 export type QuotaUsageWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  scope_ownerId_kind_date?: Prisma.QuotaUsageScopeOwnerIdKindDateCompoundUniqueInput
+  scope_ownerId_chatId_kind_date?: Prisma.QuotaUsageScopeOwnerIdChatIdKindDateCompoundUniqueInput
   AND?: Prisma.QuotaUsageWhereInput | Prisma.QuotaUsageWhereInput[]
   OR?: Prisma.QuotaUsageWhereInput[]
   NOT?: Prisma.QuotaUsageWhereInput | Prisma.QuotaUsageWhereInput[]
   scope?: Prisma.EnumQuotaScopeFilter<"QuotaUsage"> | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFilter<"QuotaUsage"> | bigint | number
+  chatId?: Prisma.BigIntFilter<"QuotaUsage"> | bigint | number
   kind?: Prisma.EnumQuotaKindFilter<"QuotaUsage"> | $Enums.QuotaKind
   date?: Prisma.DateTimeFilter<"QuotaUsage"> | Date | string
   count?: Prisma.IntFilter<"QuotaUsage"> | number
-}, "id" | "scope_ownerId_kind_date">
+}, "id" | "scope_ownerId_chatId_kind_date">
 
 export type QuotaUsageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   date?: Prisma.SortOrder
   count?: Prisma.SortOrder
@@ -273,6 +288,7 @@ export type QuotaUsageScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"QuotaUsage"> | string
   scope?: Prisma.EnumQuotaScopeWithAggregatesFilter<"QuotaUsage"> | $Enums.QuotaScope
   ownerId?: Prisma.BigIntWithAggregatesFilter<"QuotaUsage"> | bigint | number
+  chatId?: Prisma.BigIntWithAggregatesFilter<"QuotaUsage"> | bigint | number
   kind?: Prisma.EnumQuotaKindWithAggregatesFilter<"QuotaUsage"> | $Enums.QuotaKind
   date?: Prisma.DateTimeWithAggregatesFilter<"QuotaUsage"> | Date | string
   count?: Prisma.IntWithAggregatesFilter<"QuotaUsage"> | number
@@ -282,6 +298,7 @@ export type QuotaUsageCreateInput = {
   id?: string
   scope: $Enums.QuotaScope
   ownerId: bigint | number
+  chatId?: bigint | number
   kind: $Enums.QuotaKind
   date: Date | string
   count?: number
@@ -291,6 +308,7 @@ export type QuotaUsageUncheckedCreateInput = {
   id?: string
   scope: $Enums.QuotaScope
   ownerId: bigint | number
+  chatId?: bigint | number
   kind: $Enums.QuotaKind
   date: Date | string
   count?: number
@@ -300,6 +318,7 @@ export type QuotaUsageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   scope?: Prisma.EnumQuotaScopeFieldUpdateOperationsInput | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.EnumQuotaKindFieldUpdateOperationsInput | $Enums.QuotaKind
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   count?: Prisma.IntFieldUpdateOperationsInput | number
@@ -309,6 +328,7 @@ export type QuotaUsageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   scope?: Prisma.EnumQuotaScopeFieldUpdateOperationsInput | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.EnumQuotaKindFieldUpdateOperationsInput | $Enums.QuotaKind
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   count?: Prisma.IntFieldUpdateOperationsInput | number
@@ -318,6 +338,7 @@ export type QuotaUsageCreateManyInput = {
   id?: string
   scope: $Enums.QuotaScope
   ownerId: bigint | number
+  chatId?: bigint | number
   kind: $Enums.QuotaKind
   date: Date | string
   count?: number
@@ -327,6 +348,7 @@ export type QuotaUsageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   scope?: Prisma.EnumQuotaScopeFieldUpdateOperationsInput | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.EnumQuotaKindFieldUpdateOperationsInput | $Enums.QuotaKind
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   count?: Prisma.IntFieldUpdateOperationsInput | number
@@ -336,14 +358,16 @@ export type QuotaUsageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   scope?: Prisma.EnumQuotaScopeFieldUpdateOperationsInput | $Enums.QuotaScope
   ownerId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.EnumQuotaKindFieldUpdateOperationsInput | $Enums.QuotaKind
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   count?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type QuotaUsageScopeOwnerIdKindDateCompoundUniqueInput = {
+export type QuotaUsageScopeOwnerIdChatIdKindDateCompoundUniqueInput = {
   scope: $Enums.QuotaScope
   ownerId: bigint | number
+  chatId: bigint | number
   kind: $Enums.QuotaKind
   date: Date | string
 }
@@ -352,6 +376,7 @@ export type QuotaUsageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   date?: Prisma.SortOrder
   count?: Prisma.SortOrder
@@ -359,6 +384,7 @@ export type QuotaUsageCountOrderByAggregateInput = {
 
 export type QuotaUsageAvgOrderByAggregateInput = {
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   count?: Prisma.SortOrder
 }
 
@@ -366,6 +392,7 @@ export type QuotaUsageMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   date?: Prisma.SortOrder
   count?: Prisma.SortOrder
@@ -375,6 +402,7 @@ export type QuotaUsageMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   date?: Prisma.SortOrder
   count?: Prisma.SortOrder
@@ -382,6 +410,7 @@ export type QuotaUsageMinOrderByAggregateInput = {
 
 export type QuotaUsageSumOrderByAggregateInput = {
   ownerId?: Prisma.SortOrder
+  chatId?: Prisma.SortOrder
   count?: Prisma.SortOrder
 }
 
@@ -399,6 +428,7 @@ export type QuotaUsageSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   id?: boolean
   scope?: boolean
   ownerId?: boolean
+  chatId?: boolean
   kind?: boolean
   date?: boolean
   count?: boolean
@@ -408,6 +438,7 @@ export type QuotaUsageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   scope?: boolean
   ownerId?: boolean
+  chatId?: boolean
   kind?: boolean
   date?: boolean
   count?: boolean
@@ -417,6 +448,7 @@ export type QuotaUsageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   scope?: boolean
   ownerId?: boolean
+  chatId?: boolean
   kind?: boolean
   date?: boolean
   count?: boolean
@@ -426,12 +458,13 @@ export type QuotaUsageSelectScalar = {
   id?: boolean
   scope?: boolean
   ownerId?: boolean
+  chatId?: boolean
   kind?: boolean
   date?: boolean
   count?: boolean
 }
 
-export type QuotaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scope" | "ownerId" | "kind" | "date" | "count", ExtArgs["result"]["quotaUsage"]>
+export type QuotaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scope" | "ownerId" | "chatId" | "kind" | "date" | "count", ExtArgs["result"]["quotaUsage"]>
 
 export type $QuotaUsagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "QuotaUsage"
@@ -440,6 +473,7 @@ export type $QuotaUsagePayload<ExtArgs extends runtime.Types.Extensions.Internal
     id: string
     scope: $Enums.QuotaScope
     ownerId: bigint
+    chatId: bigint
     kind: $Enums.QuotaKind
     date: Date
     count: number
@@ -869,6 +903,7 @@ export interface QuotaUsageFieldRefs {
   readonly id: Prisma.FieldRef<"QuotaUsage", 'String'>
   readonly scope: Prisma.FieldRef<"QuotaUsage", 'QuotaScope'>
   readonly ownerId: Prisma.FieldRef<"QuotaUsage", 'BigInt'>
+  readonly chatId: Prisma.FieldRef<"QuotaUsage", 'BigInt'>
   readonly kind: Prisma.FieldRef<"QuotaUsage", 'QuotaKind'>
   readonly date: Prisma.FieldRef<"QuotaUsage", 'DateTime'>
   readonly count: Prisma.FieldRef<"QuotaUsage", 'Int'>

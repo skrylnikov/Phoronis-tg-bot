@@ -1508,6 +1508,7 @@ export const QuotaUsageScalarFieldEnum = {
   id: 'id',
   scope: 'scope',
   ownerId: 'ownerId',
+  chatId: 'chatId',
   kind: 'kind',
   date: 'date',
   count: 'count'
