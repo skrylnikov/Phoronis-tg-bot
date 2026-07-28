@@ -4,7 +4,7 @@ import axios from 'axios';
 import ffmpeg from 'ffmpeg.js';
 import { langfuse, utilityModel } from '../ai';
 import {
-  createRichMessage,
+  createRichMessageIfNeeded,
   richMarkdownInstructions,
   toMarkdownV2,
 } from '../ai/rich-message';
@@ -187,7 +187,7 @@ export const voiceController = async (ctx: BotContext) => {
       ? `## Краткое содержание\n\n${summarizedResult.text}\n\n<details><summary>Полная расшифровка</summary>\n\n${beautifiedResult.text}\n\n</details>`
       : beautifiedResult.text;
     const updateVoiceMessage = async (): Promise<void> => {
-      const richMessage = createRichMessage(richMarkdown);
+      const richMessage = createRichMessageIfNeeded(richMarkdown);
       if (richMessage) {
         try {
           await ctx.api.editMessageText(chatId, reply.message_id, richMessage);

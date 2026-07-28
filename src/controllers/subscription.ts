@@ -9,6 +9,8 @@ import {
   activatePayment,
   createPaymentOrder,
   createPurchaseSession,
+  formatInvoiceDescription,
+  formatSubscriptionCatalog,
   getActiveSubscription,
   getInvoicePayload,
   getMinimumPurchasablePlan,
@@ -139,9 +141,12 @@ export async function subscriptionCallbackController(
     ]);
     await ctx.answerCallbackQuery({ text: 'Условия приняты' });
     await ctx.reply(
-      minimumPlan
-        ? `Выберите тариф не ниже «${getPlanTitle(minimumPlan)}». Новые дни и лимиты добавятся к активной подписке.`
-        : 'Выберите тариф. Личные и групповые лимиты начнут действовать сразу после оплаты.',
+      [
+        formatSubscriptionCatalog(options),
+        minimumPlan
+          ? `Выберите тариф не ниже «${getPlanTitle(minimumPlan)}». Новые дни и лимиты добавятся к активной подписке.`
+          : 'Выберите тариф. Личные и групповые лимиты начнут действовать сразу после оплаты.',
+      ].join('\n\n'),
       { reply_markup: subscriptionKeyboard(session.token, options) },
     );
     return;
@@ -187,11 +192,14 @@ export async function subscriptionCallbackController(
     throw error;
   }
   await ctx.answerCallbackQuery();
-  const discount =
-    order.discountPercent > 0 ? ` Скидка ${order.discountPercent}%.` : '';
   await ctx.replyWithInvoice(
     `Phoronis — ${getPlanTitle(plan)}`,
-    `Личные лимиты и подарок общих лимитов группе.${discount} Счёт действителен до ${order.expiresAt.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })} МСК.`,
+    formatInvoiceDescription({
+      baseAmount: order.baseAmount,
+      amount: order.amount,
+      discountPercent: order.discountPercent,
+      expiresAt: order.expiresAt,
+    }),
     getInvoicePayload(order.id),
     'XTR',
     [{ label: getPlanTitle(plan), amount: order.amount }],

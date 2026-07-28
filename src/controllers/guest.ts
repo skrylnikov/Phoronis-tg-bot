@@ -5,8 +5,9 @@ import { Composer } from 'grammy';
 import { chatGeneration } from '../ai/chat-generation';
 import { langfuse } from '../ai/langfuse';
 import {
-  createRichMessage,
+  createRichMessageIfNeeded,
   richMarkdownInstructions,
+  toMarkdownV2,
 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
@@ -30,7 +31,7 @@ function truncateText(text: string, maxLength: number): string {
 }
 
 async function answerGuestMessage(ctx: BotContext, markdown: string) {
-  const richMessage = createRichMessage(markdown);
+  const richMessage = createRichMessageIfNeeded(markdown);
 
   if (richMessage) {
     try {
@@ -50,7 +51,8 @@ async function answerGuestMessage(ctx: BotContext, markdown: string) {
     id: guestAnswerId,
     title: guestAnswerTitle,
     input_message_content: {
-      message_text: truncateText(markdown, maxTextMessageLength),
+      message_text: truncateText(toMarkdownV2(markdown), maxTextMessageLength),
+      parse_mode: 'MarkdownV2',
     },
   });
 }

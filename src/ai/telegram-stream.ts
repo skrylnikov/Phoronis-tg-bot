@@ -1,8 +1,9 @@
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
 import {
-  createRichMessage,
+  createRichMessageIfNeeded,
   maxRichMessageLength,
+  requiresRichMarkdown,
   toMarkdownV2,
 } from './rich-message';
 
@@ -71,10 +72,7 @@ export class TelegramStreamSink {
         undefined,
       );
       try {
-        await ctx.replyWithRichMessageDraft(
-          { markdown: '<tg-thinking>Думаю…</tg-thinking>' },
-          sink.draftOptions(),
-        );
+        await ctx.replyWithDraft(thinkingText, sink.draftOptions());
         sink.lastPublishedAt = Date.now();
       } catch (error) {
         sink.active = false;
@@ -103,15 +101,12 @@ export class TelegramStreamSink {
               : {}),
             ...sink.threadOptions(),
           })
-        : await ctx.replyWithRichMessage(
-            { markdown: thinkingText },
-            {
-              reply_parameters: {
-                message_id: ctx.msg?.message_id,
-              },
-              ...sink.threadOptions(),
+        : await ctx.reply(thinkingText, {
+            reply_parameters: {
+              message_id: ctx.msg?.message_id,
             },
-          );
+            ...sink.threadOptions(),
+          });
       if (ephemeralReceiverUserId && !message.ephemeral_message_id) {
         throw new Error('Telegram did not return an ephemeral message ID');
       }
@@ -140,7 +135,9 @@ export class TelegramStreamSink {
       0,
       this.ephemeralReceiverUserId
         ? maxLegacyMessageLength
-        : maxRichMessageLength,
+        : requiresRichMarkdown(text)
+          ? maxRichMessageLength
+          : maxLegacyMessageLength,
     );
     if (preview === this.lastPublishedText) {
       return;
@@ -176,7 +173,7 @@ export class TelegramStreamSink {
       return this.groupMessage;
     }
 
-    const richMessage = createRichMessage(rawText);
+    const richMessage = createRichMessageIfNeeded(rawText);
     if (richMessage) {
       try {
         await this.ctx.api.editMessageText(
@@ -257,14 +254,18 @@ export class TelegramStreamSink {
     this.publishPromise = (async () => {
       try {
         if (this.ctx.chat?.type === 'private') {
-          const richMessage = createRichMessage(text);
-          if (!richMessage) {
-            return;
+          const richMessage = createRichMessageIfNeeded(text);
+          if (richMessage) {
+            await this.ctx.replyWithRichMessageDraft(
+              richMessage,
+              this.draftOptions(),
+            );
+          } else {
+            await this.ctx.replyWithDraft(toMarkdownV2(text), {
+              ...this.draftOptions(),
+              parse_mode: 'MarkdownV2',
+            });
           }
-          await this.ctx.replyWithRichMessageDraft(
-            richMessage,
-            this.draftOptions(),
-          );
         } else if (this.ctx.chatId && this.groupMessage) {
           if (
             this.ephemeralReceiverUserId &&
@@ -277,15 +278,21 @@ export class TelegramStreamSink {
               text,
             );
           } else {
-            const richMessage = createRichMessage(text);
-            if (!richMessage) {
-              return;
+            const richMessage = createRichMessageIfNeeded(text);
+            if (richMessage) {
+              await this.ctx.api.editMessageText(
+                this.ctx.chatId,
+                this.groupMessage.message_id,
+                richMessage,
+              );
+            } else {
+              await this.ctx.api.editMessageText(
+                this.ctx.chatId,
+                this.groupMessage.message_id,
+                toMarkdownV2(text),
+                { parse_mode: 'MarkdownV2' },
+              );
             }
-            await this.ctx.api.editMessageText(
-              this.ctx.chatId,
-              this.groupMessage.message_id,
-              richMessage,
-            );
           }
         }
         this.lastPublishedText = text;
@@ -315,7 +322,7 @@ export class TelegramStreamSink {
   }
 
   private async sendFinalReply(rawText: string): Promise<StreamedReply> {
-    const richMessage = createRichMessage(rawText);
+    const richMessage = createRichMessageIfNeeded(rawText);
     if (richMessage) {
       try {
         return await this.ctx.replyWithRichMessage(richMessage, {

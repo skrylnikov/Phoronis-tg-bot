@@ -22,6 +22,14 @@ export const subscriptionPlans = [
   SubscriptionPlan.YEAR,
 ] as const;
 
+export interface PurchaseOption {
+  plan: SubscriptionPlan;
+  amount: number;
+  actualDiscount: number;
+  requestedDiscount: number;
+  promotionEndsAt: Date;
+}
+
 export function getPlanTitle(plan: SubscriptionPlan): string {
   return {
     WEEK: '1 неделя',
@@ -164,7 +172,7 @@ export function hasAcceptedPaymentTerms(session: {
 export async function getPurchaseOptions(
   userId: number | bigint,
   now = new Date(),
-) {
+): Promise<PurchaseOption[]> {
   const [paidPurchases, minimumPlan] = await Promise.all([
     prisma.paymentOrder.count({
       where: { userId: BigInt(userId), status: PaymentOrderStatus.PAID },
