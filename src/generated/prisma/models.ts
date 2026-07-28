@@ -10,6 +10,12 @@
  */
 export type * from './models/User'
 export type * from './models/Chat'
+export type * from './models/Subscription'
+export type * from './models/PaymentOrder'
+export type * from './models/PurchaseSession'
+export type * from './models/QuotaUsage'
+export type * from './models/LimitNotice'
+export type * from './models/DailyAnalytics'
 export type * from './models/Message'
 export type * from './models/Memory'
 export type * from './models/UserFact'

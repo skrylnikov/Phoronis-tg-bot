@@ -21,7 +21,7 @@ export const chatGeneration = async (
   trace: LangfuseTraceClient | undefined,
   ctx?: BotContext,
   onTextUpdate?: (text: string) => Promise<void> | void,
-  options: { readOnlyTools?: boolean } = {},
+  options: { readOnlyTools?: boolean; model?: typeof chatModel } = {},
 ) => {
   const greetingTool = dynamicTool({
     description:
@@ -88,7 +88,7 @@ export const chatGeneration = async (
   const generationStartedAt = performance.now();
   let firstTextAt: number | null = null;
   const response = streamText({
-    model: chatModel,
+    model: options.model ?? chatModel,
     instructions: prompt.instructions,
     messages: prompt.messages,
     tools: options.readOnlyTools

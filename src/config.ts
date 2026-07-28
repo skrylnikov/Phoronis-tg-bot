@@ -15,6 +15,13 @@ export const yandexS3Secret =
   process.env.YANDEX_S3_SECRET || showError('token not found in .env');
 export const routerAIToken =
   process.env.ROUTERAI_API_KEY || showError('token not found in .env');
+export const paymentSupportContact =
+  process.env.PAYMENT_SUPPORT_CONTACT ||
+  showError('PAYMENT_SUPPORT_CONTACT not found in .env');
+export const analyticsChatId = Number(
+  process.env.ANALYTICS_CHAT_ID ||
+    showError('ANALYTICS_CHAT_ID not found in .env'),
+);
 export const embeddingBaseURL =
   process.env.EMBEDDING_BASE_URL ||
   showError('EMBEDDING_BASE_URL not found in .env');
@@ -31,6 +38,10 @@ if (!Number.isInteger(embeddingVersion) || embeddingVersion < 1) {
 
 if (!Number.isFinite(embeddingTimeoutMs) || embeddingTimeoutMs < 1) {
   showError('EMBEDDING_TIMEOUT_MS must be a positive number');
+}
+
+if (!Number.isSafeInteger(analyticsChatId)) {
+  showError('ANALYTICS_CHAT_ID must be a Telegram chat ID');
 }
 
 export const langfuseConfig = {

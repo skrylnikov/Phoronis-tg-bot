@@ -1,4 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
+import { sendDailyAnalyticsReport } from './analytics';
+import { bot } from './bot';
 import { prisma } from './db';
 import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
@@ -11,6 +13,19 @@ let impactScoreTask: ScheduledTask | null = null;
 
 export function startScheduler() {
   logger.info('Запуск планировщика задач...');
+
+  const sendAnalyticsReport = async () => {
+    try {
+      await sendDailyAnalyticsReport(bot.api);
+    } catch (error) {
+      logger.error(error, 'Failed to send daily analytics report');
+    }
+  };
+
+  void sendAnalyticsReport();
+  cron.schedule('0 23 * * *', sendAnalyticsReport, {
+    timezone: 'Europe/Moscow',
+  });
 
   // Запускать каждую субботу в 12:00 по МСК (UTC+3), т.е. в 9:00 UTC
   // Формат: <минута> <час> <день месяца> <месяц> <день недели>

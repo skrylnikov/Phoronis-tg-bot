@@ -1,15 +1,25 @@
 import type { ModelMessage } from 'ai';
 import { format } from 'date-fns';
+import { InlineKeyboard } from 'grammy';
 import { unique } from 'remeda';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
 import type { Message, User } from '../generated/prisma/client';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
+import {
+  createPurchaseSession,
+  releaseQuota,
+  reserveQuota,
+  saveChat,
+  saveMessage,
+  saveUser,
+  shouldSendLimitNotice,
+} from '../shared';
 import { getRecentMemoriesForUsers } from '../tools/memory';
 import { extractMentionedUserIds } from '../tools/shared/entities';
 import { getTopUserFacts } from '../tools/user/fact-analyzer';
+import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
 import { langfuse } from './langfuse';
@@ -127,6 +137,19 @@ export const aiController = async (
     return;
   }
 
+  if (!ctx.from || !ctx.chatId) return;
+
+  await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+  const isGroup = chat.type === 'group' || chat.type === 'supergroup';
+  const quotaReservation = await reserveQuota({
+    userId: ctx.from.id,
+    chatId: ctx.chatId,
+    isGroup,
+    kind: 'PRIMARY_RESPONSE',
+  });
+  const model = quotaReservation.allowed ? chatModel : liteChatModel;
+  let completed = false;
+
   let streamSink: TelegramStreamSink | undefined;
   let streamFinalized = false;
   const typingInterval = options.ephemeralReceiverUserId
@@ -138,6 +161,44 @@ export const aiController = async (
       }, 5000);
 
   try {
+    if (
+      !quotaReservation.allowed &&
+      (await shouldSendLimitNotice({
+        userId: ctx.from.id,
+        chatId: ctx.chatId,
+        kind: 'LITE_FALLBACK',
+      }))
+    ) {
+      const session = await createPurchaseSession({
+        userId: ctx.from.id,
+        beneficiaryChatId: ctx.chatId,
+      });
+      const username = ctx.me.username;
+      const subscribeUrl = username
+        ? `https://t.me/${username}?start=buy_${session.token}`
+        : undefined;
+      const ephemeralMessageId = ctx.msg?.ephemeral_message_id;
+      await ctx.reply(
+        'Лимит основной модели на сегодня закончился — отвечаю через более простую модель. Подписка вернёт повышенные лимиты.',
+        {
+          ...(isGroup && ephemeralMessageId
+            ? {
+                receiver_user_id: ctx.from.id,
+                reply_parameters: { ephemeral_message_id: ephemeralMessageId },
+              }
+            : {}),
+          ...(subscribeUrl
+            ? {
+                reply_markup: new InlineKeyboard().url(
+                  'Подписка',
+                  subscribeUrl,
+                ),
+              }
+            : {}),
+        },
+      );
+    }
+
     if (!options.ephemeralReceiverUserId) {
       await ctx.replyWithChatAction('typing');
     }
@@ -375,7 +436,7 @@ export const aiController = async (
       trace,
       ctx,
       (streamedText) => streamSink?.update(streamedText),
-      { readOnlyTools: options.readOnlyTools },
+      { readOnlyTools: options.readOnlyTools, model },
     );
 
     // logger.debug(
@@ -391,6 +452,7 @@ export const aiController = async (
       clearInterval(typingInterval);
       const reply = await streamSink.finish(result);
       streamFinalized = true;
+      completed = true;
 
       if (options.persistResponse === false) {
         return;
@@ -423,6 +485,11 @@ export const aiController = async (
     logger.error(error);
   } finally {
     clearInterval(typingInterval);
+    if (!completed) {
+      await releaseQuota(quotaReservation).catch((error) =>
+        logger.error(error, 'Failed to release response quota'),
+      );
+    }
     if (!streamFinalized) {
       await streamSink?.cancel();
     }

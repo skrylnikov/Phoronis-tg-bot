@@ -6,7 +6,7 @@ vi.mock('../config', () => ({
   routerAIToken: 'test-routerai-token',
 }));
 
-import { chatModel, utilityModel } from '../ai/ai';
+import { chatModel, liteChatModel, utilityModel } from '../ai/ai';
 import { splitSystemMessages } from '../ai/prompt';
 
 interface RequestBody {
@@ -76,6 +76,21 @@ afterEach(() => {
 });
 
 describe('RouterAI models', () => {
+  it('uses Gemini 2.5 Flash Lite for the paid-quota fallback', async () => {
+    let requestBody: RequestBody = {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        requestBody = JSON.parse(String(init?.body)) as RequestBody;
+        return jsonResponse(chatResponse('fallback', 'stop'));
+      }),
+    );
+
+    await generateText({ model: liteChatModel, prompt: 'fallback' });
+
+    expect(requestBody.model).toBe('google/gemini-2.5-flash-lite');
+  });
+
   it('streams text after completing a tool call', async () => {
     const requestBodies: RequestBody[] = [];
     const responses = [

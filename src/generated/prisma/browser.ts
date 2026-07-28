@@ -28,6 +28,36 @@ export type User = Prisma.UserModel
  */
 export type Chat = Prisma.ChatModel
 /**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model PaymentOrder
+ * 
+ */
+export type PaymentOrder = Prisma.PaymentOrderModel
+/**
+ * Model PurchaseSession
+ * 
+ */
+export type PurchaseSession = Prisma.PurchaseSessionModel
+/**
+ * Model QuotaUsage
+ * 
+ */
+export type QuotaUsage = Prisma.QuotaUsageModel
+/**
+ * Model LimitNotice
+ * 
+ */
+export type LimitNotice = Prisma.LimitNoticeModel
+/**
+ * Model DailyAnalytics
+ * 
+ */
+export type DailyAnalytics = Prisma.DailyAnalyticsModel
+/**
  * Model Message
  * 
  */

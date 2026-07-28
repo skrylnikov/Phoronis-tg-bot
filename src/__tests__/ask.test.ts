@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { aiController } = vi.hoisted(() => ({
+const { aiController, describeTelegramPhoto } = vi.hoisted(() => ({
   aiController: vi.fn().mockResolvedValue(undefined),
+  describeTelegramPhoto: vi.fn().mockResolvedValue('описание'),
 }));
 
 vi.mock('../ai', () => ({ aiController }));
+vi.mock('../ai/image-description', () => ({ describeTelegramPhoto }));
 
 import { askController, extractAskQuestion } from '../controllers/ask';
 

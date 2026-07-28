@@ -9,6 +9,17 @@ import { newChatMembersController } from './new-chat-members.js';
 import { privateController } from './private.js';
 import { processMessageController } from './process-message.js';
 import { startController } from './start.js';
+import {
+  limitsController,
+  paymentSupportController,
+  preCheckoutController,
+  refundedPaymentController,
+  subscribeController,
+  subscriptionCallbackController,
+  subscriptionStatusController,
+  successfulPaymentController,
+  termsController,
+} from './subscription.js';
 import { voiceController } from './voice.js';
 
 export const controllers = new Composer<BotContext>();
@@ -22,6 +33,17 @@ controllers.command('me', meController);
 controllers.command('private', privateController);
 
 controllers.command('ask', askController);
+
+controllers.command('subscribe', subscribeController);
+controllers.command('limits', limitsController);
+controllers.command('subscription', subscriptionStatusController);
+controllers.command('terms', termsController);
+controllers.command('paysupport', paymentSupportController);
+
+controllers.callbackQuery(/^subscription:/, subscriptionCallbackController);
+controllers.on('pre_checkout_query', preCheckoutController);
+controllers.on(':successful_payment', successfulPaymentController);
+controllers.on(':refunded_payment', refundedPaymentController);
 
 controllers.use(featuresController);
 

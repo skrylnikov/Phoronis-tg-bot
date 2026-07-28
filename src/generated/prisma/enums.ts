@@ -17,6 +17,53 @@ export const ChatType = {
 export type ChatType = (typeof ChatType)[keyof typeof ChatType]
 
 
+export const SubscriptionPlan = {
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+  QUARTER: 'QUARTER',
+  YEAR: 'YEAR'
+} as const
+
+export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
+
+
+export const PaymentOrderStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  REFUNDED: 'REFUNDED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type PaymentOrderStatus = (typeof PaymentOrderStatus)[keyof typeof PaymentOrderStatus]
+
+
+export const QuotaScope = {
+  USER: 'USER',
+  CHAT: 'CHAT'
+} as const
+
+export type QuotaScope = (typeof QuotaScope)[keyof typeof QuotaScope]
+
+
+export const QuotaKind = {
+  PRIMARY_RESPONSE: 'PRIMARY_RESPONSE',
+  IMAGE: 'IMAGE',
+  VOICE: 'VOICE',
+  ANALYSIS: 'ANALYSIS'
+} as const
+
+export type QuotaKind = (typeof QuotaKind)[keyof typeof QuotaKind]
+
+
+export const LimitNoticeKind = {
+  LITE_FALLBACK: 'LITE_FALLBACK',
+  IMAGE_LIMIT: 'IMAGE_LIMIT',
+  VOICE_LIMIT: 'VOICE_LIMIT'
+} as const
+
+export type LimitNoticeKind = (typeof LimitNoticeKind)[keyof typeof LimitNoticeKind]
+
+
 export const MessageType = {
   TEXT: 'TEXT',
   MEDIA: 'MEDIA',

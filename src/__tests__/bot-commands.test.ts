@@ -13,7 +13,8 @@ describe('registerBotCommands', () => {
 
     await registerBotCommands(api);
 
-    expect(setMyCommands).toHaveBeenCalledWith(
+    expect(setMyCommands).toHaveBeenNthCalledWith(
+      1,
       [
         { command: 'status', description: 'Status' },
         {
@@ -21,8 +22,31 @@ describe('registerBotCommands', () => {
           description: 'Спросить Ио приватно',
           is_ephemeral: true,
         },
+        {
+          command: 'subscribe',
+          description: 'Оформить подписку',
+        },
+        {
+          command: 'limits',
+          description: 'Посмотреть лимиты',
+        },
+        {
+          command: 'subscription',
+          description: 'Моя подписка',
+        },
       ],
       { scope: { type: 'all_group_chats' } },
+    );
+    expect(setMyCommands).toHaveBeenNthCalledWith(
+      2,
+      [
+        { command: 'start', description: 'Start' },
+        { command: 'limits', description: 'Посмотреть лимиты' },
+        { command: 'subscription', description: 'Моя подписка' },
+        { command: 'terms', description: 'Условия подписки' },
+        { command: 'paysupport', description: 'Поддержка по оплате' },
+      ],
+      { scope: { type: 'all_private_chats' } },
     );
   });
 
@@ -44,6 +68,18 @@ describe('registerBotCommands', () => {
         command: 'ask',
         description: 'Спросить Ио приватно',
         is_ephemeral: true,
+      },
+      {
+        command: 'subscribe',
+        description: 'Оформить подписку',
+      },
+      {
+        command: 'limits',
+        description: 'Посмотреть лимиты',
+      },
+      {
+        command: 'subscription',
+        description: 'Моя подписка',
       },
     ]);
   });

@@ -699,10 +699,6 @@ export type NullableIntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type MessageUpdateOneWithoutRepliesNestedInput = {
   create?: Prisma.XOR<Prisma.MessageCreateWithoutRepliesInput, Prisma.MessageUncheckedCreateWithoutRepliesInput>
   connectOrCreate?: Prisma.MessageCreateOrConnectWithoutRepliesInput

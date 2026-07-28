@@ -1,5 +1,9 @@
 import { aiController } from '../ai';
+import { describeTelegramPhoto } from '../ai/image-description';
 import type { BotContext } from '../bot';
+import { prisma } from '../db';
+import { releaseQuota, reserveQuota, saveChat, saveUser } from '../shared';
+import { sendMediaLimitNotice } from './limit-notice';
 
 const usageText = 'Использование: /ask ваш вопрос';
 
@@ -9,7 +13,7 @@ export function extractAskQuestion(text: string): string {
 
 export const askController = async (ctx: BotContext) => {
   const chat = ctx.chat;
-  if (!ctx.from || !chat || !ctx.msg?.text) {
+  if (!ctx.from || !chat || !ctx.chatId || !ctx.msg?.text) {
     return;
   }
 
@@ -37,7 +41,50 @@ export const askController = async (ctx: BotContext) => {
     return;
   }
 
-  await aiController(ctx, undefined, undefined, undefined, {
+  let imageDescription: string | undefined;
+  const repliedPhoto = ctx.msg.reply_to_message?.photo;
+  if (repliedPhoto) {
+    await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+    const sourceMessageId = ctx.msg.reply_to_message?.message_id ?? 0;
+    const savedReply = await prisma.message.findUnique({
+      where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+      select: { summary: true },
+    });
+    imageDescription = savedReply?.summary ?? undefined;
+    if (!imageDescription) {
+      const reservation = await reserveQuota({
+        userId: ctx.from.id,
+        chatId: ctx.chatId,
+        isGroup: true,
+        kind: 'IMAGE',
+      });
+      if (!reservation.allowed) {
+        await sendMediaLimitNotice(ctx, 'IMAGE_LIMIT');
+        return;
+      }
+      try {
+        const photo = repliedPhoto.reduce((best, candidate) =>
+          Math.min(candidate.width, candidate.height) <= 896 &&
+          Math.min(candidate.width, candidate.height) >
+            Math.min(best.width, best.height)
+            ? candidate
+            : best,
+        );
+        imageDescription = await describeTelegramPhoto(ctx, photo);
+        if (savedReply) {
+          await prisma.message.update({
+            where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+            data: { summary: imageDescription },
+          });
+        }
+      } catch (error) {
+        await releaseQuota(reservation);
+        throw error;
+      }
+    }
+  }
+
+  await aiController(ctx, imageDescription, undefined, undefined, {
     messageText: question,
     ephemeralReceiverUserId: ctx.from.id,
     persistResponse: false,

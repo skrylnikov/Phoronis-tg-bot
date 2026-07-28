@@ -13,18 +13,40 @@ import { token } from '../config.js';
 
 import { prisma } from '../db';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
+import {
+  releaseQuota,
+  reserveQuota,
+  saveChat,
+  saveMessage,
+  saveUser,
+} from '../shared';
 import { yandex } from '../yandex';
+import { sendMediaLimitNotice } from './limit-notice';
 
 export const voiceController = async (ctx: BotContext) => {
+  let completed = false;
+  let reservation: Awaited<ReturnType<typeof reserveQuota>> | null = null;
   try {
     const info = ctx.message?.voice || ctx.message?.video_note;
 
-    if (!info || !ctx.message || !ctx.chatId || !ctx.from) {
+    const chat = ctx.chat;
+    if (!info || !ctx.message || !ctx.chatId || !ctx.from || !chat) {
       return;
     }
 
     const chatId = ctx.chatId;
+
+    await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+    reservation = await reserveQuota({
+      userId: ctx.from.id,
+      chatId,
+      isGroup: chat.type === 'group' || chat.type === 'supergroup',
+      kind: 'VOICE',
+    });
+    if (!reservation.allowed) {
+      await sendMediaLimitNotice(ctx, 'VOICE_LIMIT');
+      return;
+    }
 
     const { duration, file_id, file_size = 0 } = info;
     await ctx.replyWithChatAction('typing');
@@ -215,7 +237,14 @@ export const voiceController = async (ctx: BotContext) => {
         },
       }),
     ]);
+    completed = true;
   } catch (e) {
     logger.error(e);
+  } finally {
+    if (!completed && reservation) {
+      await releaseQuota(reservation).catch((error) =>
+        logger.error(error, 'Failed to release voice quota'),
+      );
+    }
   }
 };

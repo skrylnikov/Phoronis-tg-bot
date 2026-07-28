@@ -22,9 +22,13 @@ model User {
   userName  String?
   metaInfo  Json?   @default("{}")
 
-  Message    Message[]
-  Memory     Memory[]
-  UserFact   UserFact[]
+  Message         Message[]
+  Memory          Memory[]
+  UserFact        UserFact[]
+  Subscription    Subscription[]
+  PaymentOrder    PaymentOrder[]
+  PurchaseSession PurchaseSession[]
+  LimitNotice     LimitNotice[]
 }
 
 enum ChatType {
@@ -44,8 +48,128 @@ model Chat {
   inktoberEnabled       Boolean? @default(false)
   privateModeEnabled    Boolean? @default(false)
 
-  Message Message[]
-  Memory  Memory[]
+  Message                  Message[]
+  Memory                   Memory[]
+  beneficiarySubscriptions Subscription[]    @relation("SubscriptionBenefitChat")
+  PaymentOrder             PaymentOrder[]
+  PurchaseSession          PurchaseSession[]
+  LimitNotice              LimitNotice[]
+}
+
+enum SubscriptionPlan {
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
+}
+
+enum PaymentOrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+  EXPIRED
+}
+
+enum QuotaScope {
+  USER
+  CHAT
+}
+
+enum QuotaKind {
+  PRIMARY_RESPONSE
+  IMAGE
+  VOICE
+  ANALYSIS
+}
+
+enum LimitNoticeKind {
+  LITE_FALLBACK
+  IMAGE_LIMIT
+  VOICE_LIMIT
+}
+
+model Subscription {
+  id                String           @id @default(cuid())
+  userId            BigInt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beneficiaryChatId BigInt
+  beneficiaryChat   Chat             @relation("SubscriptionBenefitChat", fields: [beneficiaryChatId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan
+  startsAt          DateTime
+  endsAt            DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime         @default(now())
+  paymentOrder      PaymentOrder?
+
+  @@index([userId, endsAt])
+  @@index([beneficiaryChatId, endsAt])
+}
+
+model PaymentOrder {
+  id                      String             @id @default(cuid())
+  userId                  BigInt
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beneficiaryChatId       BigInt
+  beneficiaryChat         Chat               @relation(fields: [beneficiaryChatId], references: [id], onDelete: Cascade)
+  plan                    SubscriptionPlan
+  baseAmount              Int
+  amount                  Int
+  discountPercent         Int                @default(0)
+  status                  PaymentOrderStatus @default(PENDING)
+  termsAcceptedAt         DateTime
+  termsVersion            String
+  telegramPaymentChargeId String?            @unique
+  subscriptionId          String?            @unique
+  subscription            Subscription?      @relation(fields: [subscriptionId], references: [id])
+  createdAt               DateTime           @default(now())
+  expiresAt               DateTime
+  paidAt                  DateTime?
+  refundedAt              DateTime?
+
+  @@index([userId, status])
+  @@index([beneficiaryChatId, status])
+  @@index([status, expiresAt])
+}
+
+model PurchaseSession {
+  token             String   @id
+  userId            BigInt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beneficiaryChatId BigInt
+  beneficiaryChat   Chat     @relation(fields: [beneficiaryChatId], references: [id], onDelete: Cascade)
+  expiresAt         DateTime
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
+  createdAt         DateTime @default(now())
+}
+
+model QuotaUsage {
+  id      String     @id @default(cuid())
+  scope   QuotaScope
+  ownerId BigInt
+  kind    QuotaKind
+  date    DateTime   @db.Date
+  count   Int        @default(0)
+
+  @@unique([scope, ownerId, kind, date])
+}
+
+model LimitNotice {
+  id     String          @id @default(cuid())
+  userId BigInt
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId BigInt
+  chat   Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  kind   LimitNoticeKind
+  sentAt DateTime        @default(now())
+
+  @@unique([userId, chatId, kind])
+}
+
+model DailyAnalytics {
+  date         DateTime @id @db.Date
+  reportSentAt DateTime?
+  updatedAt    DateTime @updatedAt
 }
 
 enum MessageType {
@@ -69,15 +193,15 @@ model Message {
 
   messageType MessageType
 
-  text    String?
-  media   String?
-  summary String?
+  text             String?
+  media            String?
+  summary          String?
   searchText       String?
   embedding        Unsupported("vector(384)")?
   embeddingVersion Int?
-  sentAt  DateTime
-  private Boolean? @default(false)
-  Replies Message[] @relation("replies")
+  sentAt           DateTime
+  private          Boolean?                    @default(false)
+  Replies          Message[]                   @relation("replies")
 
   @@id([chatId, id])
   @@index([sessionId])
@@ -85,20 +209,20 @@ model Message {
 }
 
 model Memory {
-  id        BigInt   @id @default(autoincrement())
+  id BigInt @id @default(autoincrement())
 
-  userId    BigInt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId BigInt
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  chatId    BigInt
-  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId BigInt
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
-  content   String
-  isUser    Boolean
+  content          String
+  isUser           Boolean
   embedding        Unsupported("vector(384)")?
   embeddingVersion Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
 
   @@index([userId, isUser])
   @@index([chatId, isUser])
@@ -112,28 +236,28 @@ enum FactType {
 }
 
 model UserFact {
-  id               BigInt   @id @default(autoincrement())
-  userId           BigInt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     BigInt @id @default(autoincrement())
+  userId BigInt
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  content          String
-  type             FactType
-  weight           Int      @default(1)
-  confidence       Float    @default(0.5)
-  sourceMessageId  BigInt?
-  expiresAt        DateTime?
+  content         String
+  type            FactType
+  weight          Int       @default(1)
+  confidence      Float     @default(0.5)
+  sourceMessageId BigInt?
+  expiresAt       DateTime?
 
-  usageCount       Int      @default(0)
+  usageCount       Int                         @default(0)
   lastUsedAt       DateTime?
-  impactScore      Float    @default(0)
+  impactScore      Float                       @default(0)
   embedding        Unsupported("vector(384)")?
   embeddingVersion Int?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  FactImpact       FactImpact[]
-  FactHistory      FactHistory[]
+  FactImpact  FactImpact[]
+  FactHistory FactHistory[]
 
   @@index([userId, type])
   @@index([userId, updatedAt])
@@ -142,9 +266,9 @@ model UserFact {
 }
 
 model FactImpact {
-  id              BigInt   @id @default(autoincrement())
-  factId          BigInt
-  fact            UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  id     BigInt   @id @default(autoincrement())
+  factId BigInt
+  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
 
   usedInMessageId BigInt
   timestamp       DateTime @default(now())
@@ -158,9 +282,9 @@ model FactImpact {
 }
 
 model FactHistory {
-  id              BigInt   @id @default(autoincrement())
-  factId          BigInt
-  fact            UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  id     BigInt   @id @default(autoincrement())
+  factId BigInt
+  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
 
   previousContent String
   newContent      String

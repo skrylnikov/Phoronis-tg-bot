@@ -9,4 +9,5 @@ export const routerAI = createOpenAICompatible({
 });
 
 export const chatModel = routerAI('google/gemini-3.6-flash');
+export const liteChatModel = routerAI('google/gemini-2.5-flash-lite');
 export const utilityModel = routerAI('nex-agi/nex-n2-mini');

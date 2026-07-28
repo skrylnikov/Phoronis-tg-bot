@@ -1,27 +1,25 @@
 import type { PhotoSize } from '@grammyjs/types';
-import { generateText } from 'ai';
 import { Composer } from 'grammy';
 import {
   aiController,
   queueMessageEmbedding,
   searchAndIndexMessage,
-  utilityModel,
 } from '../ai';
-import { langfuse } from '../ai/langfuse';
+import { describeTelegramPhoto } from '../ai/image-description';
 import type { BotContext } from '../bot';
-import { token } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
-import { canAnalyze, saveChat, saveMessage, saveUser } from '../shared';
+import {
+  releaseQuota,
+  reserveQuota,
+  saveChat,
+  saveMessage,
+  saveUser,
+} from '../shared';
 import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
 import { recordUserReaction } from '../tools/user/fact-impact-tracker';
 import { handleError } from '../utils/error-handler';
-
-interface Media {
-  url: string;
-  // buffer: string;
-  mimeType: string;
-}
+import { sendMediaLimitNotice } from './limit-notice';
 
 interface TelegramReactionResult {
   emoji?: string;
@@ -35,12 +33,13 @@ interface TelegramReactionsMessage {
   };
 }
 
+function isGroupChat(ctx: BotContext): boolean {
+  return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+}
+
 function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
-  if (!msg || typeof msg !== 'object') {
-    return false;
-  }
-  const withReactions = msg as TelegramReactionsMessage;
-  return Array.isArray(withReactions.reactions?.results);
+  if (!msg || typeof msg !== 'object') return false;
+  return Array.isArray((msg as TelegramReactionsMessage).reactions?.results);
 }
 
 async function handleUserReaction(
@@ -48,22 +47,19 @@ async function handleUserReaction(
   messageText: string,
 ): Promise<void> {
   if (!ctx.msg?.reply_to_message || !ctx.from || !ctx.chatId) return;
-  logger.info('Handling user reaction for message');
   const botMessageId = ctx.msg.reply_to_message.message_id;
   if (!botMessageId) return;
 
-  let telegramReactions: { type: string; count: number }[] | undefined;
   const replyMessage = ctx.msg.reply_to_message;
-  if (hasTelegramReactions(replyMessage)) {
-    telegramReactions =
-      replyMessage.reactions?.results?.map((r) => {
-        const type = typeof r.emoji === 'string' ? r.emoji : r.type;
-        return {
-          type: typeof type === 'string' ? type : '',
-          count: typeof r.count === 'number' ? r.count : 0,
-        };
-      }) ?? [];
-  }
+  const telegramReactions = hasTelegramReactions(replyMessage)
+    ? (replyMessage.reactions?.results?.map((reaction) => ({
+        type:
+          typeof reaction.emoji === 'string'
+            ? reaction.emoji
+            : (reaction.type ?? ''),
+        count: reaction.count ?? 0,
+      })) ?? [])
+    : undefined;
 
   await recordUserReaction(
     botMessageId,
@@ -74,58 +70,59 @@ async function handleUserReaction(
   ).catch((error) => logger.error(error, 'Error recording user reaction'));
 }
 
-export const processMessageController = new Composer<BotContext>();
+function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
+  const maxSize = 896;
+  let optimalPhoto = photos[0];
+  let optimalSide = 0;
+  for (const photo of photos) {
+    const side = Math.min(photo.width, photo.height);
+    if (side <= maxSize && side > optimalSide) {
+      optimalPhoto = photo;
+      optimalSide = side;
+    }
+  }
+  return optimalPhoto;
+}
 
 const analyzer = async (ctx: BotContext) => {
-  if (!ctx.from || !ctx.chatId) {
+  if (!ctx.from || !ctx.chatId) return;
+  const messageCount = await prisma.message.count({
+    where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
+  });
+  if (messageCount % 30 !== 0) return;
+
+  const reservation = await reserveQuota({
+    userId: ctx.from.id,
+    chatId: ctx.chatId,
+    isGroup: isGroupChat(ctx),
+    kind: 'ANALYSIS',
+  });
+  if (!reservation.allowed) {
+    logger.debug(
+      `Analysis limit exceeded for user ${ctx.from.id} in chat ${ctx.chatId}`,
+    );
     return;
   }
 
-  const messageCount = await prisma.message.count({
-    where: {
-      chatId: ctx.chatId,
-      senderId: ctx.from.id,
-      private: false,
-    },
-  });
-
-  if (messageCount % 30 === 0) {
-    const userId = BigInt(ctx.from.id);
-    const chatId = BigInt(ctx.chatId);
-
-    if (!canAnalyze(userId, chatId)) {
-      logger.debug(
-        `Analysis limit exceeded for user ${ctx.from.id} in chat ${ctx.chatId}`,
-      );
-      return;
-    }
-
+  try {
     const lastMessages = await prisma.message.findMany({
-      where: {
-        chatId: ctx.chatId,
-        senderId: ctx.from.id,
-        private: false,
-      },
-      include: {
-        replyToMessage: true,
-      },
-      orderBy: {
-        sentAt: 'desc',
-      },
+      where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
+      include: { replyToMessage: true },
+      orderBy: { sentAt: 'desc' },
       take: 30,
     });
-
-    await analyzeUserMetaInfo(userId, lastMessages.reverse());
+    await analyzeUserMetaInfo(BigInt(ctx.from.id), lastMessages.reverse());
+  } catch (error) {
+    await releaseQuota(reservation);
+    throw error;
   }
 };
 
+export const processMessageController = new Composer<BotContext>();
+
 processMessageController.on(':text', async (ctx) => {
   try {
-    if (!ctx.from || !ctx.chatId) {
-      logger.warn('Missing from or chatId in text message');
-      return;
-    }
-
+    if (!ctx.from || !ctx.chatId) return;
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from),
@@ -137,84 +134,99 @@ processMessageController.on(':text', async (ctx) => {
       select: { privateModeEnabled: true },
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
-
     await saveMessage({
       id: ctx.msg.message_id,
       chatId: ctx.chatId,
       senderId: ctx.from.id,
-      replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+      replyToMessageId: ctx.msg.reply_to_message?.message_id,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
       private: isPrivateMode,
     });
-
     if (!isPrivateMode) {
-      analyzer(ctx);
+      void analyzer(ctx).catch((error) =>
+        logger.error(error, 'Failed to analyze user metadata'),
+      );
     }
 
-    const replyToMessageText =
+    const replyText =
       ctx.msg.reply_to_message?.text?.trim() ||
       ctx.msg.reply_to_message?.caption?.trim() ||
       null;
-
-    const messageText = (ctx.msg.text || ctx.msg.caption || '').trim();
-
-    const content = replyToMessageText
-      ? `Q: ${replyToMessageText}\n\nA: ${messageText}`
+    const messageText = ctx.msg.text.trim();
+    const content = replyText
+      ? `Q: ${replyText}\n\nA: ${messageText}`
       : messageText;
-
     const shouldRespond =
-      ctx.msg.text?.toLowerCase().startsWith('ио') ||
+      ctx.msg.text.toLowerCase().startsWith('ио') ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private';
 
-    if (shouldRespond) {
-      const { userContext, chatContext } = isPrivateMode
-        ? { userContext: null, chatContext: null }
-        : await searchAndIndexMessage(
-            { messageId: ctx.msg.message_id, chatId: ctx.chatId },
-            content,
-            ctx.from.id,
-            ctx.chat.type === 'private',
-          );
-
-      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
-        await handleUserReaction(ctx, ctx.msg.text);
-      }
-
-      await aiController(ctx, undefined, userContext, chatContext);
-    } else if (!isPrivateMode) {
-      queueMessageEmbedding();
+    if (!shouldRespond) {
+      if (!isPrivateMode) queueMessageEmbedding();
+      return;
     }
+
+    const { userContext, chatContext } = isPrivateMode
+      ? { userContext: null, chatContext: null }
+      : await searchAndIndexMessage(
+          { messageId: ctx.msg.message_id, chatId: ctx.chatId },
+          content,
+          ctx.from.id,
+          ctx.chat.type === 'private',
+        );
+
+    if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
+      await handleUserReaction(ctx, ctx.msg.text);
+    }
+
+    let imageDescription: string | undefined;
+    const repliedPhoto = ctx.msg.reply_to_message?.photo;
+    if (repliedPhoto) {
+      const sourceMessageId = ctx.msg.reply_to_message?.message_id ?? 0;
+      const savedReply = await prisma.message.findUnique({
+        where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+        select: { summary: true },
+      });
+      imageDescription = savedReply?.summary ?? undefined;
+      if (!imageDescription) {
+        const reservation = await reserveQuota({
+          userId: ctx.from.id,
+          chatId: ctx.chatId,
+          isGroup: isGroupChat(ctx),
+          kind: 'IMAGE',
+        });
+        if (!reservation.allowed) {
+          await sendMediaLimitNotice(ctx, 'IMAGE_LIMIT');
+          return;
+        }
+        try {
+          const photo = selectOptimalPhoto(repliedPhoto);
+          if (!photo) return;
+          imageDescription = await describeTelegramPhoto(ctx, photo);
+          if (savedReply) {
+            await prisma.message.update({
+              where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+              data: { summary: imageDescription },
+            });
+          }
+        } catch (error) {
+          await releaseQuota(reservation);
+          throw error;
+        }
+      }
+    }
+
+    await aiController(ctx, imageDescription, userContext, chatContext);
   } catch (error) {
     handleError(error, 'Processing text message');
   }
 });
 
-function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
-  const MAX_SIZE = 896;
-  let optimalPhoto = photos[0];
-  let maxSize = 0;
-
-  for (const photo of photos) {
-    const size = Math.min(photo.width, photo.height);
-    if (size <= MAX_SIZE && size > maxSize) {
-      maxSize = size;
-      optimalPhoto = photo;
-    }
-  }
-
-  return optimalPhoto;
-}
-
-processMessageController.on('msg', async (ctx) => {
+processMessageController.on(':photo', async (ctx) => {
   try {
-    if (!ctx.from || !ctx.chatId) {
-      logger.warn('Missing from or chatId in media message');
-      return;
-    }
-
+    if (!ctx.from || !ctx.chatId) return;
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from),
@@ -226,77 +238,53 @@ processMessageController.on('msg', async (ctx) => {
       select: { privateModeEnabled: true },
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
-
-    let media: Media[] = [];
-
-    if (ctx.msg.photo) {
-      const optimalPhoto = selectOptimalPhoto(ctx.msg.photo);
-      if (!optimalPhoto) {
-        logger.warn('No optimal photo found');
-        return;
-      }
-      const fileLink = await ctx.api.getFile(optimalPhoto.file_id);
-      const url = `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`;
-      media = [
-        {
-          url,
-          mimeType: 'image/jpeg',
-        },
-      ];
-    }
-
-    const prompt = await langfuse.getPrompt('image-description');
-
-    const systemPrompt = prompt.compile();
-
-    const response = await generateText({
-      model: utilityModel,
-      instructions: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: media.map((m) => ({
-            type: 'file',
-            mediaType: m.mimeType,
-            data: {
-              type: 'url',
-              url: new URL(m.url),
-            },
-          })),
-        },
-      ],
-      temperature: 0,
-    });
-
-    const imageDescription = response.text;
-
-    logger.debug(`Image description: ${imageDescription}`);
-
-    await saveMessage({
+    const photo = selectOptimalPhoto(ctx.msg.photo);
+    if (!photo) return;
+    const savedMessage = await saveMessage({
       id: ctx.msg.message_id,
       chatId: ctx.chatId,
       senderId: ctx.from.id,
-      replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+      replyToMessageId: ctx.msg.reply_to_message?.message_id,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.caption,
       messageType: 'MEDIA',
-      media: JSON.stringify(media.map((m) => m.url)),
-      summary: imageDescription,
+      media: JSON.stringify({ fileId: photo.file_id, mimeType: 'image/jpeg' }),
       private: isPrivateMode,
     });
 
-    if (
-      ctx.msg.text?.toLowerCase().startsWith('ио') ||
-      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === 'private'
-    ) {
-      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
-        const messageText = ctx.msg.text || ctx.msg.caption || '';
-        if (messageText) {
-          await handleUserReaction(ctx, messageText);
-        }
-      }
+    const reservation = await reserveQuota({
+      userId: ctx.from.id,
+      chatId: ctx.chatId,
+      isGroup: isGroupChat(ctx),
+      kind: 'IMAGE',
+    });
+    if (!reservation.allowed) {
+      await sendMediaLimitNotice(ctx, 'IMAGE_LIMIT');
+      return;
+    }
 
+    let imageDescription: string;
+    try {
+      imageDescription = await describeTelegramPhoto(ctx, photo);
+      await prisma.message.update({
+        where: {
+          chatId_id: { chatId: savedMessage.chatId, id: savedMessage.id },
+        },
+        data: { summary: imageDescription },
+      });
+    } catch (error) {
+      await releaseQuota(reservation);
+      throw error;
+    }
+
+    const shouldRespond =
+      ctx.msg.caption?.toLowerCase().startsWith('ио') ||
+      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
+      ctx.chat.type === 'private';
+    if (shouldRespond) {
+      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id && ctx.msg.caption) {
+        await handleUserReaction(ctx, ctx.msg.caption);
+      }
       await aiController(ctx, imageDescription);
     }
   } catch (error) {

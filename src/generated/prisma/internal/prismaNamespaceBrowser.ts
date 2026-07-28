@@ -53,6 +53,12 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Chat: 'Chat',
+  Subscription: 'Subscription',
+  PaymentOrder: 'PaymentOrder',
+  PurchaseSession: 'PurchaseSession',
+  QuotaUsage: 'QuotaUsage',
+  LimitNotice: 'LimitNotice',
+  DailyAnalytics: 'DailyAnalytics',
   Message: 'Message',
   Memory: 'Memory',
   UserFact: 'UserFact',
@@ -99,6 +105,87 @@ export const ChatScalarFieldEnum = {
 } as const
 
 export type ChatScalarFieldEnum = (typeof ChatScalarFieldEnum)[keyof typeof ChatScalarFieldEnum]
+
+
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  beneficiaryChatId: 'beneficiaryChatId',
+  plan: 'plan',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const PaymentOrderScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  beneficiaryChatId: 'beneficiaryChatId',
+  plan: 'plan',
+  baseAmount: 'baseAmount',
+  amount: 'amount',
+  discountPercent: 'discountPercent',
+  status: 'status',
+  termsAcceptedAt: 'termsAcceptedAt',
+  termsVersion: 'termsVersion',
+  telegramPaymentChargeId: 'telegramPaymentChargeId',
+  subscriptionId: 'subscriptionId',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt',
+  paidAt: 'paidAt',
+  refundedAt: 'refundedAt'
+} as const
+
+export type PaymentOrderScalarFieldEnum = (typeof PaymentOrderScalarFieldEnum)[keyof typeof PaymentOrderScalarFieldEnum]
+
+
+export const PurchaseSessionScalarFieldEnum = {
+  token: 'token',
+  userId: 'userId',
+  beneficiaryChatId: 'beneficiaryChatId',
+  expiresAt: 'expiresAt',
+  termsAcceptedAt: 'termsAcceptedAt',
+  termsVersion: 'termsVersion',
+  createdAt: 'createdAt'
+} as const
+
+export type PurchaseSessionScalarFieldEnum = (typeof PurchaseSessionScalarFieldEnum)[keyof typeof PurchaseSessionScalarFieldEnum]
+
+
+export const QuotaUsageScalarFieldEnum = {
+  id: 'id',
+  scope: 'scope',
+  ownerId: 'ownerId',
+  kind: 'kind',
+  date: 'date',
+  count: 'count'
+} as const
+
+export type QuotaUsageScalarFieldEnum = (typeof QuotaUsageScalarFieldEnum)[keyof typeof QuotaUsageScalarFieldEnum]
+
+
+export const LimitNoticeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  chatId: 'chatId',
+  kind: 'kind',
+  sentAt: 'sentAt'
+} as const
+
+export type LimitNoticeScalarFieldEnum = (typeof LimitNoticeScalarFieldEnum)[keyof typeof LimitNoticeScalarFieldEnum]
+
+
+export const DailyAnalyticsScalarFieldEnum = {
+  date: 'date',
+  reportSentAt: 'reportSentAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DailyAnalyticsScalarFieldEnum = (typeof DailyAnalyticsScalarFieldEnum)[keyof typeof DailyAnalyticsScalarFieldEnum]
 
 
 export const MessageScalarFieldEnum = {
