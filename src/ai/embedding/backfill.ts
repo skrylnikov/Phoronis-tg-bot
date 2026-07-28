@@ -11,6 +11,7 @@ import {
 } from './store';
 
 const BATCH_SIZE = 16;
+const BATCH_INTERVAL_MS = 3_000;
 const IDLE_INTERVAL_MS = 30_000;
 const INITIAL_RETRY_MS = 1_000;
 const MAX_RETRY_MS = 30_000;
@@ -48,6 +49,10 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function backfillMessages(): Promise<number> {
   const messages = await prisma.message.findMany({
     where: {
@@ -75,35 +80,29 @@ async function backfillMessages(): Promise<number> {
     }))
     .filter(({ content }) => content.length > 0);
 
-  await Promise.all(
-    messages
-      .filter(
-        (message) =>
-          !embeddable.some(
-            (item) =>
-              item.message.chatId === message.chatId &&
-              item.message.id === message.id,
-          ),
-      )
-      .map((message) =>
-        markMessageEmbeddingSkipped(message.chatId, message.id),
+  for (const message of messages.filter(
+    (message) =>
+      !embeddable.some(
+        (item) =>
+          item.message.chatId === message.chatId &&
+          item.message.id === message.id,
       ),
-  );
+  )) {
+    await markMessageEmbeddingSkipped(message.chatId, message.id);
+  }
 
   if (embeddable.length > 0) {
     const embeddings = await embedPassages(
       embeddable.map(({ content }) => content),
     );
-    await Promise.all(
-      embeddable.map(({ message, content }, index) =>
-        updateMessageEmbedding(
-          message.chatId,
-          message.id,
-          content,
-          embeddings[index],
-        ),
-      ),
-    );
+    for (const [index, { message, content }] of embeddable.entries()) {
+      await updateMessageEmbedding(
+        message.chatId,
+        message.id,
+        content,
+        embeddings[index],
+      );
+    }
   }
 
   return messages.length;
@@ -120,11 +119,9 @@ async function backfillMemories(): Promise<number> {
   const embeddings = await embedPassages(
     memories.map((memory) => memory.content),
   );
-  await Promise.all(
-    memories.map((memory, index) =>
-      updateMemoryEmbedding(memory.id, embeddings[index]),
-    ),
-  );
+  for (const [index, memory] of memories.entries()) {
+    await updateMemoryEmbedding(memory.id, embeddings[index]);
+  }
   return memories.length;
 }
 
@@ -137,9 +134,9 @@ async function backfillFacts(): Promise<number> {
   if (facts.length === 0) return 0;
 
   const embeddings = await embedPassages(facts.map((fact) => fact.content));
-  await Promise.all(
-    facts.map((fact, index) => updateFactEmbedding(fact.id, embeddings[index])),
-  );
+  for (const [index, fact] of facts.entries()) {
+    await updateFactEmbedding(fact.id, embeddings[index]);
+  }
   return facts.length;
 }
 
@@ -229,6 +226,7 @@ async function runWorker(): Promise<void> {
         },
         'Embedding backfill batch completed',
       );
+      await delay(BATCH_INTERVAL_MS);
     } catch (error) {
       logger.warn(
         {

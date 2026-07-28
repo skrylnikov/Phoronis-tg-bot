@@ -15,16 +15,20 @@ let ready = false;
 
 try {
   while (Date.now() < deadline) {
-    const extensions = await prisma.$queryRaw<Array<{ installed: boolean }>>`
-      SELECT EXISTS (
-        SELECT 1 FROM pg_extension WHERE extname = 'vector'
-      ) AS installed
-    `;
+    try {
+      const extensions = await prisma.$queryRaw<Array<{ installed: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_extension WHERE extname = 'vector'
+        ) AS installed
+      `;
 
-    if (extensions[0]?.installed) {
-      console.log('PostgreSQL vector extension is ready');
-      ready = true;
-      break;
+      if (extensions[0]?.installed) {
+        console.log('PostgreSQL vector extension is ready');
+        ready = true;
+        break;
+      }
+    } catch {
+      console.log('PostgreSQL is unavailable; retrying vector readiness check');
     }
 
     console.log('Waiting for PostgreSQL vector extension');
