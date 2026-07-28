@@ -12,11 +12,17 @@ import {
 
 const BATCH_SIZE = 16;
 const BATCH_INTERVAL_MS = 3_000;
+const BACKLOG_REFRESH_INTERVAL_MS = 60_000;
 const IDLE_INTERVAL_MS = 30_000;
 const INITIAL_RETRY_MS = 1_000;
 const MAX_RETRY_MS = 30_000;
 
 type BackfillEntity = 'Message' | 'Memory' | 'UserFact';
+type Backlog = {
+  messages: number;
+  memories: number;
+  facts: number;
+};
 
 let workerPromise: Promise<void> | null = null;
 let stopped = false;
@@ -140,11 +146,7 @@ async function backfillFacts(): Promise<number> {
   return facts.length;
 }
 
-async function getBacklog(): Promise<{
-  messages: number;
-  memories: number;
-  facts: number;
-}> {
+async function getBacklog(): Promise<Backlog> {
   const [messages, memories, facts] = await Promise.all([
     prisma.message.count({
       where: {
@@ -169,6 +171,8 @@ async function runWorker(): Promise<void> {
     UserFact: 0,
   };
   let activeEntity: BackfillEntity | 'health' = 'health';
+  let backlog: Backlog | null = null;
+  let backlogMeasuredAt = 0;
   const startedAt = Date.now();
 
   while (!stopped) {
@@ -209,17 +213,44 @@ async function runWorker(): Promise<void> {
         messageCount > 0 ? 'Message' : memoryCount > 0 ? 'Memory' : 'UserFact';
       processedByType[entity] += batchProcessed;
       processed += batchProcessed;
-      const backlog = await getBacklog();
+      const now = Date.now();
+      let backlogExact = false;
+      let currentBacklog: Backlog;
+      if (
+        backlog === null ||
+        now - backlogMeasuredAt >= BACKLOG_REFRESH_INTERVAL_MS
+      ) {
+        backlogExact = true;
+        currentBacklog = await getBacklog();
+        backlog = currentBacklog;
+        backlogMeasuredAt = Date.now();
+      } else {
+        const backlogKey =
+          entity === 'Message'
+            ? 'messages'
+            : entity === 'Memory'
+              ? 'memories'
+              : 'facts';
+        currentBacklog = {
+          ...backlog,
+          [backlogKey]: Math.max(0, backlog[backlogKey] - batchProcessed),
+        };
+        backlog = currentBacklog;
+      }
       const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
       const ratePerSecond = processed / elapsedSeconds;
-      const remaining = backlog.messages + backlog.memories + backlog.facts;
+      const remaining =
+        currentBacklog.messages +
+        currentBacklog.memories +
+        currentBacklog.facts;
       logger.info(
         {
           entity,
           batchProcessed,
           processed,
           processedByType,
-          backlog,
+          backlog: currentBacklog,
+          backlogExact,
           ratePerSecond: Number(ratePerSecond.toFixed(2)),
           etaSeconds:
             ratePerSecond > 0 ? Math.ceil(remaining / ratePerSecond) : null,
