@@ -81,6 +81,9 @@ bun run test:unit
 Create a `.env` file with the following variables:
 ```
 TOKEN=your_telegram_bot_token
+BOT_MODE=polling
+WEBHOOK_URL=
+WEBHOOK_SECRET=
 OPEN_WEATHER_TOKEN=your_openweather_token
 YANDEX_CLOUD_TOKEN=your_yandex_cloud_token
 YANDEX_S3_ID=your_yandex_s3_id
@@ -95,6 +98,11 @@ EMBEDDING_TIMEOUT_MS=2000
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 ```
+
+Local development uses long polling with `BOT_MODE=polling`. Use a separate
+Telegram bot token for local development: Telegram cannot deliver updates for
+the same token through both polling and a webhook at the same time. Production
+uses `BOT_MODE=webhook`, `WEBHOOK_URL`, and `WEBHOOK_SECRET`.
 
 ## Features
 

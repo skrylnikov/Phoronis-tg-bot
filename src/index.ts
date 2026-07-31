@@ -2,16 +2,24 @@ import { GrammyError, HttpError } from 'grammy';
 import { startEmbeddingBackfill, stopEmbeddingBackfill } from './ai/embedding';
 import { bot } from './bot';
 import { registerBotCommands } from './bot-commands';
+import { transportConfig } from './config';
 import { controllers } from './controllers';
 import { prisma } from './db';
 import { startHealthServer } from './health';
 import { logger } from './logger';
 import { startScheduler } from './scheduler';
+import { createBotTransport } from './transport';
 import { handleError } from './utils/error-handler';
 
 bot.use(controllers);
 
-const healthServer = startHealthServer();
+const botTransport = createBotTransport(bot, transportConfig, (error) => {
+  handleError(error, 'Failed to start bot polling');
+});
+const healthServer = startHealthServer({
+  webhookHandler: botTransport.webhookHandler,
+  webhookPath: botTransport.webhookPath,
+});
 
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -29,12 +37,7 @@ bot.catch((err) => {
 await registerBotCommands(bot.api);
 startScheduler();
 startEmbeddingBackfill();
-
-bot.start().catch((e) => {
-  handleError(e, 'Failed to start bot');
-});
-
-logger.info('Bot started');
+await botTransport.start();
 
 process.on('uncaughtException', (err) => {
   handleError(err, 'Uncaught exception');
@@ -48,7 +51,7 @@ const shutdown = async () => {
   logger.info('Shutting down the bot');
   healthServer.stop();
   await stopEmbeddingBackfill();
-  await Promise.all([bot.stop(), prisma.$disconnect()]);
+  await Promise.all([botTransport.stop(), prisma.$disconnect()]);
 };
 
 // Stopping the bot when the Node.js process

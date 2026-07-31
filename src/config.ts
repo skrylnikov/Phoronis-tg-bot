@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import { readTransportConfig } from './transport-config';
 
 const showError = (msg: string) => {
   throw new Error(msg);
@@ -31,6 +32,7 @@ export const embeddingVersion = Number(process.env.EMBEDDING_VERSION || '1');
 export const embeddingTimeoutMs = Number(
   process.env.EMBEDDING_TIMEOUT_MS || '2000',
 );
+export const transportConfig = readTransportConfig(process.env);
 
 if (!Number.isInteger(embeddingVersion) || embeddingVersion < 1) {
   showError('EMBEDDING_VERSION must be a positive integer');
