@@ -87,6 +87,26 @@ describe('chat history tool selection', () => {
     });
   });
 
+  it('requires history search for a question about the chat opinion', async () => {
+    await chatGeneration(
+      [{ role: 'user', content: 'Ио, что чат думает про раст?' }],
+      undefined,
+      createContext('Ио, что чат думает про раст?'),
+      undefined,
+      { allowChatHistory: true },
+    );
+
+    const options = streamText.mock.calls[0]?.[0] as {
+      prepareStep?: (input: { stepNumber: number }) => unknown;
+    };
+    expect(options.prepareStep?.({ stepNumber: 0 })).toEqual({
+      toolChoice: {
+        type: 'tool',
+        toolName: 'search_chat_history',
+      },
+    });
+  });
+
   it('keeps automatic tool selection for ordinary group questions', async () => {
     await chatGeneration(
       [{ role: 'user', content: 'Посоветуй хороший фильм' }],
@@ -100,6 +120,30 @@ describe('chat history tool selection', () => {
       prepareStep?: unknown;
     };
     expect(options.prepareStep).toBeUndefined();
+  });
+
+  it('requires history search for an explicit chat-search follow-up', async () => {
+    await chatGeneration(
+      [{ role: 'user', content: 'поищи по чату' }],
+      undefined,
+      createContext(
+        'поищи по чату',
+        'supergroup',
+        'Раст тут любят как материал.',
+      ),
+      undefined,
+      { allowChatHistory: true },
+    );
+
+    const options = streamText.mock.calls[0]?.[0] as {
+      prepareStep?: (input: { stepNumber: number }) => unknown;
+    };
+    expect(options.prepareStep?.({ stepNumber: 0 })).toEqual({
+      toolChoice: {
+        type: 'tool',
+        toolName: 'search_chat_history',
+      },
+    });
   });
 
   it('exposes history search in private chats', async () => {

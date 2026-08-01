@@ -8,11 +8,35 @@ describe('isChatHistorySearchIntent', () => {
     ).toBe(true);
   });
 
+  it('recognizes a question about the chat opinion', () => {
+    expect(
+      isChatHistorySearchIntent('Ио, что чат думает про раст?', undefined),
+    ).toBe(true);
+  });
+
+  it('recognizes a question about a chat participant', () => {
+    expect(
+      isChatHistorySearchIntent(
+        'Расскажи, кто в чате выращивает помидоры?',
+        undefined,
+      ),
+    ).toBe(true);
+  });
+
   it('recognizes a follow-up to a history answer', () => {
     expect(
       isChatHistorySearchIntent(
         'а игр?',
         'Тоже нет, в доступной истории ни фильмов, ни сериалов не нашла.',
+      ),
+    ).toBe(true);
+  });
+
+  it('recognizes an explicit request to search the chat', () => {
+    expect(
+      isChatHistorySearchIntent(
+        'поищи по чату',
+        'Раст тут любят как материал.',
       ),
     ).toBe(true);
   });

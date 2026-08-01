@@ -55,6 +55,7 @@ import {
 
 function createContext(
   type: 'private' | 'group' | 'supergroup' = 'group',
+  replyTo?: { id: number; text: string },
 ): BotContext {
   return {
     chat: { id: -100, type },
@@ -63,6 +64,9 @@ function createContext(
     msg: {
       message_id: 200,
       date: Math.floor(Date.UTC(2026, 6, 26, 10) / 1000),
+      reply_to_message: replyTo
+        ? { message_id: replyTo.id, text: replyTo.text }
+        : undefined,
     },
   } as unknown as BotContext;
 }
@@ -137,6 +141,38 @@ describe('searchChatHistory', () => {
         }),
       }),
     );
+  });
+
+  it('resolves a generic chat-search follow-up to the original question', async () => {
+    const originalQuery = 'Расскажи, кто в чате выращивает помидоры?';
+    messageFindFirst
+      .mockResolvedValueOnce({
+        replyToMessageId: 100n,
+        text: 'Судя по чату, помидоры выращивает Дзиуин.',
+        summary: null,
+        searchText: null,
+      })
+      .mockResolvedValueOnce({
+        text: originalQuery,
+        summary: null,
+        searchText: null,
+      });
+
+    const result = JSON.parse(
+      await searchChatHistory(
+        createContext('group', {
+          id: 199,
+          text: 'Судя по чату, помидоры выращивает Дзиуин.',
+        }),
+        { mode: 'search', query: 'поищи по чату' },
+      ),
+    );
+
+    expect(result.searchQuery).toBe(originalQuery);
+    expect(searchChatMessagesLexical).toHaveBeenCalledWith(
+      expect.objectContaining({ query: originalQuery }),
+    );
+    expect(embedQuery).toHaveBeenCalledWith(originalQuery);
   });
 
   it('gets latest messages without using the missed-message anchor', async () => {
@@ -229,6 +265,18 @@ describe('searchChatHistory', () => {
       rootMessageId: '103',
       matchedMessageId: '103',
     });
+    expect(result.threadReferences).toEqual([
+      {
+        number: 1,
+        rootMessageId: '100',
+        matchedMessageId: '101',
+      },
+      {
+        number: 2,
+        rootMessageId: '103',
+        matchedMessageId: '103',
+      },
+    ]);
   });
 
   it('marks a thread incomplete when its parent is unavailable', async () => {
@@ -266,11 +314,11 @@ describe('searchChatHistory', () => {
     });
   });
 
-  it('limits search results to five distinct threads', async () => {
-    const candidates = Array.from({ length: 6 }, (_, index) =>
+  it('limits search results to ten distinct threads', async () => {
+    const candidates = Array.from({ length: 11 }, (_, index) =>
       message(index + 1, `Тема ${index + 1}`),
     );
-    messageCount.mockResolvedValue(6);
+    messageCount.mockResolvedValue(11);
     messageFindMany.mockResolvedValue(candidates);
     searchChatMessagesLexical.mockResolvedValue(
       candidates.map((row, index) => ({
@@ -299,11 +347,12 @@ describe('searchChatHistory', () => {
       await searchChatHistory(createContext(), {
         mode: 'search',
         query: 'тема',
-        limit: 50,
+        limit: 10,
       }),
     );
 
-    expect(result.threads).toHaveLength(5);
+    expect(result.threads).toHaveLength(10);
+    expect(result.threadReferences).toHaveLength(10);
     expect(result.truncated).toBe(true);
   });
 

@@ -151,6 +151,18 @@ const messageSearchDocument = Prisma.sql`
   coalesce(m."searchText", '')
 `;
 
+const messageSearchVector = Prisma.sql`
+  to_tsvector('russian'::regconfig, ${messageSearchDocument}) ||
+  to_tsvector('english'::regconfig, ${messageSearchDocument})
+`;
+
+function messageSearchQuery(query: string) {
+  return Prisma.sql`
+    websearch_to_tsquery('russian'::regconfig, ${query}) ||
+    websearch_to_tsquery('english'::regconfig, ${query})
+  `;
+}
+
 function buildBroadSearchQuery(query: string): string {
   return query
     .trim()
@@ -237,11 +249,11 @@ export async function searchChatMessagesLexical(params: {
     )`,
     Prisma.sql`
       (
-        to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
-          websearch_to_tsquery('russian'::regconfig, ${params.query})
+        (${messageSearchVector}) @@
+          (${messageSearchQuery(params.query)})
         OR
-        to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
-          websearch_to_tsquery('russian'::regconfig, ${broadQuery})
+        (${messageSearchVector}) @@
+          (${messageSearchQuery(broadQuery)})
       )
     `,
   ];
@@ -271,12 +283,12 @@ export async function searchChatMessagesLexical(params: {
       m."searchText",
       GREATEST(
         ts_rank_cd(
-          to_tsvector('russian'::regconfig, ${messageSearchDocument}),
-          websearch_to_tsquery('russian'::regconfig, ${params.query})
+          (${messageSearchVector}),
+          (${messageSearchQuery(params.query)})
         ),
         ts_rank_cd(
-          to_tsvector('russian'::regconfig, ${messageSearchDocument}),
-          websearch_to_tsquery('russian'::regconfig, ${broadQuery})
+          (${messageSearchVector}),
+          (${messageSearchQuery(broadQuery)})
         ) * 0.75
       )::float8 AS "lexicalRank",
       strpos(

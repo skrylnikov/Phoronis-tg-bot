@@ -9,10 +9,12 @@ import {
   searchChatMessages,
   searchChatMessagesLexical,
 } from '../embedding/store';
+import { isGenericHistorySearchRequest } from '../history-intent';
 
 const defaultLimit = 20;
 const maxLimit = 50;
-const maxSearchThreads = 5;
+const defaultSearchThreads = 5;
+const maxSearchThreads = 10;
 const searchCandidateLimit = 40;
 const reciprocalRankConstant = 60;
 const exactMatchBoost = 0.02;
@@ -32,7 +34,15 @@ const historyInputSchema = z.object({
   sender: z.string().trim().min(1).optional(),
   startAt: z.iso.datetime({ offset: true }).optional(),
   endAt: z.iso.datetime({ offset: true }).optional(),
-  limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(maxLimit)
+    .optional()
+    .describe(
+      'Для search — количество тредов (по умолчанию 5, максимум 10); для recent и user_stats — количество сообщений (по умолчанию 20).',
+    ),
 });
 
 export type HistoryMessage = {
@@ -177,6 +187,61 @@ function getContent(row: {
   searchText?: string | null;
 }): string {
   return (row.summary || row.text || row.searchText || '').trim();
+}
+
+async function resolveSearchQuery(
+  ctx: BotContext,
+  query: string,
+): Promise<string> {
+  if (!isGenericHistorySearchRequest(query)) return query;
+
+  const repliedMessage = ctx.msg?.reply_to_message;
+  const replyText = (
+    repliedMessage?.text ??
+    repliedMessage?.caption ??
+    ''
+  ).trim();
+  const repliedMessageId = repliedMessage?.message_id;
+
+  if (ctx.chatId && repliedMessageId !== undefined) {
+    try {
+      const botMessage = await prisma.message.findFirst({
+        where: {
+          chatId: BigInt(ctx.chatId),
+          id: BigInt(repliedMessageId),
+          private: false,
+        },
+        select: {
+          replyToMessageId: true,
+          text: true,
+          summary: true,
+          searchText: true,
+        },
+      });
+
+      if (botMessage?.replyToMessageId) {
+        const originalMessage = await prisma.message.findFirst({
+          where: {
+            chatId: BigInt(ctx.chatId),
+            id: botMessage.replyToMessageId,
+            private: false,
+          },
+          select: { text: true, summary: true, searchText: true },
+        });
+        const originalQuery = originalMessage
+          ? getContent(originalMessage)
+          : '';
+        if (originalQuery) return originalQuery;
+      }
+    } catch (error) {
+      logger.warn(
+        { event: 'chat_history.resolve_search_query_failed', err: error },
+        'Failed to resolve the original history search query',
+      );
+    }
+  }
+
+  return replyText || query;
 }
 
 function formatMessage(row: HistoryRow, similarity?: number): HistoryMessage {
@@ -548,6 +613,7 @@ async function getRecentHistory(
   ctx: BotContext,
   input: z.infer<typeof historyInputSchema>,
 ): Promise<Record<string, unknown>> {
+  const limit = input.limit ?? defaultLimit;
   const currentMessageId = BigInt(ctx.msg?.message_id ?? 0);
   const currentMessageTime = new Date((ctx.msg?.date ?? 0) * 1000);
   const startAt = parseDate(input.startAt);
@@ -602,11 +668,11 @@ async function getRecentHistory(
       },
       select: messageSelect,
       orderBy: { id: 'desc' },
-      take: input.limit + 1,
+      take: limit + 1,
     });
     const result = getTruncatedMessages(
       rows as HistoryRow[],
-      input.limit,
+      limit,
       maxHistoryCharacters,
     );
 
@@ -638,6 +704,7 @@ async function getUserStats(
   input: z.infer<typeof historyInputSchema>,
   senderMatch: SenderMatch | undefined,
 ): Promise<Record<string, unknown>> {
+  const limit = input.limit ?? defaultLimit;
   if (!senderMatch) {
     return { error: 'Для user_stats нужно указать sender' };
   }
@@ -676,14 +743,14 @@ async function getUserStats(
         where,
         select: messageSelect,
         orderBy: { id: 'desc' },
-        take: input.limit,
+        take: limit,
       }),
     ]);
 
     return {
       mode: 'user_stats',
       totalCount,
-      truncated: totalCount > input.limit,
+      truncated: totalCount > limit,
       messages: (rows as HistoryRow[])
         .map((row) => formatMessage(row))
         .reverse(),
@@ -776,6 +843,8 @@ async function searchHistory(
     return { candidates: senderMatch.candidates };
   }
 
+  const searchQuery = await resolveSearchQuery(ctx, input.query);
+
   const currentMessageId = BigInt(ctx.msg?.message_id ?? 0);
   const currentMessageTime = new Date((ctx.msg?.date ?? 0) * 1000);
   const startAt = parseDate(input.startAt);
@@ -804,9 +873,9 @@ async function searchHistory(
         : undefined,
     ),
     OR: [
-      { text: { contains: input.query, mode: 'insensitive' } },
-      { summary: { contains: input.query, mode: 'insensitive' } },
-      { searchText: { contains: input.query, mode: 'insensitive' } },
+      { text: { contains: searchQuery, mode: 'insensitive' } },
+      { summary: { contains: searchQuery, mode: 'insensitive' } },
+      { searchText: { contains: searchQuery, mode: 'insensitive' } },
     ],
   };
 
@@ -825,7 +894,7 @@ async function searchHistory(
     try {
       lexicalRows = await searchChatMessagesLexical({
         chatId: BigInt(ctx.chatId ?? 0),
-        query: input.query,
+        query: searchQuery,
         limit: searchCandidateLimit,
         beforeMessageId: currentMessageId,
         senderId:
@@ -843,9 +912,9 @@ async function searchHistory(
     }
 
     let semanticRows: Array<HistoryRow & { similarity: number }> = [];
-    if (input.query.length > 10) {
+    if (searchQuery.length > 10) {
       try {
-        const embedding = await embedQuery(input.query);
+        const embedding = await embedQuery(searchQuery);
         semanticRows = (await searchChatMessages({
           chatId: BigInt(ctx.chatId ?? 0),
           embedding,
@@ -913,7 +982,7 @@ async function searchHistory(
 
     const selectedThreads = [...bestCandidateByRoot.values()].slice(
       0,
-      Math.min(input.limit, maxSearchThreads),
+      Math.min(input.limit ?? defaultSearchThreads, maxSearchThreads),
     );
     const threads: HistoryThread[] = [];
     let totalThreadCharacters = 0;
@@ -954,13 +1023,25 @@ async function searchHistory(
       lexicalRows.length >= searchCandidateLimit ||
       semanticRows.length >= searchCandidateLimit;
 
+    const threadReferences = threads.map((thread, index) => ({
+      number: index + 1,
+      rootMessageId: thread.rootMessageId,
+      matchedMessageId: thread.matchedMessageId,
+      ...(thread.rootLink ? { rootLink: thread.rootLink } : {}),
+      ...(thread.matchedMessageLink
+        ? { matchedMessageLink: thread.matchedMessageLink }
+        : {}),
+    }));
+
     return {
       mode: 'search',
       query: input.query,
+      ...(searchQuery !== input.query ? { searchQuery } : {}),
       totalCount: threads.length,
       exactCount,
       truncated,
       ...(truncated ? { notice: 'Поиск ограничен лимитом результатов.' } : {}),
+      threadReferences,
       threads,
     };
   } catch (error) {
@@ -1046,7 +1127,7 @@ export async function getRecentPublicChatContext(
 export const createChatHistoryTool = (ctx?: BotContext) =>
   dynamicTool({
     description:
-      'Искать историю текущего чата. Если пользователь спрашивает о прошлых сообщениях, обсуждениях, датах или участниках, сначала обязательно вызови этот tool, а не отвечай по общему контексту. Используй mode=search для поиска по словам или смыслу: он возвращает до пяти разных reply-тредов, собранных целиком из доступных сообщений. После tool-call кратко суммируй каждый тред, объясни релевантность и используй rootLink для начала обсуждения и matchedMessageLink для найденного сообщения; не придумывай ссылки. Если incomplete=true или truncated=true, обязательно сообщи, что доступна не вся ветка. Используй mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call для recent/user_stats сделай сводку с автором, датой и ID сообщения. Не используй в private-mode или read-only запросах.',
+      'Искать историю текущего чата. Если пользователь спрашивает о прошлых сообщениях, обсуждениях, датах или участниках, сначала обязательно вызови этот tool, а не отвечай по общему контексту. Используй mode=search для поиска по словам или смыслу: он возвращает до десяти разных reply-тредов, собранных целиком из доступных сообщений. Параметр limit в mode=search задаёт число тредов (по умолчанию 5, максимум 10); увеличивай его, если пользователь просит найти больше вариантов. Поиск поддерживает русский и английский стемминг; если термин может быть русской транслитерацией английского слова, передай оба варианта через пробел, например «раст Rust». Если пользователь пишет короткий follow-up вроде «поищи по чату» в reply на ответ бота, используй тему исходного вопроса; tool также восстановит её автоматически из связанного сообщения. После tool-call в ответе обязательно сделай отдельный пронумерованный пункт для каждого элемента threads/threadReferences: число пунктов и ссылок должно совпадать с totalCount. Для каждого треда кратко суммируй содержание, объясни релевантность, дай rootLink на начало обсуждения и matchedMessageLink на найденное сообщение; не заменяй несколько тредов одной ссылкой и не придумывай ссылки. Если incomplete=true или truncated=true, обязательно сообщи, что доступна не вся ветка. Используй mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call для recent/user_stats сделай сводку с автором, датой и ID сообщения. Не используй в private-mode или read-only запросах.',
     inputSchema: historyInputSchema,
     execute: (input: unknown) => searchChatHistory(ctx, input),
   });
