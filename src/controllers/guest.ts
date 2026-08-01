@@ -42,7 +42,10 @@ async function answerGuestMessage(ctx: BotContext, markdown: string) {
         input_message_content: { rich_message: richMessage },
       });
     } catch (error) {
-      logger.warn(error, 'Failed to send rich guest response');
+      logger.warn(
+        { event: 'guest.rich_response_failed', err: error },
+        'Failed to send rich guest response',
+      );
     }
   }
 
@@ -116,14 +119,20 @@ guestController.on('guest_message', async (ctx) => {
   try {
     await handleGuestMessage(ctx);
   } catch (error) {
-    logger.error(error, 'Failed to process guest message');
+    logger.error(
+      { event: 'guest.processing_failed', err: error },
+      'Failed to process guest message',
+    );
     try {
       await answerGuestMessage(
         ctx,
         'Не получилось ответить. Попробуй ещё раз.',
       );
     } catch (replyError) {
-      logger.error(replyError, 'Failed to send guest error response');
+      logger.error(
+        { event: 'guest.error_response_failed', err: replyError },
+        'Failed to send guest error response',
+      );
     }
   }
 });

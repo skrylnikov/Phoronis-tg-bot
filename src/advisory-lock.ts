@@ -41,7 +41,7 @@ export async function withAdvisoryLock<T>(
         await client.query('SELECT pg_advisory_unlock($1)', [key]);
       } catch (error) {
         logger.warn(
-          { error, key },
+          { event: 'advisory_lock.release_failed', err: error, key },
           'Failed to release PostgreSQL advisory lock',
         );
       }
@@ -51,7 +51,10 @@ export async function withAdvisoryLock<T>(
       try {
         await client.end();
       } catch (error) {
-        logger.warn({ error, key }, 'Failed to close advisory lock connection');
+        logger.warn(
+          { event: 'advisory_lock.close_failed', err: error, key },
+          'Failed to close advisory lock connection',
+        );
       }
     }
   }

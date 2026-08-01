@@ -171,7 +171,10 @@ async function runBroadcast(
       ].join('\n'),
     );
   } catch (error) {
-    logger.error(error, 'Whats-new broadcast failed');
+    logger.error(
+      { event: 'whats_new.broadcast_failed', err: error },
+      'Whats-new broadcast failed',
+    );
   } finally {
     activeBroadcasters.delete(ownerUserId);
   }
@@ -238,7 +241,10 @@ export async function whatsNewCallbackController(
     await ctx
       .editMessageReplyMarkup()
       .catch((error) =>
-        logger.warn(error, 'Failed to remove whats-new confirmation button'),
+        logger.warn(
+          { event: 'whats_new.confirmation_remove_failed', err: error },
+          'Failed to remove whats-new confirmation button',
+        ),
       );
     void runBroadcast(ctx.api, ctx.chatId, ctx.from.id, confirmation);
   } catch (error) {

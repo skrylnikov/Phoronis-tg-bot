@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 
+import { logger } from '../logger';
 import { saveMessage } from '../shared';
 
 export const meController = async (ctx: Context) => {
@@ -22,7 +23,7 @@ export const meController = async (ctx: Context) => {
         text: result,
       });
     }
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    logger.error({ event: 'command.me_failed', err }, 'Failed to process /me');
   }
 };

@@ -1,6 +1,7 @@
 import pgvector from 'pgvector';
 import { embeddingVersion } from '../../config';
 import { prisma } from '../../db';
+import { Prisma } from '../../generated/prisma/client';
 
 export interface SimilarMemory {
   id: bigint;
@@ -119,6 +120,80 @@ export async function searchChatMessageContext(
     LIMIT ${limit}
   `;
   return rows.map((row) => row.content);
+}
+
+export interface SimilarChatMessage {
+  id: bigint;
+  replyToMessageId: bigint | null;
+  senderId: bigint;
+  messageType: string;
+  sentAt: Date;
+  text: string | null;
+  summary: string | null;
+  searchText: string | null;
+  similarity: number;
+  sender: {
+    firstName: string | null;
+    lastName: string | null;
+    userName: string | null;
+  };
+}
+
+export async function searchChatMessages(params: {
+  chatId: bigint;
+  embedding: number[];
+  threshold: number;
+  limit: number;
+  beforeMessageId?: bigint;
+  senderId?: bigint;
+  startAt?: Date;
+  endAt?: Date;
+}): Promise<SimilarChatMessage[]> {
+  const vector = toVectorSql(params.embedding);
+  const conditions = [
+    Prisma.sql`m."chatId" = ${params.chatId}`,
+    Prisma.sql`m."private" = FALSE`,
+    Prisma.sql`m."embeddingVersion" = ${embeddingVersion}`,
+    Prisma.sql`m."embedding" IS NOT NULL`,
+    Prisma.sql`m."searchText" IS NOT NULL`,
+    Prisma.sql`1 - (m."embedding" <=> ${vector}::vector) >= ${params.threshold}`,
+  ];
+
+  if (params.beforeMessageId !== undefined) {
+    conditions.push(Prisma.sql`m."id" < ${params.beforeMessageId}`);
+  }
+  if (params.senderId !== undefined) {
+    conditions.push(Prisma.sql`m."senderId" = ${params.senderId}`);
+  }
+  if (params.startAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" >= ${params.startAt}`);
+  }
+  if (params.endAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" < ${params.endAt}`);
+  }
+
+  return prisma.$queryRaw<SimilarChatMessage[]>(Prisma.sql`
+    SELECT
+      m."id",
+      m."replyToMessageId",
+      m."senderId",
+      m."messageType",
+      m."sentAt",
+      m."text",
+      m."summary",
+      m."searchText",
+      1 - (m."embedding" <=> ${vector}::vector)::float8 AS "similarity",
+      json_build_object(
+        'firstName', u."firstName",
+        'lastName', u."lastName",
+        'userName', u."userName"
+      ) AS "sender"
+    FROM "Message" m
+    JOIN "User" u ON u."id" = m."senderId"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY m."embedding" <=> ${vector}::vector
+    LIMIT ${params.limit}
+  `);
 }
 
 export async function searchSimilarMemories(

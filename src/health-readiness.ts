@@ -14,7 +14,10 @@ export async function getReadinessResponse(): Promise<Response> {
       },
     });
   } catch (error) {
-    logger.warn({ error }, 'Readiness check failed');
+    logger.warn(
+      { event: 'health.readiness_failed', err: error },
+      'Readiness check failed',
+    );
     return Response.json({ status: 'not-ready' }, { status: 503 });
   }
 }

@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
+import { logger } from '../logger';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -23,15 +24,24 @@ try {
       `;
 
       if (extensions[0]?.installed) {
-        console.log('PostgreSQL vector extension is ready');
+        logger.info(
+          { event: 'database.vector_extension_ready' },
+          'PostgreSQL vector extension is ready',
+        );
         ready = true;
         break;
       }
-    } catch {
-      console.log('PostgreSQL is unavailable; retrying vector readiness check');
+    } catch (err) {
+      logger.warn(
+        { event: 'database.unavailable', err },
+        'PostgreSQL is unavailable; retrying vector readiness check',
+      );
     }
 
-    console.log('Waiting for PostgreSQL vector extension');
+    logger.info(
+      { event: 'database.waiting_for_vector_extension' },
+      'Waiting for PostgreSQL vector extension',
+    );
     await Bun.sleep(2_000);
   }
 

@@ -7,6 +7,7 @@ import {
   updateMemoryEmbedding,
 } from '../../ai/embedding/store';
 import { prisma } from '../../db';
+import { logger } from '../../logger';
 
 interface SaveMemoryOptions {
   userId: number;
@@ -113,8 +114,11 @@ ${candidates}
       isContradiction: false,
       embedding: passageEmbedding,
     };
-  } catch (error) {
-    console.error('Error checking for similar memories:', error);
+  } catch (err) {
+    logger.error(
+      { event: 'memory.similarity_check_failed', err },
+      'Memory similarity check failed',
+    );
     return { isDuplicate: false, isContradiction: false };
   }
 }
@@ -312,4 +316,25 @@ export async function getRecentMemoriesForUsers(
   });
 
   return result;
+}
+
+export async function getUserPersonalMemories(
+  userId: bigint,
+  options: { chatId?: bigint; allChats?: boolean } = {},
+) {
+  const memories = await prisma.memory.findMany({
+    where: {
+      userId,
+      isUser: true,
+      ...(options.allChats ? {} : { chatId: options.chatId }),
+    },
+    select: {
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  });
+
+  return memories;
 }

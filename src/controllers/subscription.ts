@@ -307,7 +307,10 @@ export async function successfulPaymentController(
       `${ctx.from.first_name} оформил(а) подписку ${getPlanTitle(subscription.plan)} и подарил(а) этому чату увеличенные лимиты ✨`,
     )
     .catch((error) =>
-      logger.error(error, 'Failed to announce subscription purchase'),
+      logger.error(
+        { event: 'subscription.purchase_announcement_failed', err: error },
+        'Failed to announce subscription purchase',
+      ),
     );
 
   if (!subscription.activatedNow) return;
@@ -319,7 +322,10 @@ export async function successfulPaymentController(
     plan: subscription.plan,
     amount: payment.total_amount,
   }).catch((error) =>
-    logger.error(error, 'Failed to send purchase analytics notification'),
+    logger.error(
+      { event: 'subscription.analytics_notification_failed', err: error },
+      'Failed to send purchase analytics notification',
+    ),
   );
 }
 
@@ -329,6 +335,9 @@ export async function refundedPaymentController(
   const payment = ctx.msg?.refunded_payment;
   if (!payment) return;
   await refundPayment(payment.telegram_payment_charge_id).catch((error) =>
-    logger.error(error, 'Failed to revoke refunded subscription'),
+    logger.error(
+      { event: 'subscription.refund_revoke_failed', err: error },
+      'Failed to revoke refunded subscription',
+    ),
   );
 }

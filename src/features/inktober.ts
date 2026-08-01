@@ -74,7 +74,10 @@ async function generateInktoberMessage(): Promise<string> {
 
     return message;
   } catch (error) {
-    logger.error(error, 'Ошибка при генерации сообщения для Inktober');
+    logger.error(
+      { event: 'feature.inktober_generation_failed', err: error },
+      'Ошибка при генерации сообщения для Inktober',
+    );
     // Возвращаем стандартное сообщение в случае ошибки
     const today = new Date();
     const day = today.getDate();
@@ -98,7 +101,10 @@ export async function sendInktoberMessage(
         bot.api.sendMessage(targetChatId, text, { parse_mode: 'MarkdownV2' }),
       (text) => bot.api.sendMessage(targetChatId, text),
     );
-    logger.info(`Сообщение Inktober отправлено в чат ${targetChatId}`);
+    logger.info(
+      { event: 'feature.inktober_message_sent', chatId: targetChatId },
+      'Inktober message sent',
+    );
 
     await saveMessage({
       id: reply.message_id,
@@ -110,8 +116,12 @@ export async function sendInktoberMessage(
     });
   } catch (error) {
     logger.error(
-      error,
-      `Ошибка при отправке сообщения Inktober в чат ${chatId}`,
+      {
+        event: 'feature.inktober_send_failed',
+        err: error,
+        chatId: Number(chatId),
+      },
+      'Ошибка при отправке сообщения Inktober',
     );
     // Здесь можно добавить логику обработки ошибок, например, отключить фичу для этого чата, если бот заблокирован
   }

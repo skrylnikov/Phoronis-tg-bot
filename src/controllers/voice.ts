@@ -62,11 +62,13 @@ export const voiceController = async (ctx: BotContext) => {
     );
 
     logger.debug(
-      `start recognoze voice message from ${JSON.stringify(
-        ctx.from,
-      )} in ${JSON.stringify(ctx.chat)} ${Math.round(
-        file_size / 1024,
-      )}Kb ${duration}сек`,
+      {
+        event: 'voice.recognition_started',
+        fileSizeKb: Math.round(file_size / 1024),
+        durationSeconds: duration,
+        videoNote: Boolean(ctx.message.video_note),
+      },
+      'Voice recognition started',
     );
     let file = rawFile.data;
     if (ctx.message.video_note) {
@@ -110,9 +112,8 @@ export const voiceController = async (ctx: BotContext) => {
     }
 
     logger.debug(
-      `recognize voice result from ${JSON.stringify(
-        ctx.from,
-      )} in ${JSON.stringify(ctx.chat)} : ${recognizedResult}`,
+      { event: 'voice.recognition_completed', durationSeconds: duration },
+      'Voice recognition completed',
     );
 
     const result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
@@ -193,7 +194,10 @@ export const voiceController = async (ctx: BotContext) => {
           await ctx.api.editMessageText(chatId, reply.message_id, richMessage);
           return;
         } catch (error) {
-          logger.error(error, 'Failed to update voice result as rich message');
+          logger.error(
+            { event: 'voice.rich_result_update_failed', err: error },
+            'Failed to update voice result as rich message',
+          );
         }
       }
 
@@ -205,7 +209,10 @@ export const voiceController = async (ctx: BotContext) => {
           { parse_mode: 'MarkdownV2' },
         );
       } catch (error) {
-        logger.error(error, 'Failed to update voice result as MarkdownV2');
+        logger.error(
+          { event: 'voice.markdown_result_update_failed', err: error },
+          'Failed to update voice result as MarkdownV2',
+        );
         await ctx.api.editMessageText(chatId, reply.message_id, richMarkdown);
       }
     };
@@ -238,12 +245,18 @@ export const voiceController = async (ctx: BotContext) => {
       }),
     ]);
     completed = true;
-  } catch (e) {
-    logger.error(e);
+  } catch (err) {
+    logger.error(
+      { event: 'voice.processing_failed', err },
+      'Voice processing failed',
+    );
   } finally {
     if (!completed && reservation) {
-      await releaseQuota(reservation).catch((error) =>
-        logger.error(error, 'Failed to release voice quota'),
+      await releaseQuota(reservation).catch((err) =>
+        logger.error(
+          { event: 'quota.voice_release_failed', err },
+          'Failed to release voice quota',
+        ),
       );
     }
   }

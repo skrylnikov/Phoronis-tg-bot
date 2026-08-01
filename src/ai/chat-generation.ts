@@ -9,8 +9,9 @@ import { chatModel } from './ai';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
 import {
-  canUseMissedMessagesTool,
-  createMissedMessagesTool,
+  canUseChatHistoryTool,
+  createChatHistoryTool,
+  createUserInfoTool,
   weatherTool,
   wikipediaTool,
 } from './tools';
@@ -21,11 +22,14 @@ export const chatGeneration = async (
   trace: LangfuseTraceClient | undefined,
   ctx?: BotContext,
   onTextUpdate?: (text: string) => Promise<void> | void,
-  options: { readOnlyTools?: boolean; model?: typeof chatModel } = {},
+  options: {
+    readOnlyTools?: boolean;
+    allowChatHistory?: boolean;
+    model?: typeof chatModel;
+  } = {},
 ) => {
   const greetingTool = dynamicTool({
-    description:
-      'Установить приветствие для нового пользователя в чате. Требует прав администратора.',
+    description: 'Установить приветствие для нового пользователя в чате',
     inputSchema: z.object({
       chatId: z.number().describe('ID чата'),
       userId: z
@@ -74,10 +78,10 @@ export const chatGeneration = async (
 
   const memoryTool = createMemoryTool(ctx);
   const clearMemoryTool = createClearMemoryTool(ctx);
-  const canReadGroupHistory = canUseMissedMessagesTool(
-    ctx,
-    Boolean(options.readOnlyTools),
-  );
+  const userInfoTool = createUserInfoTool(ctx);
+  const canReadGroupHistory =
+    canUseChatHistoryTool(ctx, Boolean(options.readOnlyTools)) &&
+    Boolean(options.allowChatHistory);
 
   trace?.update({
     input: JSON.stringify(messages),
@@ -95,6 +99,7 @@ export const chatGeneration = async (
       ? {
           get_weather: weatherTool,
           wikipedia: wikipediaTool,
+          get_user_info: userInfoTool,
         }
       : {
           get_weather: weatherTool,
@@ -102,8 +107,9 @@ export const chatGeneration = async (
           wikipedia: wikipediaTool,
           save_memory: memoryTool,
           clear_memory: clearMemoryTool,
+          get_user_info: userInfoTool,
           ...(canReadGroupHistory
-            ? { get_missed_messages: createMissedMessagesTool(ctx) }
+            ? { search_chat_history: createChatHistoryTool(ctx) }
             : {}),
         },
     stopWhen: stepCountIs(5),
@@ -128,6 +134,7 @@ export const chatGeneration = async (
   const completedAt = performance.now();
   logger.info(
     {
+      event: 'ai.generation_completed',
       ttftMs:
         firstTextAt === null
           ? null

@@ -75,7 +75,10 @@ export async function searchContext(
     const embedding = await embedQuery(content);
     return await searchWithEmbedding(embedding, userId, chatId, isPrivateChat);
   } catch (error) {
-    logger.warn({ error }, 'Interactive context embedding failed');
+    logger.warn(
+      { event: 'embedding.context_search_failed', err: error },
+      'Interactive context embedding failed',
+    );
     return { userContext: null, chatContext: null };
   }
 }
@@ -109,12 +112,18 @@ export async function searchAndIndexMessage(
         passageEmbedding,
       );
     } catch (error) {
-      logger.warn({ error }, 'Failed to persist interactive message embedding');
+      logger.warn(
+        { event: 'embedding.message_persist_failed', err: error },
+        'Failed to persist interactive message embedding',
+      );
       requestEmbeddingBackfill();
     }
     return context;
   } catch (error) {
-    logger.warn({ error }, 'Interactive message embedding failed');
+    logger.warn(
+      { event: 'embedding.interactive_failed', err: error },
+      'Interactive message embedding failed',
+    );
     requestEmbeddingBackfill();
     return { userContext: null, chatContext: null };
   }

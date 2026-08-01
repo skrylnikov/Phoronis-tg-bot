@@ -25,6 +25,7 @@ import { searchContext } from './embedding';
 import { langfuse } from './langfuse';
 import { richMarkdownInstructions } from './rich-message';
 import { TelegramStreamSink } from './telegram-stream';
+import { getRecentPublicChatContext } from './tools';
 
 function convertFactsToMetaInfo(
   facts: Awaited<ReturnType<typeof getTopUserFacts>>,
@@ -121,6 +122,7 @@ interface AiControllerOptions {
   persistResponse?: boolean;
   readOnlyTools?: boolean;
   resolveContext?: boolean;
+  includeRecentChatContext?: boolean;
 }
 
 export const aiController = async (
@@ -139,6 +141,7 @@ export const aiController = async (
 
   if (!ctx.from || !ctx.chatId) return;
 
+  const startedAt = performance.now();
   await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
   const isGroup = chat.type === 'group' || chat.type === 'supergroup';
   const quotaReservation = await reserveQuota({
@@ -148,6 +151,15 @@ export const aiController = async (
     kind: 'PRIMARY_RESPONSE',
   });
   const model = quotaReservation.allowed ? chatModel : liteChatModel;
+  logger.info(
+    {
+      event: 'ai.response_started',
+      modelTier: quotaReservation.allowed ? 'primary' : 'lite',
+      quotaAllowed: quotaReservation.allowed,
+      ephemeral: Boolean(options.ephemeralReceiverUserId),
+    },
+    'AI response started',
+  );
   let completed = false;
 
   let streamSink: TelegramStreamSink | undefined;
@@ -156,7 +168,10 @@ export const aiController = async (
     ? undefined
     : setInterval(() => {
         void ctx.replyWithChatAction('typing').catch((error) => {
-          logger.error(error, 'Failed to update Telegram typing status');
+          logger.error(
+            { event: 'telegram.typing_failed', err: error },
+            'Failed to update Telegram typing status',
+          );
         });
       }, 5000);
 
@@ -379,9 +394,31 @@ export const aiController = async (
     const isShort = Math.random() < 0.5;
     const isFunny = !isHelpful && Math.random() < 0.1;
 
+    const recentChatContext =
+      options.includeRecentChatContext &&
+      !options.readOnlyTools &&
+      options.persistResponse !== false &&
+      isGroup &&
+      !msg.reply_to_message
+        ? await getRecentPublicChatContext(ctx.chatId, msg.message_id)
+        : null;
+    const recentChatContextText = recentChatContext?.messages.length
+      ? `\nСвежий контекст чата (сообщения непосредственно перед текущим запросом):\n${recentChatContext.messages
+          .map(
+            (message) =>
+              `[${message.sender}, ${message.sentAt}, #${message.id}] ${message.content}`,
+          )
+          .join('\n')}${
+          recentChatContext.truncated
+            ? '\nКонтекст усечён по размеру; не утверждай, что видишь всю историю.'
+            : ''
+        }`
+      : '';
+
     const compiledPrompt = prompt.compile({
       users: JSON.stringify(
         userList.map((x, i) => ({
+          id: x.id.toString(),
           firstName: x.firstName,
           lastName: x.lastName,
           userName: x.userName,
@@ -400,6 +437,7 @@ export const aiController = async (
         isFunny && '- Отвечай с саркастическим юмором',
         userContext && `\nUser context: "${userContext.join('", "')}"`,
         chatContext && `\nChat context: "${chatContext.join('", "')}"`,
+        recentChatContextText,
         (() => {
           const memoriesByUser = userList
             .map((user) => {
@@ -436,7 +474,13 @@ export const aiController = async (
       trace,
       ctx,
       (streamedText) => streamSink?.update(streamedText),
-      { readOnlyTools: options.readOnlyTools, model },
+      {
+        readOnlyTools: options.readOnlyTools,
+        allowChatHistory:
+          options.includeRecentChatContext === true &&
+          options.persistResponse !== false,
+        model,
+      },
     );
 
     // logger.debug(
@@ -453,6 +497,15 @@ export const aiController = async (
       const reply = await streamSink.finish(result);
       streamFinalized = true;
       completed = true;
+      logger.info(
+        {
+          event: 'ai.response_completed',
+          durationMs: Math.round(performance.now() - startedAt),
+          responseMessageId: reply.message_id,
+          persisted: options.persistResponse !== false,
+        },
+        'AI response completed',
+      );
 
       if (options.persistResponse === false) {
         return;
@@ -468,26 +521,34 @@ export const aiController = async (
           messageType: 'TEXT',
           text: result.toString(),
         });
-      } catch (error) {
-        logger.error(error);
-        logger.debug({
-          id: reply.message_id,
-          chatId: ctx.chatId ?? 0,
-          senderId: reply.from?.id ?? 0,
-          replyToMessageId: ctx.msg?.message_id,
-          sentAt: new Date(reply.date * 1000),
-          messageType: 'TEXT',
-          text: result.toString(),
-        });
+      } catch (err) {
+        logger.error(
+          {
+            event: 'message.response_persist_failed',
+            err,
+            responseMessageId: reply.message_id,
+          },
+          'Failed to persist AI response',
+        );
       }
     }
-  } catch (error) {
-    logger.error(error);
+  } catch (err) {
+    logger.error(
+      {
+        event: 'ai.response_failed',
+        err,
+        durationMs: Math.round(performance.now() - startedAt),
+      },
+      'AI response failed',
+    );
   } finally {
     clearInterval(typingInterval);
     if (!completed) {
-      await releaseQuota(quotaReservation).catch((error) =>
-        logger.error(error, 'Failed to release response quota'),
+      await releaseQuota(quotaReservation).catch((err) =>
+        logger.error(
+          { event: 'quota.response_release_failed', err },
+          'Failed to release response quota',
+        ),
       );
     }
     if (!streamFinalized) {

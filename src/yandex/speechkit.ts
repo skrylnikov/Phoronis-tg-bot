@@ -2,6 +2,7 @@ import { S3mini } from 's3mini';
 import z from 'zod';
 
 import { yandexCloudToken, yandexS3ID, yandexS3Secret } from '../config';
+import { logger } from '../logger';
 
 const s3client = new S3mini({
   accessKeyId: yandexS3ID,
@@ -126,8 +127,16 @@ const recognize = async ({ fileId, file, duration }: RecognizeProps) => {
     } else {
       return await recognizeAsync(fileId, file, duration);
     }
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    logger.error(
+      {
+        event: 'speech.recognition_failed',
+        err,
+        fileSize: file.length,
+        duration,
+      },
+      'Speech recognition failed',
+    );
 
     return null;
   }

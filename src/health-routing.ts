@@ -35,7 +35,11 @@ export function createHealthFetch({
         });
       } catch (error) {
         logger.error(
-          { error, durationMs: Date.now() - startedAt },
+          {
+            event: 'transport.webhook_failed',
+            err: error,
+            durationMs: Date.now() - startedAt,
+          },
           'Webhook update failed',
         );
         return new Response('Internal Server Error', { status: 500 });

@@ -67,7 +67,12 @@ async function handleUserReaction(
     ctx.chatId,
     messageText,
     telegramReactions,
-  ).catch((error) => logger.error(error, 'Error recording user reaction'));
+  ).catch((err) =>
+    logger.error(
+      { event: 'reaction.record_failed', err },
+      'Error recording user reaction',
+    ),
+  );
 }
 
 function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
@@ -123,6 +128,10 @@ export const processMessageController = new Composer<BotContext>();
 processMessageController.on(':text', async (ctx) => {
   try {
     if (!ctx.from || !ctx.chatId) return;
+    logger.debug(
+      { event: 'message.processing_started', messageType: 'TEXT' },
+      'Text message processing started',
+    );
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from),
@@ -146,7 +155,10 @@ processMessageController.on(':text', async (ctx) => {
     });
     if (!isPrivateMode) {
       void analyzer(ctx).catch((error) =>
-        logger.error(error, 'Failed to analyze user metadata'),
+        logger.error(
+          { event: 'user_meta.background_analysis_failed', err: error },
+          'Failed to analyze user metadata',
+        ),
       );
     }
 
@@ -164,6 +176,10 @@ processMessageController.on(':text', async (ctx) => {
       ctx.chat.type === 'private';
 
     if (!shouldRespond) {
+      logger.debug(
+        { event: 'message.response_skipped', messageType: 'TEXT' },
+        'Text message does not require a response',
+      );
       if (!isPrivateMode) queueMessageEmbedding();
       return;
     }
@@ -218,7 +234,9 @@ processMessageController.on(':text', async (ctx) => {
       }
     }
 
-    await aiController(ctx, imageDescription, userContext, chatContext);
+    await aiController(ctx, imageDescription, userContext, chatContext, {
+      includeRecentChatContext: !isPrivateMode,
+    });
   } catch (error) {
     handleError(error, 'Processing text message');
   }
@@ -227,6 +245,10 @@ processMessageController.on(':text', async (ctx) => {
 processMessageController.on(':photo', async (ctx) => {
   try {
     if (!ctx.from || !ctx.chatId) return;
+    logger.debug(
+      { event: 'message.processing_started', messageType: 'MEDIA' },
+      'Media message processing started',
+    );
     await Promise.all([
       saveChat(ctx.chat),
       saveUser(ctx.from),
@@ -285,7 +307,14 @@ processMessageController.on(':photo', async (ctx) => {
       if (ctx.msg.reply_to_message?.from?.id === ctx.me.id && ctx.msg.caption) {
         await handleUserReaction(ctx, ctx.msg.caption);
       }
-      await aiController(ctx, imageDescription);
+      await aiController(ctx, imageDescription, undefined, undefined, {
+        includeRecentChatContext: !isPrivateMode,
+      });
+    } else {
+      logger.debug(
+        { event: 'message.response_skipped', messageType: 'MEDIA' },
+        'Media message does not require a response',
+      );
     }
   } catch (error) {
     handleError(error, 'Processing media message');

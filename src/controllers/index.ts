@@ -1,6 +1,7 @@
 import { Composer } from 'grammy';
 
 import type { BotContext } from '../bot';
+import { logger, telegramLogContext, withLogContext } from '../logger';
 import { askController } from './ask.js';
 import { featuresController } from './features';
 import { guestController } from './guest.js';
@@ -24,6 +25,31 @@ import { voiceController } from './voice.js';
 import { whatsNewCallbackController, whatsNewController } from './whats-new.js';
 
 export const controllers = new Composer<BotContext>();
+
+controllers.use(async (ctx, next) => {
+  const context = telegramLogContext(ctx);
+  const startedAt = Date.now();
+  const log = logger.child(context);
+
+  log.info({ event: 'update.received' }, 'Telegram update received');
+  try {
+    await withLogContext(context, next);
+    log.info(
+      { event: 'update.completed', durationMs: Date.now() - startedAt },
+      'Telegram update completed',
+    );
+  } catch (err) {
+    log.error(
+      {
+        event: 'update.failed',
+        durationMs: Date.now() - startedAt,
+        err,
+      },
+      'Telegram update failed',
+    );
+    throw err;
+  }
+});
 
 controllers.use(guestController);
 

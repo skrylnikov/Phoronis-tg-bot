@@ -257,12 +257,18 @@ export function startMetaInfoMigration() {
             stopMetaInfoMigration();
           }
         } catch (error) {
-          logger.error(error, 'Error in meta info migration');
+          logger.error(
+            { event: 'user_meta.migration_failed', err: error },
+            'Error in meta info migration',
+          );
         } finally {
           isMigrationRunning = false;
         }
       }).catch((error) => {
-        logger.error(error, 'Failed to acquire meta info migration lock');
+        logger.error(
+          { event: 'user_meta.migration_lock_failed', err: error },
+          'Failed to acquire meta info migration lock',
+        );
       }),
     {
       timezone: 'UTC',

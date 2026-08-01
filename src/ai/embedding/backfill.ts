@@ -307,12 +307,18 @@ export function startEmbeddingBackfill(): void {
   workerPromise = runWorker().finally(() => {
     workerPromise = null;
   });
-  logger.info({ embeddingVersion }, 'Embedding backfill worker started');
+  logger.info(
+    { event: 'embedding.backfill_started', embeddingVersion },
+    'Embedding backfill worker started',
+  );
 }
 
 export async function stopEmbeddingBackfill(): Promise<void> {
   stopped = true;
   wakeWorker?.();
   await workerPromise;
-  logger.info('Embedding backfill worker stopped');
+  logger.info(
+    { event: 'embedding.backfill_stopped' },
+    'Embedding backfill worker stopped',
+  );
 }

@@ -17,7 +17,10 @@ async function generateSelfieMessage(): Promise<string> {
     }).then((r) => r.text);
     return message;
   } catch (error) {
-    logger.error(error, 'Ошибка при генерации сообщения для Селфи Субботы');
+    logger.error(
+      { event: 'feature.selfie_generation_failed', err: error },
+      'Ошибка при генерации сообщения для Селфи Субботы',
+    );
     // Возвращаем стандартное сообщение в случае ошибки
     return 'Всем привет! Сегодня суббота, время для селфи! 🤪\n#селфисуббота';
   }
@@ -38,7 +41,10 @@ export async function sendSelfieSaturdayMessage(
         bot.api.sendMessage(targetChatId, text, { parse_mode: 'MarkdownV2' }),
       (text) => bot.api.sendMessage(targetChatId, text),
     );
-    logger.info(`Сообщение Селфи Субботы отправлено в чат ${targetChatId}`);
+    logger.info(
+      { event: 'feature.selfie_message_sent', chatId: targetChatId },
+      'Selfie Saturday message sent',
+    );
 
     await saveMessage({
       id: reply.message_id,
@@ -50,8 +56,12 @@ export async function sendSelfieSaturdayMessage(
     });
   } catch (error) {
     logger.error(
-      error,
-      `Ошибка при отправке сообщения Селфи Субботы в чат ${chatId}`,
+      {
+        event: 'feature.selfie_send_failed',
+        err: error,
+        chatId: Number(chatId),
+      },
+      'Ошибка при отправке сообщения Селфи Субботы',
     );
     // Здесь можно добавить логику обработки ошибок, например, отключить фичу для этого чата, если бот заблокирован
   }

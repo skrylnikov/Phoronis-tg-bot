@@ -10,8 +10,11 @@ async function findUserIdByUsername(userName: string): Promise<number | null> {
     });
 
     return user ? Number(user.id) : null;
-  } catch (error) {
-    logger.error(error, `Error finding user by username: ${userName}`);
+  } catch (err) {
+    logger.error(
+      { event: 'user.lookup_by_username_failed', err, username: userName },
+      'Error finding user by username',
+    );
     return null;
   }
 }

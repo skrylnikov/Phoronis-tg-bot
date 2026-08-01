@@ -76,7 +76,10 @@ export class TelegramStreamSink {
         sink.lastPublishedAt = Date.now();
       } catch (error) {
         sink.active = false;
-        logger.error(error, 'Failed to create Telegram message draft');
+        logger.error(
+          { event: 'telegram.draft_create_failed', err: error },
+          'Failed to create Telegram message draft',
+        );
       }
       return sink;
     }
@@ -117,7 +120,10 @@ export class TelegramStreamSink {
         ephemeralReceiverUserId,
       );
     } catch (error) {
-      logger.error(error, 'Failed to create streaming placeholder');
+      logger.error(
+        { event: 'telegram.stream_placeholder_failed', err: error },
+        'Failed to create streaming placeholder',
+      );
       if (ephemeralReceiverUserId) {
         throw error;
       }
@@ -186,7 +192,10 @@ export class TelegramStreamSink {
         if (isMessageNotModified(error)) {
           return this.groupMessage;
         }
-        logger.error(error, 'Failed to finalize rich stream');
+        logger.error(
+          { event: 'telegram.stream_rich_finalize_failed', err: error },
+          'Failed to finalize rich stream',
+        );
       }
     }
 
@@ -221,7 +230,10 @@ export class TelegramStreamSink {
         await this.ctx.api.deleteMessage(chatId, this.groupMessage.message_id);
       }
     } catch (error) {
-      logger.error(error, 'Failed to remove streaming placeholder');
+      logger.error(
+        { event: 'telegram.stream_placeholder_remove_failed', err: error },
+        'Failed to remove streaming placeholder',
+      );
     }
   }
 
@@ -302,7 +314,10 @@ export class TelegramStreamSink {
           this.active = false;
         }
         this.lastPublishedAt = Date.now();
-        logger.error(error, 'Failed to publish Telegram stream update');
+        logger.error(
+          { event: 'telegram.stream_update_failed', err: error },
+          'Failed to publish Telegram stream update',
+        );
       }
     })();
     await this.publishPromise;
@@ -332,7 +347,10 @@ export class TelegramStreamSink {
           ...this.threadOptions(),
         });
       } catch (error) {
-        logger.error(error, 'Failed to send final rich reply');
+        logger.error(
+          { event: 'telegram.rich_reply_failed', err: error },
+          'Failed to send final rich reply',
+        );
       }
     }
 
@@ -343,7 +361,10 @@ export class TelegramStreamSink {
         ...this.threadOptions(),
       });
     } catch (error) {
-      logger.error(error, 'Failed to send final MarkdownV2 reply');
+      logger.error(
+        { event: 'telegram.markdown_reply_failed', err: error },
+        'Failed to send final MarkdownV2 reply',
+      );
       return this.ctx.reply(rawText, {
         reply_to_message_id: this.ctx.msg?.message_id,
         ...this.threadOptions(),
@@ -412,7 +433,13 @@ export class TelegramStreamSink {
       if (isMessageNotModified(markdownError)) {
         return groupMessage;
       }
-      logger.error(markdownError, 'Failed to finalize MarkdownV2 stream');
+      logger.error(
+        {
+          event: 'telegram.markdown_stream_finalize_failed',
+          err: markdownError,
+        },
+        'Failed to finalize MarkdownV2 stream',
+      );
       try {
         await this.ctx.api.editMessageText(
           chatId,
@@ -424,7 +451,13 @@ export class TelegramStreamSink {
         if (isMessageNotModified(plainTextError)) {
           return groupMessage;
         }
-        logger.error(plainTextError, 'Failed to finalize plain text stream');
+        logger.error(
+          {
+            event: 'telegram.plain_stream_finalize_failed',
+            err: plainTextError,
+          },
+          'Failed to finalize plain text stream',
+        );
         return this.sendFinalReply(rawText);
       }
     }

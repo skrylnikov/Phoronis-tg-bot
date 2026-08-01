@@ -68,6 +68,7 @@ async function requestEmbeddings(
   );
   logger.info(
     {
+      event: 'embedding.request_completed',
       mode,
       model: embeddingModel,
       inputCount: inputs.length,

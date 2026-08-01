@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client';
+import { logger } from './logger';
 
 const connectionString = process.env.DATABASE_URL || '';
 
@@ -10,8 +11,11 @@ export const prisma = new PrismaClient({ adapter });
 prisma
   .$connect()
   .then(() => {
-    console.log('Connected to database');
+    logger.info({ event: 'database.connected' }, 'Connected to database');
   })
   .catch((error) => {
-    console.error('Error connecting to database', error);
+    logger.error(
+      { event: 'database.connection_failed', err: error },
+      'Error connecting to database',
+    );
   });

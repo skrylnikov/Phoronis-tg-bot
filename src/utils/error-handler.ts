@@ -1,21 +1,19 @@
 import { logger } from '../logger';
 
+type ErrorLogFields = Record<string, unknown>;
+
 /**
  * Enhanced error handler with context information
  */
-export function handleError(error: unknown, context: string): void {
-  if (error instanceof Error) {
-    logger.error(
-      {
-        error: error.message,
-        stack: error.stack,
-        context,
-      },
-      'Error occurred',
-    );
-  } else {
-    logger.error({ context, error }, 'Unknown error occurred');
-  }
+export function handleError(
+  error: unknown,
+  context: string,
+  fields: ErrorLogFields = {},
+): void {
+  logger.error(
+    { ...fields, event: fields.event ?? 'error.occurred', context, err: error },
+    'Error occurred',
+  );
 }
 
 /**

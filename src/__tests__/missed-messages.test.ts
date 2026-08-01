@@ -1,25 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { findFirst, findMany, error } = vi.hoisted(() => ({
-  findFirst: vi.fn(),
-  findMany: vi.fn(),
+const {
+  messageCount,
+  messageFindFirst,
+  messageFindMany,
+  chatFindUnique,
+  userFindMany,
+  embedQuery,
+  searchChatMessages,
+  error,
+  warn,
+} = vi.hoisted(() => ({
+  messageCount: vi.fn(),
+  messageFindFirst: vi.fn(),
+  messageFindMany: vi.fn(),
+  chatFindUnique: vi.fn(),
+  userFindMany: vi.fn(),
+  embedQuery: vi.fn(),
+  searchChatMessages: vi.fn(),
   error: vi.fn(),
+  warn: vi.fn(),
 }));
 
 vi.mock('../db', () => ({
   prisma: {
-    message: { findFirst, findMany },
+    message: {
+      count: messageCount,
+      findFirst: messageFindFirst,
+      findMany: messageFindMany,
+    },
+    chat: { findUnique: chatFindUnique },
+    user: { findMany: userFindMany },
   },
 }));
-vi.mock('../logger', () => ({ logger: { error } }));
+vi.mock('../ai/embedding/client', () => ({ embedQuery }));
+vi.mock('../ai/embedding/store', () => ({ searchChatMessages }));
+vi.mock('../logger', () => ({ logger: { error, warn } }));
 
 import {
-  canUseMissedMessagesTool,
-  getMissedMessages,
-} from '../ai/tools/missed-messages';
+  canUseChatHistoryTool,
+  getRecentPublicChatContext,
+  searchChatHistory,
+} from '../ai/tools/chat-history';
 
-function createContext(type: 'private' | 'group' | 'supergroup' = 'group') {
+function createContext(
+  type: 'private' | 'group' | 'supergroup' = 'group',
+): BotContext {
   return {
     chat: { id: -100, type },
     chatId: -100,
@@ -38,6 +65,7 @@ function message(
     summary?: string | null;
     type?: 'TEXT' | 'MEDIA' | 'VOICE';
     userName?: string | null;
+    senderId?: number;
     replyToMessageId?: number | null;
   } = {},
 ) {
@@ -47,6 +75,7 @@ function message(
       options.replyToMessageId == null
         ? null
         : BigInt(options.replyToMessageId),
+    senderId: BigInt(options.senderId ?? 456),
     messageType: options.type ?? 'TEXT',
     sentAt: new Date(Date.UTC(2026, 6, 26, 9, id % 60)),
     text: content,
@@ -61,35 +90,26 @@ function message(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  findMany.mockResolvedValue([]);
+  chatFindUnique.mockResolvedValue({ privateModeEnabled: false });
+  userFindMany.mockResolvedValue([]);
+  messageFindMany.mockResolvedValue([]);
+  messageCount.mockResolvedValue(0);
+  searchChatMessages.mockResolvedValue([]);
 });
 
-describe('getMissedMessages', () => {
-  it('starts after the user’s last message today and returns chronological history', async () => {
-    const lastUserMessage = {
+describe('searchChatHistory', () => {
+  it('preserves the missed-message range after the requester’s latest message', async () => {
+    messageFindFirst.mockResolvedValue({
       id: 100n,
       sentAt: new Date(Date.UTC(2026, 6, 26, 9)),
-    };
-    findFirst.mockResolvedValue(lastUserMessage);
-    findMany.mockResolvedValue([
+    });
+    messageFindMany.mockResolvedValue([
       message(102, 'Ответ бота', { userName: 'phoronis_bot' }),
       message(101, 'Новое сообщение', { replyToMessageId: 100 }),
     ]);
 
-    const result = JSON.parse(await getMissedMessages(createContext(), {}));
+    const result = JSON.parse(await searchChatHistory(createContext(), {}));
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          private: false,
-          id: { lt: 200n, gt: 100n },
-          sentAt: {
-            gte: lastUserMessage.sentAt,
-            lt: new Date(Date.UTC(2026, 6, 26, 10)),
-          },
-        }),
-      }),
-    );
     expect(result.messages.map((item: { id: string }) => item.id)).toEqual([
       '101',
       '102',
@@ -98,105 +118,146 @@ describe('getMissedMessages', () => {
       sender: '@author',
       replyToMessageId: '100',
     });
-  });
-
-  it('uses the beginning of the Moscow day when the user has not written today', async () => {
-    findFirst.mockResolvedValue(null);
-
-    await getMissedMessages(createContext(), {});
-
-    expect(findMany).toHaveBeenCalledWith(
+    expect(messageFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          sentAt: {
-            gte: new Date(Date.UTC(2026, 6, 25, 21)),
-            lt: new Date(Date.UTC(2026, 6, 26, 10)),
-          },
+          private: false,
+          id: { gt: 100n, lt: 200n },
         }),
       }),
     );
   });
 
-  it('uses an explicit range instead of automatic activity detection', async () => {
-    const startAt = '2026-07-24T10:00:00+03:00';
-    const endAt = '2026-07-25T10:00:00+03:00';
-
-    await getMissedMessages(createContext(), { startAt, endAt });
-
-    expect(findFirst).not.toHaveBeenCalled();
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          id: { lt: 200n },
-          sentAt: {
-            gte: new Date(startAt),
-            lt: new Date(endAt),
-          },
-        }),
-      }),
-    );
-  });
-
-  it('excludes the current request, private messages, and empty content', async () => {
-    findFirst.mockResolvedValue(null);
-    findMany.mockResolvedValue([
-      message(199, '  '),
-      message(198, 'Есть текст'),
+  it('gets latest messages without using the missed-message anchor', async () => {
+    messageFindMany.mockResolvedValue([
+      message(102, 'Позже'),
+      message(101, 'Раньше'),
     ]);
 
-    const result = JSON.parse(await getMissedMessages(createContext(), {}));
-
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].id).toBe('198');
-    expect(findMany.mock.calls[0][0].where).toMatchObject({
-      private: false,
-      id: { lt: 200n },
-    });
-  });
-
-  it('marks oversized history as truncated and retains the newest messages', async () => {
-    findFirst.mockResolvedValue(null);
-    findMany.mockResolvedValue(
-      Array.from({ length: 501 }, (_, index) =>
-        message(700 - index, `Сообщение ${index}`),
-      ),
-    );
-
-    const result = JSON.parse(await getMissedMessages(createContext(), {}));
-
-    expect(result.truncated).toBe(true);
-    expect(result.notice).toContain('История усечена');
-    expect(result.messages).not.toHaveLength(500);
-    expect(Number(result.messages[0].id)).toBeGreaterThan(200);
-    expect(result.messages.at(-1).id).toBe('700');
-    expect(findMany.mock.calls[0][0].take).toBe(501);
-  });
-
-  it('returns a safe error for invalid intervals', async () => {
     const result = JSON.parse(
-      await getMissedMessages(createContext(), {
-        startAt: '2026-07-26T10:00:00+03:00',
-        endAt: '2026-07-25T10:00:00+03:00',
+      await searchChatHistory(createContext(), {
+        recentMode: 'latest',
+        limit: 2,
       }),
     );
 
-    expect(result).toEqual({
-      error: 'Начало интервала должно быть раньше конца',
-    });
-    expect(findMany).not.toHaveBeenCalled();
+    expect(messageFindFirst).not.toHaveBeenCalled();
+    expect(result.messages.map((item: { id: string }) => item.id)).toEqual([
+      '101',
+      '102',
+    ]);
+  });
+
+  it('merges exact and semantic search results without duplicates', async () => {
+    messageCount.mockResolvedValue(1);
+    messageFindMany.mockResolvedValue([message(101, 'Обсуждали релиз')]);
+    embedQuery.mockResolvedValue([0.1, 0.2]);
+    searchChatMessages.mockResolvedValue([
+      message(101, 'Обсуждали релиз'),
+      { ...message(102, 'Похожая тема'), similarity: 0.91 },
+    ]);
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext(), {
+        mode: 'search',
+        query: 'где обсуждали релиз новой версии',
+        limit: 10,
+      }),
+    );
+
+    expect(embedQuery).toHaveBeenCalledWith('где обсуждали релиз новой версии');
+    expect(result.messages.map((item: { id: string }) => item.id)).toEqual([
+      '101',
+      '102',
+    ]);
+    expect(result.messages[1].similarity).toBe(0.91);
+  });
+
+  it('returns a user count and a bounded sample', async () => {
+    userFindMany.mockResolvedValue([
+      {
+        id: 456n,
+        firstName: 'Имя',
+        lastName: 'Фамилия',
+        userName: 'author',
+      },
+    ]);
+    messageCount.mockResolvedValue(12);
+    messageFindMany.mockResolvedValue([
+      message(102, 'Второе', { senderId: 456 }),
+      message(101, 'Первое', { senderId: 456 }),
+    ]);
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext(), {
+        mode: 'user_stats',
+        sender: '@author',
+        limit: 2,
+      }),
+    );
+
+    expect(result.totalCount).toBe(12);
+    expect(result.truncated).toBe(true);
+    expect(result.messages.map((item: { id: string }) => item.id)).toEqual([
+      '101',
+      '102',
+    ]);
+  });
+
+  it('returns candidates for an ambiguous sender', async () => {
+    userFindMany.mockResolvedValue([
+      { id: 456n, firstName: 'Алексей', lastName: null, userName: null },
+      { id: 789n, firstName: 'Александр', lastName: null, userName: null },
+    ]);
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext(), {
+        mode: 'user_stats',
+        sender: 'Алекс',
+      }),
+    );
+
+    expect(result.candidates).toEqual([
+      { id: '456', sender: 'Алексей' },
+      { id: '789', sender: 'Александр' },
+    ]);
+    expect(messageCount).not.toHaveBeenCalled();
+  });
+
+  it('rejects history in private mode and filters current messages from auto context', async () => {
+    chatFindUnique.mockResolvedValue({ privateModeEnabled: true });
+    const privateResult = JSON.parse(
+      await searchChatHistory(createContext(), { mode: 'recent' }),
+    );
+    expect(privateResult.error).toContain('приватном режиме');
+
+    chatFindUnique.mockResolvedValue({ privateModeEnabled: false });
+    messageFindMany.mockResolvedValue([
+      message(199, 'Последнее'),
+      message(198, 'Предыдущее'),
+    ]);
+    const context = await getRecentPublicChatContext(-100, 200);
+
+    expect(context.messages.map((item) => item.id)).toEqual(['198', '199']);
+    expect(messageFindMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          private: false,
+          id: { lt: 200n },
+        }),
+      }),
+    );
   });
 });
 
-describe('canUseMissedMessagesTool', () => {
-  it('allows only ordinary group generation', () => {
-    expect(canUseMissedMessagesTool(createContext('group'), false)).toBe(true);
-    expect(canUseMissedMessagesTool(createContext('supergroup'), false)).toBe(
+describe('canUseChatHistoryTool', () => {
+  it('allows only ordinary public group generation', () => {
+    expect(canUseChatHistoryTool(createContext('group'), false)).toBe(true);
+    expect(canUseChatHistoryTool(createContext('supergroup'), false)).toBe(
       true,
     );
-    expect(canUseMissedMessagesTool(createContext('group'), true)).toBe(false);
-    expect(canUseMissedMessagesTool(createContext('private'), false)).toBe(
-      false,
-    );
-    expect(canUseMissedMessagesTool(undefined, false)).toBe(false);
+    expect(canUseChatHistoryTool(createContext('group'), true)).toBe(false);
+    expect(canUseChatHistoryTool(createContext('private'), false)).toBe(false);
+    expect(canUseChatHistoryTool(undefined, false)).toBe(false);
   });
 });

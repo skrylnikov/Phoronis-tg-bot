@@ -6,7 +6,7 @@ import { transportConfig } from './config';
 import { controllers } from './controllers';
 import { prisma } from './db';
 import { startHealthServer } from './health';
-import { logger } from './logger';
+import { logger, telegramLogContext } from './logger';
 import { startScheduler } from './scheduler';
 import { createBotTransport } from './transport';
 import { handleError } from './utils/error-handler';
@@ -23,14 +23,24 @@ const healthServer = startHealthServer({
 
 bot.catch((err) => {
   const ctx = err.ctx;
-  logger.error(`Error while handling update ${ctx.update.update_id}:`);
+  const log = logger.child(telegramLogContext(ctx));
+  log.error(
+    { event: 'update.handler_failed', err: err.error },
+    'Error while handling Telegram update',
+  );
   const e = err.error;
   if (e instanceof GrammyError) {
-    logger.error({ description: e.description }, 'Error in request');
+    log.error(
+      { event: 'telegram.request_failed', description: e.description },
+      'Error in Telegram request',
+    );
   } else if (e instanceof HttpError) {
-    logger.error(e, 'Could not contact Telegram');
+    log.error(
+      { event: 'telegram.unreachable', err: e },
+      'Could not contact Telegram',
+    );
   } else {
-    handleError(e, `Error handling update ${ctx.update.update_id}`);
+    handleError(e, 'Error handling update', { ...telegramLogContext(ctx) });
   }
 });
 
@@ -40,18 +50,26 @@ startEmbeddingBackfill();
 await botTransport.start();
 
 process.on('uncaughtException', (err) => {
-  handleError(err, 'Uncaught exception');
+  handleError(err, 'Uncaught exception', {
+    event: 'process.uncaught_exception',
+  });
 });
 
 process.on('unhandledRejection', (err) => {
-  handleError(err, 'Unhandled rejection');
+  handleError(err, 'Unhandled rejection', {
+    event: 'process.unhandled_rejection',
+  });
 });
 
 const shutdown = async () => {
-  logger.info('Shutting down the bot');
+  logger.info({ event: 'process.shutdown_started' }, 'Shutting down the bot');
   healthServer.stop();
   await stopEmbeddingBackfill();
   await Promise.all([botTransport.stop(), prisma.$disconnect()]);
+  logger.info(
+    { event: 'process.shutdown_completed' },
+    'Bot shutdown completed',
+  );
 };
 
 // Stopping the bot when the Node.js process

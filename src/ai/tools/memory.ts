@@ -32,7 +32,6 @@ export const createMemoryTool = (ctx?: BotContext) =>
         ),
     }),
     execute: async (input: unknown) => {
-      console.log('Executing memory tool with input:', input);
       const { content, scope } = input as {
         content: string;
         scope: 'personal' | 'shared';
@@ -45,6 +44,10 @@ export const createMemoryTool = (ctx?: BotContext) =>
       const isUser = scope === 'personal';
 
       try {
+        logger.info(
+          { event: 'memory.save_started', scope },
+          'Memory save started',
+        );
         await saveMemory({
           userId: ctx.from.id,
           chatId: ctx.chatId,
@@ -53,8 +56,11 @@ export const createMemoryTool = (ctx?: BotContext) =>
         });
 
         return `Сохранено в ${isUser ? 'личную' : 'общую'} память: ${content}`;
-      } catch (error) {
-        console.error('Error saving memory:', error);
+      } catch (err) {
+        logger.error(
+          { event: 'memory.save_failed', err, scope },
+          'Memory save failed',
+        );
         return 'Ошибка при сохранении в память';
       }
     },
@@ -100,8 +106,11 @@ export const createClearMemoryTool = (ctx?: BotContext) =>
               ? 'общая'
               : 'вся';
         return `Удалено записей памяти (${scopeLabel}): ${deleted}`;
-      } catch (error) {
-        logger.error(error, 'clear_memory tool');
+      } catch (err) {
+        logger.error(
+          { event: 'memory.clear_failed', err, scope },
+          'Memory clear failed',
+        );
         return 'Ошибка при очистке памяти';
       }
     },

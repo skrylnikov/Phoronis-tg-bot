@@ -53,6 +53,7 @@ function createWebhookHandler(
 
     logger.info(
       {
+        event: 'transport.webhook_update_handled',
         updateId: updateIdFromPayload(payload),
         durationMs: Date.now() - startedAt,
         status: response.status,
@@ -72,7 +73,10 @@ export function createBotTransport(
     return {
       start: async () => {
         bot.start().catch(onPollingError);
-        logger.info({ mode: config.mode }, 'Bot transport started');
+        logger.info(
+          { event: 'transport.started', mode: config.mode },
+          'Bot transport started',
+        );
       },
       stop: async () => {
         await bot.stop();
@@ -90,7 +94,11 @@ export function createBotTransport(
         secret_token: config.webhookSecret,
       });
       logger.info(
-        { mode: config.mode, webhookUrl: config.webhookUrl },
+        {
+          event: 'transport.started',
+          mode: config.mode,
+          webhookConfigured: true,
+        },
         'Bot transport started',
       );
     },

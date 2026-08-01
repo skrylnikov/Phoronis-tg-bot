@@ -5,6 +5,7 @@ import type { BotContext } from '../bot';
 import { prisma } from '../db';
 import { sendInktoberMessage } from '../features/inktober';
 import { sendSelfieSaturdayMessage } from '../features/selfie-saturday';
+import { logger } from '../logger';
 
 export const featuresController = new Composer<BotContext>();
 
@@ -66,7 +67,10 @@ featuresController.command('enable', async (ctx) => {
       );
     }
   } catch (error) {
-    console.error(`Ошибка при включении функции ${feature}:`, error);
+    logger.error(
+      { event: 'feature.enable_failed', feature, err: error },
+      'Feature enable failed',
+    );
     await ctx.reply('Произошла ошибка при включении функции.');
   }
 });
@@ -114,7 +118,10 @@ featuresController.command('disable', async (ctx) => {
         `Функция '${feature}' уже была выключена или чат не найден.`,
       );
     } else {
-      console.error(`Ошибка при выключении функции ${feature}:`, error);
+      logger.error(
+        { event: 'feature.disable_failed', feature, err: error },
+        'Feature disable failed',
+      );
       await ctx.reply('Произошла ошибка при выключении функции.');
     }
   }
@@ -147,7 +154,10 @@ featuresController.command('test', async (ctx) => {
       );
     }
   } catch (error) {
-    console.error(`Ошибка при тестировании функции ${feature}:`, error);
+    logger.error(
+      { event: 'feature.test_failed', feature, err: error },
+      'Feature test failed',
+    );
     await ctx.reply('Произошла ошибка при тестировании функции.');
   }
 });
@@ -196,7 +206,10 @@ featuresController.command('status', async (ctx) => {
 
     await ctx.reply(status);
   } catch (error) {
-    console.error('Ошибка при получении статуса функций:', error);
+    logger.error(
+      { event: 'feature.status_failed', err: error },
+      'Feature status lookup failed',
+    );
     await ctx.reply('Произошла ошибка при получении статуса функций.');
   }
 });
@@ -206,7 +219,7 @@ featuresController.command('index', async (_ctx) => {
     const _count = await prisma.message.count();
     // // const count = 1000;
     // for (let i = 138800; i < count; i += 100) {
-    //   console.log(`Indexing messages ${i} of ${count}`);
+    //   logger.info({ event: 'feature.index_progress', offset: i, count });
     //   const messages = await prisma.message.findMany({
     //     skip: i,
     //     take: 100,
@@ -240,7 +253,9 @@ featuresController.command('index', async (_ctx) => {
     // }
     // await ctx.reply("Индексация завершена");
   } catch (error) {
-    console.log('error');
-    console.error(error);
+    logger.error(
+      { event: 'feature.index_failed', err: error },
+      'Feature index failed',
+    );
   }
 });

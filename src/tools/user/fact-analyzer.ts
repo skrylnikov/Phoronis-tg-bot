@@ -143,7 +143,10 @@ ${candidates}
       embedding: passageEmbedding,
     };
   } catch (error) {
-    logger.error(error, 'Error checking for similar facts');
+    logger.error(
+      { event: 'user_fact.similarity_check_failed', err: error },
+      'Error checking for similar facts',
+    );
     return { isDuplicate: false, isContradiction: false };
   }
 }
@@ -319,7 +322,10 @@ ${userPrompt}
 
     return savedFactIds;
   } catch (error) {
-    logger.error(error, 'Error analyzing user meta info');
+    logger.error(
+      { event: 'user_fact.analysis_failed', err: error },
+      'Error analyzing user meta info',
+    );
     return null;
   }
 }
@@ -366,4 +372,19 @@ export async function getTopUserFacts(
     weight,
     confidence,
   }));
+}
+
+export async function getAllUserFacts(userId: bigint) {
+  return prisma.userFact.findMany({
+    where: { userId },
+    select: {
+      content: true,
+      type: true,
+      weight: true,
+      confidence: true,
+      updatedAt: true,
+      expiresAt: true,
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+  });
 }

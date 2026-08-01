@@ -16,21 +16,41 @@ async function runSchedulerTask(
   name: string,
   task: () => Promise<void>,
 ): Promise<void> {
+  const startedAt = Date.now();
   try {
     await withAdvisoryLock(SCHEDULER_LOCK_KEY, task);
-  } catch (error) {
-    logger.error({ error, task: name }, 'Scheduled task failed');
+    logger.info(
+      {
+        event: 'scheduler.task_completed',
+        task: name,
+        durationMs: Date.now() - startedAt,
+      },
+      'Scheduled task completed',
+    );
+  } catch (err) {
+    logger.error(
+      {
+        event: 'scheduler.task_failed',
+        err,
+        task: name,
+        durationMs: Date.now() - startedAt,
+      },
+      'Scheduled task failed',
+    );
   }
 }
 
 export function startScheduler() {
-  logger.info('Запуск планировщика задач...');
+  logger.info({ event: 'scheduler.started' }, 'Scheduler started');
 
   const sendAnalyticsReport = async () => {
     try {
       await sendDailyAnalyticsReport(bot.api);
     } catch (error) {
-      logger.error(error, 'Failed to send daily analytics report');
+      logger.error(
+        { event: 'scheduler.daily_analytics_failed', err: error },
+        'Failed to send daily analytics report',
+      );
     }
   };
 
@@ -49,7 +69,10 @@ export function startScheduler() {
     '0 9 * * 6',
     () =>
       runSchedulerTask('selfie Saturday', async () => {
-        logger.info('Запуск задачи "Селфи Суббота"...');
+        logger.info(
+          { event: 'scheduler.selfie_started' },
+          'Selfie Saturday task started',
+        );
         try {
           const chatsToSend = await prisma.chat.findMany({
             where: { selfieSaturdayEnabled: true },
@@ -57,12 +80,19 @@ export function startScheduler() {
           });
 
           if (chatsToSend.length === 0) {
-            logger.info('Нет чатов с включенной функцией "Селфи Суббота".');
+            logger.info(
+              { event: 'scheduler.selfie_no_targets' },
+              'No Selfie Saturday targets',
+            );
             return;
           }
 
           logger.info(
-            `Найдено ${chatsToSend.length} чатов для отправки сообщения.`,
+            {
+              event: 'scheduler.selfie_targets_found',
+              targetCount: chatsToSend.length,
+            },
+            'Selfie Saturday targets found',
           );
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
@@ -73,15 +103,25 @@ export function startScheduler() {
           results.forEach((result, index) => {
             if (result.status === 'rejected') {
               logger.error(
-                `Ошибка при отправке в чат ${chatsToSend[index].id}:`,
-                result.reason,
+                {
+                  event: 'scheduler.selfie_send_failed',
+                  chatId: Number(chatsToSend[index].id),
+                  err: result.reason,
+                },
+                'Selfie Saturday send failed',
               );
             }
           });
 
-          logger.info('Задача "Селфи Суббота" завершена.');
-        } catch (error) {
-          logger.error(error, 'Критическая ошибка в задаче "Селфи Суббота":');
+          logger.info(
+            { event: 'scheduler.selfie_completed' },
+            'Selfie Saturday task completed',
+          );
+        } catch (err) {
+          logger.error(
+            { event: 'scheduler.selfie_failed', err },
+            'Selfie Saturday task failed',
+          );
         }
       }),
     {
@@ -95,7 +135,10 @@ export function startScheduler() {
     '0 9 * 10 *',
     () =>
       runSchedulerTask('Inktober', async () => {
-        logger.info('Запуск задачи "Inktober"...');
+        logger.info(
+          { event: 'scheduler.inktober_started' },
+          'Inktober task started',
+        );
         try {
           const chatsToSend = await prisma.chat.findMany({
             where: { inktoberEnabled: true },
@@ -103,12 +146,19 @@ export function startScheduler() {
           });
 
           if (chatsToSend.length === 0) {
-            logger.info('Нет чатов с включенной функцией "Inktober".');
+            logger.info(
+              { event: 'scheduler.inktober_no_targets' },
+              'No Inktober targets',
+            );
             return;
           }
 
           logger.info(
-            `Найдено ${chatsToSend.length} чатов для отправки сообщения Inktober.`,
+            {
+              event: 'scheduler.inktober_targets_found',
+              targetCount: chatsToSend.length,
+            },
+            'Inktober targets found',
           );
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
@@ -119,15 +169,25 @@ export function startScheduler() {
           results.forEach((result, index) => {
             if (result.status === 'rejected') {
               logger.error(
-                `Ошибка при отправке Inktober в чат ${chatsToSend[index].id}:`,
-                result.reason,
+                {
+                  event: 'scheduler.inktober_send_failed',
+                  chatId: Number(chatsToSend[index].id),
+                  err: result.reason,
+                },
+                'Inktober send failed',
               );
             }
           });
 
-          logger.info('Задача "Inktober" завершена.');
-        } catch (error) {
-          logger.error(error, 'Критическая ошибка в задаче "Inktober":');
+          logger.info(
+            { event: 'scheduler.inktober_completed' },
+            'Inktober task completed',
+          );
+        } catch (err) {
+          logger.error(
+            { event: 'scheduler.inktober_failed', err },
+            'Inktober task failed',
+          );
         }
       }),
     {
@@ -135,7 +195,10 @@ export function startScheduler() {
     },
   );
 
-  logger.info('Планировщик задач настроен.');
+  logger.info(
+    { event: 'scheduler.jobs_registered' },
+    'Scheduler jobs registered',
+  );
 
   startMetaInfoMigration();
 
@@ -143,7 +206,10 @@ export function startScheduler() {
     '0 3 * * 0',
     () =>
       runSchedulerTask('fact decay', async () => {
-        logger.info('Запуск задачи decay фактов...');
+        logger.info(
+          { event: 'scheduler.fact_decay_started' },
+          'Fact decay task started',
+        );
         try {
           const result = await prisma.userFact.updateMany({
             where: {
@@ -158,9 +224,18 @@ export function startScheduler() {
               weight: { decrement: 1 },
             },
           });
-          logger.info(`Decay завершён: обновлено ${result.count} фактов`);
-        } catch (error) {
-          logger.error(error, 'Критическая ошибка в задаче decay фактов:');
+          logger.info(
+            {
+              event: 'scheduler.fact_decay_completed',
+              updatedCount: result.count,
+            },
+            'Fact decay task completed',
+          );
+        } catch (err) {
+          logger.error(
+            { event: 'scheduler.fact_decay_failed', err },
+            'Fact decay task failed',
+          );
         }
       }),
     {
@@ -170,11 +245,17 @@ export function startScheduler() {
 
   impactScoreTask = cron.schedule('*/30 * * * *', () =>
     runSchedulerTask('fact impact score', async () => {
-      logger.info('Перерасчёт impact score фактов...');
+      logger.info(
+        { event: 'scheduler.fact_impact_started' },
+        'Fact impact task started',
+      );
       try {
         await recalculateFactImpactScores();
-      } catch (error) {
-        logger.error(error, 'Ошибка при перерасчёте impact score:');
+      } catch (err) {
+        logger.error(
+          { event: 'scheduler.fact_impact_failed', err },
+          'Fact impact task failed',
+        );
       }
     }),
   );
@@ -183,27 +264,39 @@ export function startScheduler() {
     '0 2 * * *',
     () =>
       runSchedulerTask('private message cleanup', async () => {
-        logger.info('Запуск очистки старых приватных сообщений...');
+        logger.info(
+          { event: 'scheduler.private_cleanup_started' },
+          'Private message cleanup started',
+        );
         try {
           const deleted = await cleanOldPrivateMessages();
-          logger.info(`Очистка завершена. Удалено ${deleted} сообщений.`);
-        } catch (error) {
+          logger.info(
+            {
+              event: 'scheduler.private_cleanup_completed',
+              deletedCount: deleted,
+            },
+            'Private message cleanup completed',
+          );
+        } catch (err) {
           logger.error(
-            error,
-            'Критическая ошибка при очистке приватных сообщений:',
+            { event: 'scheduler.private_cleanup_failed', err },
+            'Private message cleanup failed',
           );
         }
       }),
     { timezone: 'UTC' },
   );
 
-  logger.info('Планировщик задач настроен полностью.');
+  logger.info({ event: 'scheduler.ready' }, 'Scheduler ready');
 }
 
 export function stopImpactScoreRecalculation() {
   if (impactScoreTask) {
     impactScoreTask.stop();
     impactScoreTask = null;
-    logger.info('Impact score recalculation scheduler stopped');
+    logger.info(
+      { event: 'scheduler.fact_impact_stopped' },
+      'Impact score scheduler stopped',
+    );
   }
 }

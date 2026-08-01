@@ -139,7 +139,10 @@ ${userPrompt}
     //   },
     // });
   } catch (error) {
-    logger.error(error, 'Error analyzing user meta info');
+    logger.error(
+      { event: 'user_meta.analysis_failed', err: error },
+      'Error analyzing user meta info',
+    );
     return null;
   }
 }
@@ -157,7 +160,10 @@ export function getTopUserMetaInfo(
   const { success, data: metaInfo } = userMetaInfoSchema.safeParse(rawMetaInfo);
 
   if (!success) {
-    logger.error(rawMetaInfo, 'Invalid meta info');
+    logger.warn(
+      { event: 'user_meta.invalid_result' },
+      'Invalid user meta info result',
+    );
     return {};
   }
 
@@ -279,9 +285,11 @@ export async function updateUserMetaInfo(
     });
 
     return updatedMeta;
-  } catch (error) {
-    logger.error(error, 'Error updating user meta info');
-    console.log(error);
+  } catch (err) {
+    logger.error(
+      { event: 'user_meta.update_failed', err },
+      'Error updating user meta info',
+    );
     return null;
   }
 }
@@ -299,8 +307,7 @@ if (user?.metaInfo) {
     communication_style: 2
   });
   
-  console.log("Топ 3 интереса:", topInfo.interests.map(i => i.value).join(", "));
-  console.log("Топ 2 стиля коммуникации:", topInfo.communication_style.map(c => c.value).join(", "));
+  logger.debug({ event: 'user_meta.example_output_skipped' }, 'Example output skipped');
 }
 
 // Добавление новой информации с увеличением веса

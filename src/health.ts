@@ -13,6 +13,9 @@ export function startHealthServer(options: HealthServerOptions = {}) {
     fetch: createHealthFetch(options),
   });
 
-  logger.info({ port }, 'Health server started');
+  logger.info(
+    { event: 'health.server_started', port },
+    'Health server started',
+  );
   return server;
 }
