@@ -94,7 +94,13 @@ export async function recordUserReaction(
   });
 
   logger.info(
-    `Recorded reaction for ${factImpacts.length} facts: ${JSON.stringify(reaction)}`,
+    {
+      event: 'user_fact.reaction_recorded',
+      factCount: factImpacts.length,
+      reaction: reaction.reaction,
+      messageReaction: reaction.messageReaction,
+    },
+    'User reaction recorded for facts',
   );
 }
 
@@ -124,7 +130,12 @@ export async function trackFactUsage(
   });
 
   logger.info(
-    `Tracked usage for ${usedFactIds.length} facts in message ${botMessageId}`,
+    {
+      event: 'user_fact.usage_tracked',
+      factCount: usedFactIds.length,
+      botMessageId,
+    },
+    'User fact usage tracked',
   );
 }
 
@@ -187,7 +198,10 @@ export async function recalculateFactImpactScores() {
     });
   }
 
-  logger.info(`Recalculated impact scores for ${facts.length} facts`);
+  logger.info(
+    { event: 'user_fact.impact_scores_recalculated', factCount: facts.length },
+    'User fact impact scores recalculated',
+  );
 }
 
 export async function getFactImpactStats(userId: number) {

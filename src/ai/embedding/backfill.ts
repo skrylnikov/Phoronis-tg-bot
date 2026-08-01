@@ -208,6 +208,7 @@ async function runWorker(): Promise<void> {
           if (batchProcessed === 0) {
             logger.info(
               {
+                event: 'embedding.backfill_caught_up',
                 backlog: { messages: 0, memories: 0, facts: 0 },
                 processedByType,
               },
@@ -256,6 +257,7 @@ async function runWorker(): Promise<void> {
             currentBacklog.facts;
           logger.info(
             {
+              event: 'embedding.backfill_batch_completed',
               entity,
               batchProcessed,
               processed,
@@ -284,6 +286,7 @@ async function runWorker(): Promise<void> {
     } catch (error) {
       logger.warn(
         {
+          event: 'embedding.backfill_retrying',
           err: error,
           entity: activeEntity,
           failedRecords: activeEntity === 'health' ? 0 : 1,

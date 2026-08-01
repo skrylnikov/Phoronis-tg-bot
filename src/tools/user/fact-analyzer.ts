@@ -318,7 +318,14 @@ ${userPrompt}
       savedFactIds.push(factId);
     }
 
-    logger.info(`Analyzed user ${userId}, saved ${savedFactIds.length} facts`);
+    logger.info(
+      {
+        event: 'user_fact.analysis_completed',
+        userId,
+        savedFactCount: savedFactIds.length,
+      },
+      'User fact analysis completed',
+    );
 
     return savedFactIds;
   } catch (error) {

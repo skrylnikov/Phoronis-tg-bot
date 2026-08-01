@@ -104,7 +104,8 @@ const analyzer = async (ctx: BotContext) => {
   });
   if (!reservation.allowed) {
     logger.debug(
-      `Analysis limit exceeded for user ${ctx.from.id} in chat ${ctx.chatId}`,
+      { event: 'user_meta.analysis_quota_exceeded' },
+      'User meta analysis quota exceeded',
     );
     return;
   }

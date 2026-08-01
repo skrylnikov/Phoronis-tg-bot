@@ -48,6 +48,7 @@ async function searchWithEmbedding(
 
   logger.info(
     {
+      event: 'embedding.context_search_completed',
       durationMs: Math.round(performance.now() - startedAt),
       userResults: userContext.length,
       chatResults: chatContext.length,

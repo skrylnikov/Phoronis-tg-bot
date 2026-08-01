@@ -11,6 +11,9 @@ export async function cleanOldPrivateMessages(): Promise<number> {
     },
   });
 
-  logger.info(`Удалено ${result.count} приватных сообщений старше 7 дней`);
+  logger.info(
+    { event: 'message.private_cleanup_completed', deletedCount: result.count },
+    'Private message cleanup completed',
+  );
   return result.count;
 }

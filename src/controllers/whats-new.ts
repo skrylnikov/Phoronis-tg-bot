@@ -151,7 +151,12 @@ async function runBroadcast(
         sent += 1;
       } catch (error) {
         logger.warn(
-          { err: error, chatId: group.id.toString(), title: group.title },
+          {
+            event: 'whats_new.broadcast_group_failed',
+            err: error,
+            chatId: group.id.toString(),
+            title: group.title,
+          },
           'Failed to send whats-new broadcast',
         );
       }

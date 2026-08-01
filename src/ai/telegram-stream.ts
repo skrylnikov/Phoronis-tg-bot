@@ -392,7 +392,10 @@ export class TelegramStreamSink {
         return this.groupMessage;
       }
       logger.error(
-        formattedError,
+        {
+          event: 'telegram.ephemeral_stream_finalize_failed',
+          err: formattedError,
+        },
         'Failed to finalize formatted ephemeral stream',
       );
       try {
