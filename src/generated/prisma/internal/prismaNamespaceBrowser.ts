@@ -59,6 +59,7 @@ export const ModelName = {
   QuotaUsage: 'QuotaUsage',
   LimitNotice: 'LimitNotice',
   DailyAnalytics: 'DailyAnalytics',
+  TelegramUpdate: 'TelegramUpdate',
   Message: 'Message',
   GuestInteraction: 'GuestInteraction',
   Memory: 'Memory',
@@ -190,6 +191,25 @@ export const DailyAnalyticsScalarFieldEnum = {
 export type DailyAnalyticsScalarFieldEnum = (typeof DailyAnalyticsScalarFieldEnum)[keyof typeof DailyAnalyticsScalarFieldEnum]
 
 
+export const TelegramUpdateScalarFieldEnum = {
+  updateId: 'updateId',
+  payload: 'payload',
+  partitionKey: 'partitionKey',
+  lane: 'lane',
+  status: 'status',
+  attempts: 'attempts',
+  availableAt: 'availableAt',
+  leaseUntil: 'leaseUntil',
+  workerId: 'workerId',
+  receivedAt: 'receivedAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  lastError: 'lastError'
+} as const
+
+export type TelegramUpdateScalarFieldEnum = (typeof TelegramUpdateScalarFieldEnum)[keyof typeof TelegramUpdateScalarFieldEnum]
+
+
 export const MessageScalarFieldEnum = {
   id: 'id',
   chatId: 'chatId',
@@ -302,6 +322,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

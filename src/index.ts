@@ -64,8 +64,9 @@ process.on('unhandledRejection', (err) => {
 const shutdown = async () => {
   logger.info({ event: 'process.shutdown_started' }, 'Shutting down the bot');
   healthServer.stop();
+  await botTransport.stop();
   await stopEmbeddingBackfill();
-  await Promise.all([botTransport.stop(), prisma.$disconnect()]);
+  await prisma.$disconnect();
   logger.info(
     { event: 'process.shutdown_completed' },
     'Bot shutdown completed',

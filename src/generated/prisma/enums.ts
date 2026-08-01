@@ -64,6 +64,24 @@ export const LimitNoticeKind = {
 export type LimitNoticeKind = (typeof LimitNoticeKind)[keyof typeof LimitNoticeKind]
 
 
+export const TelegramUpdateLane = {
+  NORMAL: 'NORMAL',
+  URGENT: 'URGENT'
+} as const
+
+export type TelegramUpdateLane = (typeof TelegramUpdateLane)[keyof typeof TelegramUpdateLane]
+
+
+export const TelegramUpdateStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+} as const
+
+export type TelegramUpdateStatus = (typeof TelegramUpdateStatus)[keyof typeof TelegramUpdateStatus]
+
+
 export const MessageType = {
   TEXT: 'TEXT',
   MEDIA: 'MEDIA',

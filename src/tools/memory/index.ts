@@ -24,6 +24,7 @@ interface CheckSimilarResult {
 }
 
 const SEARCH_THRESHOLD = 0.82;
+const similarityCheckTimeoutMs = 10_000;
 
 const memoryCheckSchema = z.object({
   duplicateId: z
@@ -89,6 +90,7 @@ ${candidates}
 Если противоречие найдено - верни его ID.
 Если нет ни того ни другого - верни null для обоих полей.`,
       temperature: 0,
+      abortSignal: AbortSignal.timeout(similarityCheckTimeoutMs),
     });
 
     if (llmResult.output.duplicateId) {
@@ -115,9 +117,18 @@ ${candidates}
       embedding: passageEmbedding,
     };
   } catch (err) {
-    logger.error(
-      { event: 'memory.similarity_check_failed', err },
-      'Memory similarity check failed',
+    const noOutput =
+      err instanceof Error && err.name === 'AI_NoOutputGeneratedError';
+    logger[noOutput ? 'warn' : 'error'](
+      {
+        event: noOutput
+          ? 'memory.similarity_check_unavailable'
+          : 'memory.similarity_check_failed',
+        err,
+      },
+      noOutput
+        ? 'Memory similarity check returned no structured output'
+        : 'Memory similarity check failed',
     );
     return { isDuplicate: false, isContradiction: false };
   }

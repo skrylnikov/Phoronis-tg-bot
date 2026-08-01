@@ -1,6 +1,12 @@
-import { type Bot, webhookCallback } from 'grammy';
+import type { Update } from '@grammyjs/types';
+import type { Bot } from 'grammy';
 import type { BotContext } from './bot';
 import { logger } from './logger';
+import {
+  createTelegramUpdateQueue,
+  isTelegramUpdate,
+  type TelegramUpdateQueue,
+} from './telegram-update-queue';
 import type {
   TransportConfig,
   WebhookTransportConfig,
@@ -23,44 +29,80 @@ export interface BotTransport {
 }
 
 function updateIdFromPayload(payload: unknown): number | undefined {
-  if (!payload || typeof payload !== 'object' || !('update_id' in payload)) {
-    return undefined;
-  }
+  return isTelegramUpdate(payload) ? payload.update_id : undefined;
+}
 
-  const updateId = (payload as { update_id?: unknown }).update_id;
-  return typeof updateId === 'number' ? updateId : undefined;
+function hasValidSecret(headers: Headers, expected: string): boolean {
+  const actual = headers.get('X-Telegram-Bot-Api-Secret-Token');
+  if (!actual || actual.length !== expected.length) return false;
+
+  let difference = 0;
+  for (let index = 0; index < expected.length; index += 1) {
+    difference |= actual.charCodeAt(index) ^ expected.charCodeAt(index);
+  }
+  return difference === 0;
 }
 
 function createWebhookHandler(
-  bot: Bot<BotContext>,
+  queue: TelegramUpdateQueue,
   config: WebhookTransportConfig,
 ): BunWebhookHandler {
-  const handleWebhook = webhookCallback(bot, 'bun', {
-    secretToken: config.webhookSecret,
-    timeoutMilliseconds: config.webhookTimeoutMs,
-  });
-
   return async (request) => {
     const startedAt = Date.now();
-    let payload: unknown;
-    const response = await handleWebhook({
-      headers: request.headers,
-      json: async () => {
-        payload = await request.json();
-        return payload;
-      },
-    });
+    if (!hasValidSecret(request.headers, config.webhookSecret)) {
+      logger.warn(
+        { event: 'transport.webhook_unauthorized' },
+        'Rejected webhook request with an invalid secret',
+      );
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-    logger.info(
-      {
-        event: 'transport.webhook_update_handled',
-        updateId: updateIdFromPayload(payload),
-        durationMs: Date.now() - startedAt,
-        status: response.status,
-      },
-      'Webhook update handled',
-    );
-    return response;
+    let payload: unknown;
+    try {
+      payload = await request.json();
+    } catch (error) {
+      logger.warn(
+        { event: 'transport.webhook_invalid_payload', err: error },
+        'Rejected webhook request with invalid JSON',
+      );
+      return new Response('Bad Request', { status: 400 });
+    }
+
+    if (!isTelegramUpdate(payload)) {
+      logger.warn(
+        { event: 'transport.webhook_invalid_payload' },
+        'Rejected webhook request without a valid update_id',
+      );
+      return new Response('Bad Request', { status: 400 });
+    }
+
+    try {
+      const result = await queue.enqueue(payload as Update);
+      logger.info(
+        {
+          event: 'transport.webhook_update_enqueued',
+          updateId: updateIdFromPayload(payload),
+          duplicate: result.duplicate,
+          lane: result.lane,
+          partitionKey: result.partitionKey,
+          durationMs: Date.now() - startedAt,
+          status: 200,
+        },
+        'Webhook update accepted',
+      );
+      return Response.json({ ok: true });
+    } catch (error) {
+      logger.error(
+        {
+          event: 'transport.webhook_failed',
+          updateId: updateIdFromPayload(payload),
+          durationMs: Date.now() - startedAt,
+          err: error,
+        },
+        'Failed to enqueue webhook update',
+      );
+      return new Response('Internal Server Error', { status: 500 });
+    }
   };
 }
 
@@ -68,6 +110,7 @@ export function createBotTransport(
   bot: Bot<BotContext>,
   config: TransportConfig,
   onPollingError: (error: unknown) => void,
+  providedQueue?: TelegramUpdateQueue,
 ): BotTransport {
   if (config.mode === 'polling') {
     return {
@@ -84,10 +127,13 @@ export function createBotTransport(
     };
   }
 
+  const queue = providedQueue ?? createTelegramUpdateQueue(bot);
+
   return {
     webhookPath: config.webhookPath,
-    webhookHandler: createWebhookHandler(bot, config),
+    webhookHandler: createWebhookHandler(queue, config),
     start: async () => {
+      await queue.start();
       await bot.api.setWebhook(config.webhookUrl, {
         drop_pending_updates: false,
         max_connections: 1,
@@ -103,6 +149,7 @@ export function createBotTransport(
       );
     },
     stop: async () => {
+      await queue.stop();
       // Keep the webhook configured across graceful pod restarts.
     },
   };

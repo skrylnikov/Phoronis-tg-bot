@@ -37,6 +37,23 @@ export const voiceController = async (ctx: BotContext) => {
     const chatId = ctx.chatId;
 
     await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+    const existingVoiceMessage = await prisma.message.findUnique({
+      where: {
+        chatId_id: {
+          chatId,
+          id: ctx.message.message_id,
+        },
+      },
+      select: { id: true },
+    });
+    if (existingVoiceMessage) {
+      logger.info(
+        { event: 'message.duplicate_skipped', messageType: 'VOICE' },
+        'Duplicate voice message skipped before recognition',
+      );
+      return;
+    }
+
     reservation = await reserveQuota({
       userId: ctx.from.id,
       chatId,
@@ -88,24 +105,11 @@ export const voiceController = async (ctx: BotContext) => {
       file = Buffer.from(result.MEMFS[0].data);
     }
 
-    const [recognizedResult, _replyToMessage] = await Promise.all([
-      yandex.speechkit.recognize({
-        fileId: file_id,
-        file,
-        duration,
-      }),
-      prisma.message.findUnique({
-        where: {
-          chatId_id: {
-            chatId: ctx.chatId,
-            id: ctx.msg?.message_id ?? 0,
-          },
-        },
-        select: {
-          id: true,
-        },
-      }),
-    ]);
+    const recognizedResult = await yandex.speechkit.recognize({
+      fileId: file_id,
+      file,
+      duration,
+    });
 
     if (!recognizedResult) {
       return;

@@ -175,6 +175,37 @@ model DailyAnalytics {
   updatedAt    DateTime @updatedAt
 }
 
+enum TelegramUpdateLane {
+  NORMAL
+  URGENT
+}
+
+enum TelegramUpdateStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model TelegramUpdate {
+  updateId     BigInt               @id
+  payload      Json
+  partitionKey String
+  lane         TelegramUpdateLane   @default(NORMAL)
+  status       TelegramUpdateStatus @default(PENDING)
+  attempts     Int                  @default(0)
+  availableAt  DateTime             @default(now())
+  leaseUntil   DateTime?
+  workerId     String?
+  receivedAt   DateTime             @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  lastError    String?
+
+  @@index([status, lane, availableAt, updateId])
+  @@index([partitionKey, lane, updateId, status])
+}
+
 enum MessageType {
   TEXT
   MEDIA

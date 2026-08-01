@@ -295,7 +295,7 @@ export async function successfulPaymentController(
     amount: payment.total_amount,
     chargeId: payment.telegram_payment_charge_id,
   });
-  if (!subscription) return;
+  if (!subscription?.activatedNow) return;
 
   await ctx.reply(
     `Оплата прошла. Тариф «${getPlanTitle(subscription.plan)}» активирован до ${subscription.endsAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}.`,
@@ -312,8 +312,6 @@ export async function successfulPaymentController(
         'Failed to announce subscription purchase',
       ),
     );
-
-  if (!subscription.activatedNow) return;
 
   await sendPurchaseNotification({
     api: ctx.api,

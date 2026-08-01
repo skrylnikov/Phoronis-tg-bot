@@ -1,6 +1,8 @@
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import { type Message, Prisma } from '../generated/prisma/client';
+import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 
 const messageCache = new LRUCache<string, boolean>({
@@ -60,7 +62,12 @@ async function findReplyId(
   }
 }
 
-export const saveMessage = async (params: {
+export interface SaveMessageResult {
+  message: Message;
+  created: boolean;
+}
+
+export type SaveMessageParams = {
   id: number | bigint;
   chatId: number | bigint;
   senderId: number | bigint;
@@ -72,17 +79,31 @@ export const saveMessage = async (params: {
   summary?: string | null;
   sessionId?: string | null;
   private?: boolean | null;
-}) => {
+};
+
+function isDuplicateMessageError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  );
+}
+
+export const saveMessageIfAbsent = async (
+  params: SaveMessageParams,
+): Promise<SaveMessageResult> => {
+  const chatId = BigInt(params.chatId);
+  const messageId = BigInt(params.id);
+
   try {
     const replyId = await findReplyId(
-      BigInt(params.chatId),
+      chatId,
       params.replyToMessageId ? BigInt(params.replyToMessageId) : undefined,
     );
 
-    return prisma.message.create({
+    const message = await prisma.message.create({
       data: {
-        id: BigInt(params.id),
-        chatId: BigInt(params.chatId),
+        id: messageId,
+        chatId,
         senderId: BigInt(params.senderId),
         replyToMessageId: replyId,
         sentAt: params.sentAt,
@@ -94,8 +115,35 @@ export const saveMessage = async (params: {
         private: params.private,
       },
     });
+
+    messageCache.set(`${chatId}_${messageId}`, true);
+    return { message, created: true };
   } catch (error) {
+    if (isDuplicateMessageError(error)) {
+      const existing = await prisma.message.findUnique({
+        where: { chatId_id: { chatId, id: messageId } },
+      });
+      if (existing) {
+        messageCache.set(`${chatId}_${messageId}`, true);
+        logger.info(
+          {
+            event: 'message.duplicate_ignored',
+            chatId: Number(chatId),
+            messageId: Number(messageId),
+          },
+          'Duplicate message persistence ignored',
+        );
+        return { message: existing, created: false };
+      }
+    }
     handleError(error, `Error saving message ${params.id}`);
     throw error;
   }
+};
+
+export const saveMessage = async (
+  params: SaveMessageParams,
+): Promise<Message> => {
+  const result = await saveMessageIfAbsent(params);
+  return result.message;
 };

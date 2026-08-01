@@ -355,6 +355,91 @@ export type EnumLimitNoticeKindWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumLimitNoticeKindFilter<$PrismaModel>
 }
 
+export type JsonFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+    Required<JsonFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+export type JsonFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type EnumTelegramUpdateLaneFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateLane | Prisma.EnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel> | $Enums.TelegramUpdateLane
+}
+
+export type EnumTelegramUpdateStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateStatus | Prisma.EnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel> | $Enums.TelegramUpdateStatus
+}
+
+export type JsonWithAggregatesFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+    Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedJsonFilter<$PrismaModel>
+  _max?: Prisma.NestedJsonFilter<$PrismaModel>
+}
+
+export type EnumTelegramUpdateLaneWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateLane | Prisma.EnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateLaneWithAggregatesFilter<$PrismaModel> | $Enums.TelegramUpdateLane
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel>
+}
+
+export type EnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateStatus | Prisma.EnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel> | $Enums.TelegramUpdateStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
+}
+
 export type BigIntNullableFilter<$PrismaModel = never> = {
   equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel> | null
   in?: bigint[] | number[] | Prisma.ListBigIntFieldRefInput<$PrismaModel> | null
@@ -825,6 +910,64 @@ export type NestedEnumLimitNoticeKindWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumLimitNoticeKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumLimitNoticeKindFilter<$PrismaModel>
+}
+
+export type NestedEnumTelegramUpdateLaneFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateLane | Prisma.EnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel> | $Enums.TelegramUpdateLane
+}
+
+export type NestedEnumTelegramUpdateStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateStatus | Prisma.EnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel> | $Enums.TelegramUpdateStatus
+}
+
+export type NestedJsonFilter<$PrismaModel = never> =
+| Prisma.PatchUndefined<
+    Prisma.Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+    Required<NestedJsonFilterBase<$PrismaModel>>
+  >
+| Prisma.OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+export type NestedJsonFilterBase<$PrismaModel = never> = {
+  equals?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+  path?: string[]
+  mode?: Prisma.QueryMode | Prisma.EnumQueryModeFieldRefInput<$PrismaModel>
+  string_contains?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_starts_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  string_ends_with?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  array_starts_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_ends_with?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  array_contains?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | null
+  lt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  lte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
+  not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type NestedEnumTelegramUpdateLaneWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateLane | Prisma.EnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateLane[] | Prisma.ListEnumTelegramUpdateLaneFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateLaneWithAggregatesFilter<$PrismaModel> | $Enums.TelegramUpdateLane
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTelegramUpdateLaneFilter<$PrismaModel>
+}
+
+export type NestedEnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TelegramUpdateStatus | Prisma.EnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TelegramUpdateStatus[] | Prisma.ListEnumTelegramUpdateStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel> | $Enums.TelegramUpdateStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
 }
 
 export type NestedBigIntNullableFilter<$PrismaModel = never> = {
