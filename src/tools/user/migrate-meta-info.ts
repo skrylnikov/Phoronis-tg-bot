@@ -149,14 +149,27 @@ async function migrateUserMetaInfo(
     } catch (error) {
       hadErrors = true;
       logger.error(
-        error,
-        `Error migrating fact for user ${userId}: ${fact.content}`,
+        {
+          event: 'user_meta.migration_fact_failed',
+          userId,
+          factType: fact.type,
+          err: error,
+        },
+        'Failed to migrate user fact',
       );
     }
   }
 
   if (migratedCount > 0) {
-    logger.info(`Migrated ${migratedCount} facts for user ${userId}`);
+    logger.info(
+      {
+        event: 'user_meta.migration_user_completed',
+        userId,
+        migratedCount,
+        totalCount,
+      },
+      'User meta info migration completed',
+    );
   }
 
   return { migratedCount, totalCount, hadErrors };
@@ -182,7 +195,10 @@ export async function migrateNextBatchOfUsers() {
     });
 
     if (allUsers.length === 0) {
-      logger.info('No more users to migrate');
+      logger.info(
+        { event: 'user_meta.migration_completed', totalMigrated },
+        'User meta info migration caught up',
+      );
       return totalMigrated;
     }
 
@@ -201,8 +217,12 @@ export async function migrateNextBatchOfUsers() {
 
       if (!metaInfoParse.success) {
         logger.error(
-          user.metaInfo,
-          `Invalid metaInfo format for user ${user.id}`,
+          {
+            event: 'user_meta.migration_invalid_format',
+            userId: user.id,
+            issueCount: metaInfoParse.error.issues.length,
+          },
+          'Invalid user meta info format',
         );
         continue;
       }
@@ -220,6 +240,7 @@ export async function migrateNextBatchOfUsers() {
       } else if (result.hadErrors) {
         logger.error(
           {
+            event: 'user_meta.migration_user_incomplete',
             userId: user.id,
             expectedFacts: result.totalCount,
             migratedFacts: result.migratedCount,
@@ -234,7 +255,10 @@ export async function migrateNextBatchOfUsers() {
 }
 
 export function startMetaInfoMigration() {
-  logger.info('Starting meta info migration scheduler...');
+  logger.info(
+    { event: 'user_meta.migration_started' },
+    'User meta info migration scheduler started',
+  );
 
   migrationTask = cron.schedule(
     '*/10 * * * * *',
@@ -250,10 +274,17 @@ export function startMetaInfoMigration() {
           const migrated = await migrateNextBatchOfUsers();
           if (migrated > 0) {
             logger.info(
-              `Migration batch completed: ${migrated} facts migrated`,
+              {
+                event: 'user_meta.migration_batch_completed',
+                migratedCount: migrated,
+              },
+              'User meta info migration batch completed',
             );
           } else {
-            logger.info('No users to migrate, stopping migration scheduler');
+            logger.info(
+              { event: 'user_meta.migration_idle' },
+              'No user meta info migration work remains',
+            );
             stopMetaInfoMigration();
           }
         } catch (error) {
@@ -280,6 +311,9 @@ export function stopMetaInfoMigration() {
   if (migrationTask) {
     migrationTask.stop();
     migrationTask = null;
-    logger.info('Meta info migration scheduler stopped');
+    logger.info(
+      { event: 'user_meta.migration_stopped' },
+      'User meta info migration scheduler stopped',
+    );
   }
 }
