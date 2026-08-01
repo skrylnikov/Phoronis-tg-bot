@@ -8,6 +8,6 @@ export const routerAI = createOpenAICompatible({
   supportsStructuredOutputs: true,
 });
 
-export const chatModel = routerAI('google/gemini-3.6-flash');
-export const liteChatModel = routerAI('google/gemini-2.5-flash-lite');
+export const chatModel = routerAI('openai/gpt-5.6-terra');
+export const liteChatModel = routerAI('openai/gpt-5.6-luna');
 export const utilityModel = routerAI('nex-agi/nex-n2-mini');
