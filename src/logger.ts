@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { APICallError } from 'ai';
 import { pino } from 'pino';
 import type { BotContext } from './bot';
 
@@ -39,7 +40,70 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function serializeError(error: unknown): Record<string, unknown> {
+const MAX_RESPONSE_BODY_PREVIEW_LENGTH = 2048;
+const SAFE_RESPONSE_HEADERS = new Set([
+  'content-length',
+  'content-type',
+  'retry-after',
+  'server',
+  'x-request-id',
+]);
+
+function sanitizeUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '[invalid-url]';
+  }
+}
+
+function sanitizeResponseBody(value: string): string {
+  return value
+    .slice(0, MAX_RESPONSE_BODY_PREVIEW_LENGTH)
+    .replace(
+      /(authorization|api[-_ ]?key|token|secret|password)\s*[:=]\s*(["']?)([^\s,"'}]+)\2/gi,
+      '$1=[REDACTED]',
+    );
+}
+
+function serializeResponseHeaders(
+  headers: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  if (!headers) return undefined;
+
+  const safeHeaders = Object.fromEntries(
+    Object.entries(headers)
+      .map(([key, value]) => [key.toLowerCase(), value])
+      .filter(([key]) => SAFE_RESPONSE_HEADERS.has(key)),
+  );
+
+  return Object.keys(safeHeaders).length > 0 ? safeHeaders : undefined;
+}
+
+export function serializeError(error: unknown): Record<string, unknown> {
+  if (APICallError.isInstance(error)) {
+    const details: Record<string, unknown> = {
+      type: error.name,
+      message: error.message,
+      stack: error.stack,
+      url: sanitizeUrl(error.url),
+      statusCode: error.statusCode,
+      isRetryable: error.isRetryable,
+      responseHeaders: serializeResponseHeaders(error.responseHeaders),
+    };
+
+    if (error.responseBody !== undefined) {
+      details.responseBodyPreview = sanitizeResponseBody(error.responseBody);
+      details.responseBodyTruncated =
+        error.responseBody.length > MAX_RESPONSE_BODY_PREVIEW_LENGTH;
+    }
+
+    return details;
+  }
+
   if (error instanceof Error) {
     const details: Record<string, unknown> = {
       type: error.name,

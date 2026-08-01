@@ -249,6 +249,7 @@ export const UserFactScalarFieldEnum = {
   type: 'type',
   weight: 'weight',
   confidence: 'confidence',
+  sourceChatId: 'sourceChatId',
   sourceMessageId: 'sourceMessageId',
   expiresAt: 'expiresAt',
   usageCount: 'usageCount',

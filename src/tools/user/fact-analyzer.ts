@@ -24,6 +24,11 @@ const factSchema = z.object({
 
 type Fact = z.infer<typeof factSchema>;
 
+interface FactSource {
+  chatId: bigint;
+  messageId: bigint;
+}
+
 const factsCheckSchema = z.object({
   duplicateId: z
     .string()
@@ -50,18 +55,18 @@ async function formatMessagesWithReplies(
 ): Promise<string> {
   const formatted = messages.map((m) => {
     const messageContent = m.summary || m.text || '';
-    let result = '';
+    let result = `[MESSAGE_ID: ${String(m.id)}]`;
 
     if (m.replyToMessage) {
       const replyContent =
         m.replyToMessage.summary || m.replyToMessage.text || '';
       if (replyContent) {
-        result += `[REPLY]: ${replyContent}\n`;
+        result += `\n[REPLY]: ${replyContent}`;
       }
     }
 
     if (messageContent) {
-      result += `[MESSAGE]: ${messageContent}`;
+      result += `\n[MESSAGE]: ${messageContent}`;
     }
 
     return result.trim();
@@ -173,7 +178,7 @@ async function saveUserFact(
   userId: bigint,
   content: string,
   type: FactType,
-  sourceMessageId?: bigint,
+  source: FactSource,
   weight = 1,
 ) {
   const checkResult = await checkForSimilarFacts(userId, content);
@@ -184,11 +189,21 @@ async function saveUserFact(
     });
 
     if (existingFact) {
+      const sourceData =
+        existingFact.sourceChatId === null ||
+        existingFact.sourceMessageId === null
+          ? {
+              sourceChatId: source.chatId,
+              sourceMessageId: source.messageId,
+            }
+          : {};
+
       await prisma.userFact.update({
         where: { id: checkResult.similarFactId },
         data: {
           weight: existingFact.weight + 1,
           updatedAt: new Date(),
+          ...sourceData,
         },
       });
 
@@ -222,6 +237,8 @@ async function saveUserFact(
         data: {
           content,
           weight: Math.max(existingFact.weight - 1, 1),
+          sourceChatId: source.chatId,
+          sourceMessageId: source.messageId,
           updatedAt: new Date(),
         },
       });
@@ -251,7 +268,8 @@ async function saveUserFact(
       content,
       type,
       weight,
-      sourceMessageId,
+      sourceChatId: source.chatId,
+      sourceMessageId: source.messageId,
     },
   });
 
@@ -262,18 +280,78 @@ async function saveUserFact(
   return fact.id;
 }
 
+const extractedFactSchema = factSchema.extend({
+  sourceMessageId: z
+    .string()
+    .describe('ID сообщения из переданного списка, подтверждающего факт'),
+});
+
+type ExtractedFact = z.infer<typeof extractedFactSchema>;
+
 const factExtractionSchema = z.object({
   facts: z
-    .array(factSchema)
+    .array(extractedFactSchema)
     .describe(
       'Массив извлечённых фактов о пользователе (стили общения, факты, интересы)',
     ),
 });
 
+function resolveFactSource(
+  userId: bigint,
+  fact: ExtractedFact,
+  messagesById: Map<bigint, Message & { replyToMessage?: Message | null }>,
+): FactSource | null {
+  if (!/^\d+$/.test(fact.sourceMessageId)) {
+    logger.warn(
+      {
+        event: 'user_fact.invalid_source_message',
+        userId: String(userId),
+        sourceMessageId: fact.sourceMessageId,
+        inputMessageCount: messagesById.size,
+      },
+      'Skipping fact with an invalid source message',
+    );
+    return null;
+  }
+
+  const sourceMessageId = BigInt(fact.sourceMessageId);
+  const sourceMessage = messagesById.get(sourceMessageId);
+
+  if (!sourceMessage || sourceMessage.senderId !== userId) {
+    logger.warn(
+      {
+        event: 'user_fact.invalid_source_message',
+        userId: String(userId),
+        sourceMessageId: fact.sourceMessageId,
+        inputMessageCount: messagesById.size,
+      },
+      'Skipping fact with an invalid source message',
+    );
+    return null;
+  }
+
+  return {
+    chatId: sourceMessage.chatId,
+    messageId: sourceMessage.id,
+  };
+}
+
 export async function analyzeUserMetaInfo(
   userId: bigint,
   messages: Array<Message & { replyToMessage?: Message | null }>,
 ) {
+  const messagesById = new Map(
+    messages.map((message) => [message.id, message]),
+  );
+  const analysisContext = {
+    model: utilityModel.modelId,
+    inputMessageCount: messages.length,
+    existingFactCount: 0,
+    promptLength: 0,
+    validFactCount: 0,
+    skippedFactCount: 0,
+  };
+
   try {
     const formattedMessages = await formatMessagesWithReplies(messages);
 
@@ -282,6 +360,7 @@ export async function analyzeUserMetaInfo(
       orderBy: { updatedAt: 'desc' },
       take: 20,
     });
+    analysisContext.existingFactCount = existingFacts.length;
 
     const existingFactsFormatted = existingFacts
       .map((f) => `[${f.type}] ${f.content} (вес: ${f.weight})`)
@@ -298,29 +377,46 @@ ${existingFactsFormatted || 'Пока нет информации'}
 Новые сообщения пользователя:
 ${formattedMessages}
 
-Извлеки новые факты о пользователе, стилях общения и интересах. НЕ повторяй существующие факты, а только дополняй их.`;
+Извлеки новые факты о пользователе, стилях общения и интересах. НЕ повторяй существующие факты, а только дополняй их.
+Для каждого факта обязательно укажи sourceMessageId — ID наиболее подходящего сообщения из блоков [MESSAGE_ID]. Используй только ID из переданного списка и не придумывай новые ID. Если факт нельзя подтвердить одним из переданных сообщений, не включай его в ответ.`;
+
+    const analysisPrompt = `
+${systemPrompt}
+
+${userPrompt}
+`.trim();
+    analysisContext.promptLength = analysisPrompt.length;
 
     const result = await generateObject({
       model: utilityModel,
       schema: factExtractionSchema,
-      prompt: `
-${systemPrompt}
-
-${userPrompt}
-`.trim(),
+      prompt: analysisPrompt,
       temperature: 0,
     });
 
     const savedFactIds: bigint[] = [];
 
     for (const fact of result.object.facts) {
-      const factId = await saveUserFact(userId, fact.content, fact.type);
+      const source = resolveFactSource(userId, fact, messagesById);
+      if (!source) {
+        analysisContext.skippedFactCount += 1;
+        continue;
+      }
+
+      analysisContext.validFactCount += 1;
+      const factId = await saveUserFact(
+        userId,
+        fact.content,
+        fact.type,
+        source,
+      );
       savedFactIds.push(factId);
     }
 
     logger.info(
       {
         event: 'user_fact.analysis_completed',
+        ...analysisContext,
         userId,
         savedFactCount: savedFactIds.length,
       },
@@ -330,7 +426,7 @@ ${userPrompt}
     return savedFactIds;
   } catch (error) {
     logger.error(
-      { event: 'user_fact.analysis_failed', err: error },
+      { event: 'user_fact.analysis_failed', ...analysisContext, err: error },
       'Error analyzing user meta info',
     );
     return null;

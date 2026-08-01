@@ -211,6 +211,7 @@ model Message {
   sentAt           DateTime
   private          Boolean?                    @default(false)
   Replies          Message[]                   @relation("replies")
+  sourceFacts      UserFact[]                  @relation("UserFactSourceMessage")
 
   @@id([chatId, id])
   @@index([sessionId])
@@ -275,7 +276,9 @@ model UserFact {
   type            FactType
   weight          Int       @default(1)
   confidence      Float     @default(0.5)
+  sourceChatId    BigInt?
   sourceMessageId BigInt?
+  sourceMessage   Message?  @relation("UserFactSourceMessage", fields: [sourceChatId, sourceMessageId], references: [chatId, id], onDelete: SetNull)
   expiresAt       DateTime?
 
   usageCount       Int                         @default(0)
@@ -292,6 +295,7 @@ model UserFact {
 
   @@index([userId, type])
   @@index([userId, updatedAt])
+  @@index([sourceChatId, sourceMessageId])
   @@index([expiresAt])
   @@index([impactScore])
 }

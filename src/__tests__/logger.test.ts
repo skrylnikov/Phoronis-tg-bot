@@ -1,7 +1,9 @@
+import { APICallError } from 'ai';
 import { describe, expect, it } from 'vitest';
 import {
   resolveLogFormat,
   resolveLogLevel,
+  serializeError,
   telegramLogContext,
 } from '../logger';
 
@@ -60,5 +62,56 @@ describe('telegramLogContext', () => {
       callbackQueryId: undefined,
     });
     expect(JSON.stringify(context)).not.toContain('private text');
+  });
+});
+
+describe('error serialization', () => {
+  it('keeps safe diagnostics for AI API errors without request data', () => {
+    const error = new APICallError({
+      message: 'Invalid JSON response',
+      url: 'https://routerai.ru/api/v1/chat/completions?token=secret',
+      requestBodyValues: {
+        prompt: 'private prompt',
+        Authorization: 'Bearer secret',
+      },
+      statusCode: 502,
+      responseHeaders: {
+        'content-type': 'text/html',
+        'x-request-id': 'request-123',
+        authorization: 'Bearer secret',
+      },
+      responseBody: `${'x'.repeat(2048)} authorization: Bearer secret`,
+      isRetryable: true,
+    });
+
+    const serialized = serializeError(error);
+
+    expect(serialized).toMatchObject({
+      type: 'AI_APICallError',
+      message: 'Invalid JSON response',
+      url: 'https://routerai.ru/api/v1/chat/completions',
+      statusCode: 502,
+      isRetryable: true,
+      responseHeaders: {
+        'content-type': 'text/html',
+        'x-request-id': 'request-123',
+      },
+      responseBodyTruncated: true,
+    });
+    expect(String(serialized.responseBodyPreview)).toHaveLength(2048);
+    expect(serialized).not.toHaveProperty('requestBodyValues');
+    expect(JSON.stringify(serialized)).not.toContain('private prompt');
+    expect(JSON.stringify(serialized)).not.toContain('Bearer secret');
+    expect(serialized.responseHeaders).not.toHaveProperty('authorization');
+  });
+
+  it('preserves the existing shape for ordinary errors', () => {
+    const serialized = serializeError(new Error('ordinary failure'));
+
+    expect(serialized).toMatchObject({
+      type: 'Error',
+      message: 'ordinary failure',
+    });
+    expect(serialized).not.toHaveProperty('responseBodyPreview');
   });
 });
