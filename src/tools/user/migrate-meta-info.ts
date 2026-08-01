@@ -1,5 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
+import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from '../../advisory-lock';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
 
@@ -237,27 +238,32 @@ export function startMetaInfoMigration() {
 
   migrationTask = cron.schedule(
     '*/10 * * * * *',
-    async () => {
-      if (isMigrationRunning) {
-        return;
-      }
-
-      isMigrationRunning = true;
-
-      try {
-        const migrated = await migrateNextBatchOfUsers();
-        if (migrated > 0) {
-          logger.info(`Migration batch completed: ${migrated} facts migrated`);
-        } else {
-          logger.info('No users to migrate, stopping migration scheduler');
-          stopMetaInfoMigration();
+    () =>
+      withAdvisoryLock(SCHEDULER_LOCK_KEY, async () => {
+        if (isMigrationRunning) {
+          return;
         }
-      } catch (error) {
-        logger.error(error, 'Error in meta info migration');
-      } finally {
-        isMigrationRunning = false;
-      }
-    },
+
+        isMigrationRunning = true;
+
+        try {
+          const migrated = await migrateNextBatchOfUsers();
+          if (migrated > 0) {
+            logger.info(
+              `Migration batch completed: ${migrated} facts migrated`,
+            );
+          } else {
+            logger.info('No users to migrate, stopping migration scheduler');
+            stopMetaInfoMigration();
+          }
+        } catch (error) {
+          logger.error(error, 'Error in meta info migration');
+        } finally {
+          isMigrationRunning = false;
+        }
+      }).catch((error) => {
+        logger.error(error, 'Failed to acquire meta info migration lock');
+      }),
     {
       timezone: 'UTC',
     },

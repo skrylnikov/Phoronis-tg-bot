@@ -1,3 +1,7 @@
+import {
+  EMBEDDING_BACKFILL_LOCK_KEY,
+  withAdvisoryLock,
+} from '../../advisory-lock';
 import { embeddingVersion } from '../../config';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
@@ -16,6 +20,7 @@ const BACKLOG_REFRESH_INTERVAL_MS = 60_000;
 const IDLE_INTERVAL_MS = 30_000;
 const INITIAL_RETRY_MS = 1_000;
 const MAX_RETRY_MS = 30_000;
+const LOCK_RETRY_MS = 5_000;
 
 type BackfillEntity = 'Message' | 'Memory' | 'UserFact';
 type Backlog = {
@@ -177,86 +182,104 @@ async function runWorker(): Promise<void> {
 
   while (!stopped) {
     try {
-      activeEntity = 'health';
-      if (!(await checkEmbeddingHealth(2_000))) {
-        throw new Error('TEI health check failed');
-      }
+      const result = await withAdvisoryLock(
+        EMBEDDING_BACKFILL_LOCK_KEY,
+        async (): Promise<'idle' | 'processed'> => {
+          activeEntity = 'health';
+          if (!(await checkEmbeddingHealth(2_000))) {
+            throw new Error('TEI health check failed');
+          }
 
-      activeEntity = 'Message';
-      const messageCount = await backfillMessages();
-      let memoryCount = 0;
-      let factCount = 0;
-      if (messageCount === 0) {
-        activeEntity = 'Memory';
-        memoryCount = await backfillMemories();
-      }
-      if (messageCount === 0 && memoryCount === 0) {
-        activeEntity = 'UserFact';
-        factCount = await backfillFacts();
-      }
-      const batchProcessed = messageCount + memoryCount + factCount;
+          activeEntity = 'Message';
+          const messageCount = await backfillMessages();
+          let memoryCount = 0;
+          let factCount = 0;
+          if (messageCount === 0) {
+            activeEntity = 'Memory';
+            memoryCount = await backfillMemories();
+          }
+          if (messageCount === 0 && memoryCount === 0) {
+            activeEntity = 'UserFact';
+            factCount = await backfillFacts();
+          }
+          const batchProcessed = messageCount + memoryCount + factCount;
 
-      retryMs = INITIAL_RETRY_MS;
-      if (batchProcessed === 0) {
-        logger.info(
-          {
-            backlog: { messages: 0, memories: 0, facts: 0 },
-            processedByType,
-          },
-          'Embedding backfill is caught up',
-        );
+          retryMs = INITIAL_RETRY_MS;
+          if (batchProcessed === 0) {
+            logger.info(
+              {
+                backlog: { messages: 0, memories: 0, facts: 0 },
+                processedByType,
+              },
+              'Embedding backfill is caught up',
+            );
+            return 'idle';
+          }
+
+          const entity: BackfillEntity =
+            messageCount > 0
+              ? 'Message'
+              : memoryCount > 0
+                ? 'Memory'
+                : 'UserFact';
+          processedByType[entity] += batchProcessed;
+          processed += batchProcessed;
+          const now = Date.now();
+          let backlogExact = false;
+          let currentBacklog: Backlog;
+          if (
+            backlog === null ||
+            now - backlogMeasuredAt >= BACKLOG_REFRESH_INTERVAL_MS
+          ) {
+            backlogExact = true;
+            currentBacklog = await getBacklog();
+            backlog = currentBacklog;
+            backlogMeasuredAt = Date.now();
+          } else {
+            const backlogKey =
+              entity === 'Message'
+                ? 'messages'
+                : entity === 'Memory'
+                  ? 'memories'
+                  : 'facts';
+            currentBacklog = {
+              ...backlog,
+              [backlogKey]: Math.max(0, backlog[backlogKey] - batchProcessed),
+            };
+            backlog = currentBacklog;
+          }
+          const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
+          const ratePerSecond = processed / elapsedSeconds;
+          const remaining =
+            currentBacklog.messages +
+            currentBacklog.memories +
+            currentBacklog.facts;
+          logger.info(
+            {
+              entity,
+              batchProcessed,
+              processed,
+              processedByType,
+              backlog: currentBacklog,
+              backlogExact,
+              ratePerSecond: Number(ratePerSecond.toFixed(2)),
+              etaSeconds:
+                ratePerSecond > 0 ? Math.ceil(remaining / ratePerSecond) : null,
+            },
+            'Embedding backfill batch completed',
+          );
+          return 'processed';
+        },
+      );
+
+      if (result === undefined) {
+        await sleep(LOCK_RETRY_MS);
+        continue;
+      }
+      if (result === 'idle') {
         await sleep(IDLE_INTERVAL_MS);
         continue;
       }
-
-      const entity: BackfillEntity =
-        messageCount > 0 ? 'Message' : memoryCount > 0 ? 'Memory' : 'UserFact';
-      processedByType[entity] += batchProcessed;
-      processed += batchProcessed;
-      const now = Date.now();
-      let backlogExact = false;
-      let currentBacklog: Backlog;
-      if (
-        backlog === null ||
-        now - backlogMeasuredAt >= BACKLOG_REFRESH_INTERVAL_MS
-      ) {
-        backlogExact = true;
-        currentBacklog = await getBacklog();
-        backlog = currentBacklog;
-        backlogMeasuredAt = Date.now();
-      } else {
-        const backlogKey =
-          entity === 'Message'
-            ? 'messages'
-            : entity === 'Memory'
-              ? 'memories'
-              : 'facts';
-        currentBacklog = {
-          ...backlog,
-          [backlogKey]: Math.max(0, backlog[backlogKey] - batchProcessed),
-        };
-        backlog = currentBacklog;
-      }
-      const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 1);
-      const ratePerSecond = processed / elapsedSeconds;
-      const remaining =
-        currentBacklog.messages +
-        currentBacklog.memories +
-        currentBacklog.facts;
-      logger.info(
-        {
-          entity,
-          batchProcessed,
-          processed,
-          processedByType,
-          backlog: currentBacklog,
-          backlogExact,
-          ratePerSecond: Number(ratePerSecond.toFixed(2)),
-          etaSeconds:
-            ratePerSecond > 0 ? Math.ceil(remaining / ratePerSecond) : null,
-        },
-        'Embedding backfill batch completed',
-      );
       await delay(BATCH_INTERVAL_MS);
     } catch (error) {
       logger.warn(
