@@ -1,18 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { chatGeneration, compile, getPrompt, trace } = vi.hoisted(() => ({
-  chatGeneration: vi.fn().mockResolvedValue('## Готово'),
-  compile: vi.fn().mockReturnValue('system prompt'),
-  getPrompt: vi.fn(),
-  trace: vi.fn().mockReturnValue({ update: vi.fn() }),
+const {
+  answerGuestQuery,
+  claimGuestInteraction,
+  generateGuestResponse,
+  markGuestInteractionAnswered,
+  prisma,
+} = vi.hoisted(() => ({
+  answerGuestQuery: vi
+    .fn()
+    .mockResolvedValue({ inline_message_id: 'inline-1' }),
+  claimGuestInteraction: vi.fn().mockResolvedValue({
+    kind: 'claimed',
+    id: 'interaction-1',
+  }),
+  generateGuestResponse: vi.fn().mockResolvedValue('## Готово'),
+  markGuestInteractionAnswered: vi.fn().mockResolvedValue(undefined),
+  prisma: {
+    chat: {
+      findUnique: vi.fn().mockResolvedValue({ privateModeEnabled: false }),
+    },
+    message: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+  },
 }));
 
-getPrompt.mockResolvedValue({ compile });
-
-vi.mock('../ai/chat-generation', () => ({ chatGeneration }));
-vi.mock('../ai/langfuse', () => ({
-  langfuse: { getPrompt, trace },
+vi.mock('../ai/guest-generation', () => ({ generateGuestResponse }));
+vi.mock('../db', () => ({ prisma }));
+vi.mock('../shared', () => ({
+  claimGuestInteraction,
+  markGuestInteractionAnswered,
+  markGuestInteractionFailed: vi.fn().mockResolvedValue(undefined),
+  releaseQuota: vi.fn().mockResolvedValue(undefined),
+  reserveQuota: vi.fn().mockResolvedValue({ allowed: true }),
+  saveChat: vi.fn().mockResolvedValue(undefined),
+  saveMessage: vi.fn().mockResolvedValue(undefined),
+  saveUser: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../ai/image-description', () => ({
+  describeTelegramPhoto: vi.fn(),
+}));
+vi.mock('../tools/user/message-analyzer', () => ({
+  analyzeUserMessages: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../logger', () => ({
   logger: { warn: vi.fn() },
@@ -21,11 +52,11 @@ vi.mock('../logger', () => ({
 import { extractGuestQuery, handleGuestMessage } from '../controllers/guest';
 
 function createContext(text: string, replyText?: string) {
-  const answerGuestQuery = vi.fn().mockResolvedValue({
-    inline_message_id: 'inline-1',
-  });
   const context = {
     me: { id: 999, username: 'phoronis_bot' },
+    from: { id: 123 },
+    chatId: -100,
+    chat: { id: -100, type: 'supergroup', title: 'Test' },
     guestMessage: {
       message_id: 0,
       guest_query_id: 'query-1',
@@ -65,21 +96,12 @@ describe('guestController', () => {
 
     await handleGuestMessage(context);
 
-    expect(chatGeneration).toHaveBeenCalledWith(
-      [
-        { role: 'system', content: 'system prompt' },
-        {
-          role: 'user',
-          content: JSON.stringify([
-            { type: 'reference', text: 'Исходное сообщение' },
-            { type: 'text', text: 'почему?' },
-          ]),
-        },
-      ],
-      expect.anything(),
-      undefined,
-      undefined,
-      { readOnlyTools: true },
+    expect(generateGuestResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'почему?',
+        referenceText: 'Исходное сообщение',
+        privateMode: false,
+      }),
     );
     expect(answerGuestQuery).toHaveBeenCalledWith({
       type: 'article',
@@ -94,7 +116,7 @@ describe('guestController', () => {
 
     await handleGuestMessage(context);
 
-    expect(chatGeneration).not.toHaveBeenCalled();
+    expect(generateGuestResponse).not.toHaveBeenCalled();
     expect(answerGuestQuery).toHaveBeenCalledOnce();
   });
 });

@@ -60,6 +60,7 @@ export const ModelName = {
   LimitNotice: 'LimitNotice',
   DailyAnalytics: 'DailyAnalytics',
   Message: 'Message',
+  GuestInteraction: 'GuestInteraction',
   Memory: 'Memory',
   UserFact: 'UserFact',
   FactImpact: 'FactImpact',
@@ -206,6 +207,25 @@ export const MessageScalarFieldEnum = {
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
+
+
+export const GuestInteractionScalarFieldEnum = {
+  id: 'id',
+  guestQueryId: 'guestQueryId',
+  chatId: 'chatId',
+  userId: 'userId',
+  messageId: 'messageId',
+  query: 'query',
+  referenceText: 'referenceText',
+  answer: 'answer',
+  status: 'status',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  answeredAt: 'answeredAt'
+} as const
+
+export type GuestInteractionScalarFieldEnum = (typeof GuestInteractionScalarFieldEnum)[keyof typeof GuestInteractionScalarFieldEnum]
 
 
 export const MemoryScalarFieldEnum = {

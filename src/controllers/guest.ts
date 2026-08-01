@@ -1,19 +1,27 @@
-import type { Message } from '@grammyjs/types';
-import type { ModelMessage } from 'ai';
-import { format } from 'date-fns';
+import type { Message, PhotoSize } from '@grammyjs/types';
 import { Composer } from 'grammy';
-import { chatGeneration } from '../ai/chat-generation';
-import { langfuse } from '../ai/langfuse';
-import {
-  createRichMessageIfNeeded,
-  richMarkdownInstructions,
-  toMarkdownV2,
-} from '../ai/rich-message';
+import { generateGuestResponse } from '../ai/guest-generation';
+import { describeTelegramPhoto } from '../ai/image-description';
+import { createRichMessageIfNeeded, toMarkdownV2 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
+import { prisma } from '../db';
 import { logger } from '../logger';
+import {
+  claimGuestInteraction,
+  markGuestInteractionAnswered,
+  markGuestInteractionFailed,
+  releaseQuota,
+  reserveQuota,
+  saveChat,
+  saveMessage,
+  saveUser,
+} from '../shared';
+import { analyzeUserMessages } from '../tools/user/message-analyzer';
 
 const guestAnswerId = 'phoronis-guest-answer';
 const guestAnswerTitle = 'Ответ Ио';
+const guestImageLimitMessage =
+  'Лимит анализа изображений на сегодня закончился.';
 const maxTextMessageLength = 4096;
 
 export const guestController = new Composer<BotContext>();
@@ -24,6 +32,20 @@ export function extractGuestQuery(text: string, botUsername: string): string {
 
 function getMessageText(message: Message | undefined): string {
   return message?.text?.trim() || message?.caption?.trim() || '';
+}
+
+function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
+  const maxSize = 896;
+  let optimalPhoto = photos[0];
+  let optimalSide = 0;
+  for (const photo of photos) {
+    const side = Math.min(photo.width, photo.height);
+    if (side <= maxSize && side > optimalSide) {
+      optimalPhoto = photo;
+      optimalSide = side;
+    }
+  }
+  return optimalPhoto;
 }
 
 function truncateText(text: string, maxLength: number): string {
@@ -60,58 +82,185 @@ async function answerGuestMessage(ctx: BotContext, markdown: string) {
   });
 }
 
+async function persistObservedMessage(
+  message: Message,
+  chatId: number,
+  privateMode: boolean,
+): Promise<boolean> {
+  if (!message.from || message.message_id <= 0) return false;
+
+  const existing = await prisma.message.findUnique({
+    where: {
+      chatId_id: { chatId: BigInt(chatId), id: BigInt(message.message_id) },
+    },
+    select: { id: true },
+  });
+  if (existing) return true;
+
+  await saveUser(message.from);
+  try {
+    await saveMessage({
+      id: message.message_id,
+      chatId,
+      senderId: message.from.id,
+      replyToMessageId: message.reply_to_message?.message_id,
+      sentAt: new Date(message.date * 1000),
+      text: getMessageText(message) || null,
+      messageType: message.photo ? 'MEDIA' : 'TEXT',
+      media: message.photo
+        ? JSON.stringify({
+            fileId: selectOptimalPhoto(message.photo)?.file_id,
+            mimeType: 'image/jpeg',
+          })
+        : undefined,
+      private: privateMode,
+    });
+  } catch (error) {
+    const concurrent = await prisma.message.findUnique({
+      where: {
+        chatId_id: { chatId: BigInt(chatId), id: BigInt(message.message_id) },
+      },
+      select: { id: true },
+    });
+    if (!concurrent) throw error;
+  }
+  return true;
+}
+
+async function describeGuestPhoto(
+  ctx: BotContext,
+  message: Message,
+): Promise<string | undefined> {
+  if (!message.photo) return undefined;
+  const photo = selectOptimalPhoto(message.photo);
+  if (!photo) return undefined;
+
+  const reservation = await reserveQuota({
+    userId: ctx.from?.id ?? 0,
+    chatId: ctx.chatId ?? 0,
+    isGroup: ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup',
+    kind: 'IMAGE',
+  });
+  if (!reservation.allowed) {
+    return guestImageLimitMessage;
+  }
+
+  try {
+    const description = await describeTelegramPhoto(ctx, photo);
+    if (message.message_id > 0 && ctx.chatId) {
+      await prisma.message.updateMany({
+        where: {
+          chatId: BigInt(ctx.chatId),
+          id: BigInt(message.message_id),
+        },
+        data: { summary: description },
+      });
+    }
+    return description;
+  } catch (error) {
+    await releaseQuota(reservation);
+    throw error;
+  }
+}
+
 export async function handleGuestMessage(ctx: BotContext): Promise<void> {
   const message = ctx.guestMessage;
   const botUsername = ctx.me.username;
-  if (!message?.guest_query_id || !botUsername) return;
-
-  const query = extractGuestQuery(getMessageText(message), botUsername);
-  const referencedMessage = getMessageText(message.reply_to_message);
-
-  if (!query && !referencedMessage) {
-    await answerGuestMessage(
-      ctx,
-      'Упомяни меня вместе с вопросом или ответь на сообщение, которое нужно разобрать.',
-    );
+  const telegramChat = ctx.chat;
+  if (
+    !message?.guest_query_id ||
+    !botUsername ||
+    !ctx.from ||
+    !ctx.chatId ||
+    !telegramChat
+  ) {
     return;
   }
 
-  const prompt = await langfuse.getPrompt('chat-generation');
-  const compiledPrompt = prompt.compile({
-    users: '[]',
-    rules: [
-      '- Ты отвечаешь как гостевой бот и видишь только переданное сообщение и явную цитату',
-      '- Не утверждай, что видишь историю или участников чата',
-      richMarkdownInstructions,
-    ].join('\n'),
-    time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
+  await Promise.all([
+    saveChat(telegramChat),
+    saveUser(ctx.from),
+    saveUser(ctx.me),
+  ]);
+  const chat = await prisma.chat.findUnique({
+    where: { id: BigInt(ctx.chatId) },
+    select: { privateModeEnabled: true },
   });
+  const privateMode = chat?.privateModeEnabled ?? false;
+  const query = extractGuestQuery(getMessageText(message), botUsername);
+  const referenceText = getMessageText(message.reply_to_message);
+  if (message.reply_to_message) {
+    await persistObservedMessage(
+      message.reply_to_message,
+      ctx.chatId,
+      privateMode,
+    );
+  }
+  const messagePersisted = await persistObservedMessage(
+    message,
+    ctx.chatId,
+    privateMode,
+  );
 
-  const content = [
-    referencedMessage
-      ? { type: 'reference', text: referencedMessage }
-      : undefined,
-    { type: 'text', text: query || 'Ответь на сообщение из reference' },
-  ].filter(Boolean);
-
-  const messages: ModelMessage[] = [
-    { role: 'system', content: compiledPrompt },
-    { role: 'user', content: JSON.stringify(content) },
-  ];
-
-  const trace = langfuse.trace({
-    name: 'guest-generation',
-    sessionId: message.guest_query_id,
-    userId: message.from?.id.toString() ?? null,
-    metadata: { chatType: message.chat.type },
+  const claim = await claimGuestInteraction({
+    guestQueryId: message.guest_query_id,
+    chatId: BigInt(ctx.chatId),
+    userId: BigInt(ctx.from.id),
+    messageId: message.message_id > 0 ? BigInt(message.message_id) : undefined,
+    query,
+    referenceText: referenceText || undefined,
   });
+  if (claim.kind !== 'claimed') return;
 
-  const result = await chatGeneration(messages, trace, undefined, undefined, {
-    readOnlyTools: true,
-  });
+  if (!privateMode) {
+    void analyzeUserMessages(ctx).catch((error) =>
+      logger.error(
+        { event: 'user_meta.background_analysis_failed', err: error },
+        'Failed to analyze guest user metadata',
+      ),
+    );
+  }
 
-  if (result) {
+  try {
+    if (!query && !referenceText && !message.photo) {
+      const answer =
+        'Упомяни меня вместе с вопросом или ответь на сообщение, которое нужно разобрать.';
+      await answerGuestMessage(ctx, answer);
+      await markGuestInteractionAnswered(claim.id, answer);
+      return;
+    }
+
+    const imageDescription = await describeGuestPhoto(ctx, message);
+    if (imageDescription === guestImageLimitMessage) {
+      await answerGuestMessage(ctx, imageDescription);
+      await markGuestInteractionAnswered(claim.id, imageDescription);
+      return;
+    }
+    const result = await generateGuestResponse({
+      ctx,
+      text: query || imageDescription || 'Ответь на сообщение из reference',
+      referenceText: referenceText || undefined,
+      imageDescription,
+      privateMode,
+      messagePersisted,
+    });
+    if (!result) throw new Error('Guest generation returned an empty result');
+
     await answerGuestMessage(ctx, result);
+    await markGuestInteractionAnswered(claim.id, result).catch((error) =>
+      logger.error(
+        { event: 'guest.interaction_persist_failed', err: error },
+        'Failed to persist guest response after delivery',
+      ),
+    );
+  } catch (error) {
+    await markGuestInteractionFailed(claim.id, error).catch((markError) =>
+      logger.error(
+        { event: 'guest.interaction_failure_persist_failed', err: markError },
+        'Failed to persist guest failure',
+      ),
+    );
+    throw error;
   }
 }
 

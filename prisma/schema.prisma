@@ -23,6 +23,7 @@ model User {
   metaInfo  Json?   @default("{}")
 
   Message         Message[]
+  GuestInteraction GuestInteraction[]
   Memory          Memory[]
   UserFact        UserFact[]
   Subscription    Subscription[]
@@ -49,6 +50,7 @@ model Chat {
   privateModeEnabled    Boolean? @default(false)
 
   Message                  Message[]
+  GuestInteraction         GuestInteraction[]
   Memory                   Memory[]
   beneficiarySubscriptions Subscription[]    @relation("SubscriptionBenefitChat")
   PaymentOrder             PaymentOrder[]
@@ -179,6 +181,12 @@ enum MessageType {
   VOICE
 }
 
+enum GuestInteractionStatus {
+  PROCESSING
+  ANSWERED
+  FAILED
+}
+
 model Message {
   id BigInt
 
@@ -207,6 +215,28 @@ model Message {
   @@id([chatId, id])
   @@index([sessionId])
   @@index([senderId])
+}
+
+model GuestInteraction {
+  id           String                  @id @default(cuid())
+  guestQueryId String                  @unique
+  chatId       BigInt
+  chat         Chat                    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId       BigInt
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId    BigInt?
+  query        String
+  referenceText String?
+  answer       String?
+  status       GuestInteractionStatus  @default(PROCESSING)
+  error        String?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  answeredAt   DateTime?
+
+  @@index([chatId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, updatedAt])
 }
 
 model Memory {

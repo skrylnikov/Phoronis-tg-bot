@@ -16,8 +16,8 @@ import {
   saveMessage,
   saveUser,
 } from '../shared';
-import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
 import { recordUserReaction } from '../tools/user/fact-impact-tracker';
+import { analyzeUserMessages } from '../tools/user/message-analyzer';
 import { handleError } from '../utils/error-handler';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -89,41 +89,6 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
   return optimalPhoto;
 }
 
-const analyzer = async (ctx: BotContext) => {
-  if (!ctx.from || !ctx.chatId) return;
-  const messageCount = await prisma.message.count({
-    where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
-  });
-  if (messageCount % 30 !== 0) return;
-
-  const reservation = await reserveQuota({
-    userId: ctx.from.id,
-    chatId: ctx.chatId,
-    isGroup: isGroupChat(ctx),
-    kind: 'ANALYSIS',
-  });
-  if (!reservation.allowed) {
-    logger.debug(
-      { event: 'user_meta.analysis_quota_exceeded' },
-      'User meta analysis quota exceeded',
-    );
-    return;
-  }
-
-  try {
-    const lastMessages = await prisma.message.findMany({
-      where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
-      include: { replyToMessage: true },
-      orderBy: { sentAt: 'desc' },
-      take: 30,
-    });
-    await analyzeUserMetaInfo(BigInt(ctx.from.id), lastMessages.reverse());
-  } catch (error) {
-    await releaseQuota(reservation);
-    throw error;
-  }
-};
-
 export const processMessageController = new Composer<BotContext>();
 
 processMessageController.on(':text', async (ctx) => {
@@ -155,7 +120,7 @@ processMessageController.on(':text', async (ctx) => {
       private: isPrivateMode,
     });
     if (!isPrivateMode) {
-      void analyzer(ctx).catch((error) =>
+      void analyzeUserMessages(ctx).catch((error) =>
         logger.error(
           { event: 'user_meta.background_analysis_failed', err: error },
           'Failed to analyze user metadata',

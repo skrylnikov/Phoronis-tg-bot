@@ -2,13 +2,23 @@ import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
 import { prisma } from '../../db';
-import type { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import { embedQuery } from '../embedding/client';
-import { searchChatMessages } from '../embedding/store';
+import {
+  searchChatMessages,
+  searchChatMessagesLexical,
+} from '../embedding/store';
 
 const defaultLimit = 20;
 const maxLimit = 50;
+const maxSearchThreads = 5;
+const searchCandidateLimit = 40;
+const reciprocalRankConstant = 60;
+const exactMatchBoost = 0.02;
+const maxThreadMessages = 40;
+const maxThreadCharacters = 10_000;
+const maxSearchCharacters = 50_000;
 const maxRecentMessages = 20;
 const maxRecentContextCharacters = 12_000;
 const maxHistoryCharacters = 60_000;
@@ -36,6 +46,17 @@ export type HistoryMessage = {
   similarity?: number;
 };
 
+export type HistoryThread = {
+  rootMessageId: string;
+  matchedMessageId: string;
+  rootLink?: string;
+  matchedMessageLink?: string;
+  branchCount: number;
+  incomplete: boolean;
+  truncated: boolean;
+  messages: HistoryMessage[];
+};
+
 type HistoryRow = {
   id: bigint;
   replyToMessageId: bigint | null;
@@ -50,6 +71,31 @@ type HistoryRow = {
     lastName: string | null;
     userName: string | null;
   };
+};
+
+type ReplyGraphRow = HistoryRow & {
+  rootMessageId: bigint;
+  depth: number;
+};
+
+type ReplyRoot = {
+  candidateId: bigint;
+  rootMessageId: bigint;
+  incomplete: boolean;
+};
+
+type SearchCandidate = {
+  row: HistoryRow;
+  score: number;
+  exactMatch: boolean;
+  semanticSimilarity?: number;
+};
+
+type ReplyGraph = {
+  rootMessageId: bigint;
+  rows: HistoryRow[];
+  branchCount: number;
+  incomplete: boolean;
 };
 
 type SenderMatch =
@@ -142,6 +188,260 @@ function formatMessage(row: HistoryRow, similarity?: number): HistoryMessage {
     content: getContent(row),
     ...(similarity === undefined ? {} : { similarity }),
   };
+}
+
+export function buildMessageLink(
+  ctx: BotContext,
+  messageId: bigint,
+): string | undefined {
+  const chat = ctx.chat;
+  if (chat?.type !== 'supergroup') return undefined;
+
+  if (chat.username) {
+    return `https://t.me/${chat.username}/${messageId.toString()}`;
+  }
+
+  const chatId = (ctx.chatId ?? chat.id).toString();
+  if (!chatId.startsWith('-100')) return undefined;
+
+  const channelId = chatId.slice(4);
+  return channelId
+    ? `https://t.me/c/${channelId}/${messageId.toString()}`
+    : undefined;
+}
+
+async function resolveReplyRoots(
+  chatId: bigint,
+  currentMessageId: bigint,
+  candidateIds: bigint[],
+): Promise<ReplyRoot[]> {
+  if (candidateIds.length === 0) return [];
+
+  return prisma.$queryRaw<ReplyRoot[]>(Prisma.sql`
+    WITH RECURSIVE ancestors AS (
+      SELECT
+        m."chatId",
+        m."id" AS "candidateId",
+        m."id",
+        m."replyToMessageId",
+        ARRAY[m."id"]::bigint[] AS path
+      FROM "Message" m
+      WHERE m."chatId" = ${chatId}
+        AND m."private" = FALSE
+        AND m."id" < ${currentMessageId}
+        AND m."id" IN (${Prisma.join(candidateIds)})
+
+      UNION ALL
+
+      SELECT
+        a."chatId",
+        a."candidateId",
+        parent."id",
+        parent."replyToMessageId",
+        a.path || parent."id"
+      FROM ancestors a
+      JOIN "Message" parent
+        ON parent."chatId" = a."chatId"
+       AND parent."id" = a."replyToMessageId"
+      WHERE parent."private" = FALSE
+        AND parent."id" < ${currentMessageId}
+        AND NOT (parent."id" = ANY(a.path))
+    ),
+    root_candidates AS (
+      SELECT
+        a."candidateId",
+        a."id" AS "rootMessageId",
+        (
+          a."replyToMessageId" IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Message" parent
+            WHERE parent."chatId" = a."chatId"
+              AND parent."id" = a."replyToMessageId"
+              AND parent."private" = FALSE
+              AND parent."id" < ${currentMessageId}
+          )
+        ) AS incomplete,
+        cardinality(a.path) AS depth
+      FROM ancestors a
+      WHERE a."replyToMessageId" IS NULL
+         OR NOT EXISTS (
+              SELECT 1
+              FROM "Message" parent
+              WHERE parent."chatId" = a."chatId"
+                AND parent."id" = a."replyToMessageId"
+                AND parent."private" = FALSE
+                AND parent."id" < ${currentMessageId}
+            )
+    ),
+    ranked_roots AS (
+      SELECT
+        r."candidateId",
+        r."rootMessageId",
+        r.incomplete,
+        row_number() OVER (
+          PARTITION BY r."candidateId"
+          ORDER BY r.depth DESC
+        ) AS root_rank
+      FROM root_candidates r
+    ),
+    fallback_roots AS (
+      SELECT DISTINCT ON (a."candidateId")
+        a."candidateId",
+        a."id" AS "rootMessageId",
+        TRUE AS incomplete
+      FROM ancestors a
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM root_candidates r
+        WHERE r."candidateId" = a."candidateId"
+      )
+      ORDER BY a."candidateId", cardinality(a.path) DESC
+    )
+    SELECT "candidateId", "rootMessageId", incomplete
+    FROM ranked_roots
+    WHERE root_rank = 1
+    UNION ALL
+    SELECT "candidateId", "rootMessageId", incomplete
+    FROM fallback_roots
+  `);
+}
+
+async function loadReplyGraphRows(
+  chatId: bigint,
+  currentMessageId: bigint,
+  rootIds: bigint[],
+): Promise<ReplyGraphRow[]> {
+  if (rootIds.length === 0) return [];
+
+  return prisma.$queryRaw<ReplyGraphRow[]>(Prisma.sql`
+    WITH RECURSIVE reply_tree AS (
+      SELECT
+        m."id",
+        m."chatId",
+        m."replyToMessageId",
+        m."senderId",
+        m."messageType",
+        m."text",
+        m."summary",
+        m."searchText",
+        m."sentAt",
+        m."id" AS "rootMessageId",
+        0::int AS depth,
+        ARRAY[m."id"]::bigint[] AS path
+      FROM "Message" m
+      WHERE m."chatId" = ${chatId}
+        AND m."private" = FALSE
+        AND m."id" < ${currentMessageId}
+        AND m."id" IN (${Prisma.join(rootIds)})
+
+      UNION ALL
+
+      SELECT
+        child."id",
+        child."chatId",
+        child."replyToMessageId",
+        child."senderId",
+        child."messageType",
+        child."text",
+        child."summary",
+        child."searchText",
+        child."sentAt",
+        tree."rootMessageId",
+        tree.depth + 1,
+        tree.path || child."id"
+      FROM reply_tree tree
+      JOIN "Message" child
+        ON child."chatId" = tree."chatId"
+       AND child."replyToMessageId" = tree."id"
+      WHERE child."private" = FALSE
+        AND child."id" < ${currentMessageId}
+        AND NOT (child."id" = ANY(tree.path))
+    )
+    SELECT
+      tree."id",
+      tree."replyToMessageId",
+      tree."senderId",
+      tree."messageType",
+      tree."sentAt",
+      tree."text",
+      tree."summary",
+      tree."searchText",
+      tree."rootMessageId",
+      tree.depth,
+      json_build_object(
+        'firstName', u."firstName",
+        'lastName', u."lastName",
+        'userName', u."userName"
+      ) AS "sender"
+    FROM reply_tree tree
+    JOIN "User" u ON u."id" = tree."senderId"
+    ORDER BY tree."rootMessageId", tree."sentAt", tree."id"
+  `);
+}
+
+function countReplyBranches(rows: HistoryRow[]): number {
+  const parentIds = new Set(
+    rows
+      .map((row) => row.replyToMessageId?.toString())
+      .filter((id): id is string => id !== undefined),
+  );
+  const leaves = rows.filter((row) => !parentIds.has(row.id.toString()));
+  return Math.max(leaves.length, 1);
+}
+
+async function loadReplyGraphs(
+  chatId: bigint,
+  currentMessageId: bigint,
+  candidateIds: bigint[],
+): Promise<{
+  graphs: Map<string, ReplyGraph>;
+  rootsByCandidate: Map<string, ReplyRoot>;
+}> {
+  const roots = await resolveReplyRoots(chatId, currentMessageId, candidateIds);
+  const rootsByCandidate = new Map(
+    roots.map((root) => [root.candidateId.toString(), root]),
+  );
+  const rootIds = [
+    ...new Map(
+      roots.map((root) => [root.rootMessageId.toString(), root.rootMessageId]),
+    ).values(),
+  ];
+  const rows = await loadReplyGraphRows(chatId, currentMessageId, rootIds);
+  const rowsByRoot = new Map<string, HistoryRow[]>();
+
+  for (const row of rows) {
+    const rootId = row.rootMessageId.toString();
+    const rootRows = rowsByRoot.get(rootId) ?? [];
+    rootRows.push(row);
+    rowsByRoot.set(rootId, rootRows);
+  }
+
+  const incompleteByRoot = new Map<string, boolean>();
+  for (const root of roots) {
+    const rootId = root.rootMessageId.toString();
+    incompleteByRoot.set(
+      rootId,
+      (incompleteByRoot.get(rootId) ?? false) || root.incomplete,
+    );
+  }
+
+  const graphs = new Map<string, ReplyGraph>();
+  for (const [rootId, rootRows] of rowsByRoot) {
+    rootRows.sort(
+      (left, right) =>
+        left.sentAt.getTime() - right.sentAt.getTime() ||
+        (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+    );
+    graphs.set(rootId, {
+      rootMessageId: BigInt(rootId),
+      rows: rootRows,
+      branchCount: countReplyBranches(rootRows),
+      incomplete: incompleteByRoot.get(rootId) ?? false,
+    });
+  }
+
+  return { graphs, rootsByCandidate };
 }
 
 async function ensureHistoryAccess(ctx: BotContext): Promise<string | null> {
@@ -399,6 +699,73 @@ async function getUserStats(
   }
 }
 
+function addSearchCandidate(
+  candidates: Map<string, SearchCandidate>,
+  row: HistoryRow,
+  rank: number,
+  options: {
+    exactMatch?: boolean;
+    semanticSimilarity?: number;
+  } = {},
+): void {
+  const id = row.id.toString();
+  const candidate = candidates.get(id) ?? {
+    row,
+    score: 0,
+    exactMatch: false,
+  };
+
+  candidate.score += 1 / (reciprocalRankConstant + rank);
+  const wasExactMatch = candidate.exactMatch;
+  candidate.exactMatch ||= options.exactMatch ?? false;
+  if (!wasExactMatch && candidate.exactMatch) {
+    candidate.score += exactMatchBoost;
+  }
+  if (
+    options.semanticSimilarity !== undefined &&
+    (candidate.semanticSimilarity === undefined ||
+      options.semanticSimilarity > candidate.semanticSimilarity)
+  ) {
+    candidate.semanticSimilarity = options.semanticSimilarity;
+  }
+  candidates.set(id, candidate);
+}
+
+function getBoundedThreadMessages(
+  rows: HistoryRow[],
+  matchedMessageId: bigint,
+  semanticSimilarity: number | undefined,
+): { messages: HistoryMessage[]; truncated: boolean } {
+  let characters = 0;
+  let truncated = rows.length > maxThreadMessages;
+  const messages: HistoryMessage[] = [];
+
+  for (const row of rows) {
+    if (messages.length >= maxThreadMessages) {
+      truncated = true;
+      break;
+    }
+
+    const content = getContent(row);
+    if (!content) continue;
+
+    const message = formatMessage(
+      row,
+      row.id === matchedMessageId ? semanticSimilarity : undefined,
+    );
+    const messageCharacters = JSON.stringify(message).length;
+    if (characters + messageCharacters > maxThreadCharacters) {
+      truncated = true;
+      break;
+    }
+
+    characters += messageCharacters;
+    messages.push(message);
+  }
+
+  return { messages, truncated };
+}
+
 async function searchHistory(
   ctx: BotContext,
   input: z.infer<typeof historyInputSchema>,
@@ -452,9 +819,30 @@ async function searchHistory(
         where,
         select: messageSelect,
         orderBy: { id: 'desc' },
-        take: input.limit,
+        take: searchCandidateLimit,
       }),
     ]);
+
+    let lexicalRows: Awaited<ReturnType<typeof searchChatMessagesLexical>> = [];
+    try {
+      lexicalRows = await searchChatMessagesLexical({
+        chatId: BigInt(ctx.chatId ?? 0),
+        query: input.query,
+        limit: searchCandidateLimit,
+        beforeMessageId: currentMessageId,
+        senderId:
+          senderMatch && 'senderId' in senderMatch
+            ? senderMatch.senderId
+            : undefined,
+        startAt,
+        endAt,
+      });
+    } catch (error) {
+      logger.warn(
+        { event: 'chat_history.lexical_search_failed', err: error },
+        'Lexical chat history search failed',
+      );
+    }
 
     let semanticRows: Array<HistoryRow & { similarity: number }> = [];
     if (input.query.length > 10) {
@@ -464,7 +852,7 @@ async function searchHistory(
           chatId: BigInt(ctx.chatId ?? 0),
           embedding,
           threshold: semanticSearchThreshold,
-          limit: input.limit,
+          limit: searchCandidateLimit,
           beforeMessageId: currentMessageId,
           senderId:
             senderMatch && 'senderId' in senderMatch
@@ -481,31 +869,101 @@ async function searchHistory(
       }
     }
 
-    const messagesById = new Map<string, HistoryMessage>();
-    for (const row of exactRows as HistoryRow[]) {
-      messagesById.set(row.id.toString(), formatMessage(row, 1));
+    const candidates = new Map<string, SearchCandidate>();
+    for (const [index, row] of (exactRows as HistoryRow[]).entries()) {
+      addSearchCandidate(candidates, row, index + 1, { exactMatch: true });
     }
-    for (const row of semanticRows) {
-      if (!messagesById.has(row.id.toString())) {
-        messagesById.set(row.id.toString(), formatMessage(row, row.similarity));
+    for (const [index, row] of lexicalRows.entries()) {
+      addSearchCandidate(candidates, row, index + 1, {
+        exactMatch: row.exactMatch,
+      });
+    }
+    for (const [index, row] of semanticRows.entries()) {
+      addSearchCandidate(candidates, row, index + 1, {
+        semanticSimilarity: row.similarity,
+      });
+    }
+
+    const rankedCandidates = [...candidates.values()].sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.row.sentAt.getTime() - left.row.sentAt.getTime() ||
+        (right.row.id < left.row.id ? -1 : right.row.id > left.row.id ? 1 : 0),
+    );
+    const { graphs, rootsByCandidate } = await loadReplyGraphs(
+      BigInt(ctx.chatId ?? 0),
+      currentMessageId,
+      rankedCandidates.map((candidate) => candidate.row.id),
+    );
+
+    const bestCandidateByRoot = new Map<
+      string,
+      { candidate: SearchCandidate; graph: ReplyGraph }
+    >();
+    for (const candidate of rankedCandidates) {
+      const root = rootsByCandidate.get(candidate.row.id.toString());
+      if (!root) continue;
+
+      const graph = graphs.get(root.rootMessageId.toString());
+      if (!graph) continue;
+
+      const rootId = graph.rootMessageId.toString();
+      if (!bestCandidateByRoot.has(rootId)) {
+        bestCandidateByRoot.set(rootId, { candidate, graph });
       }
     }
 
-    const messages = [...messagesById.values()]
-      .sort((left, right) => right.sentAt.localeCompare(left.sentAt))
-      .slice(0, input.limit)
-      .reverse();
+    const selectedThreads = [...bestCandidateByRoot.values()].slice(
+      0,
+      Math.min(input.limit, maxSearchThreads),
+    );
+    const threads: HistoryThread[] = [];
+    let totalThreadCharacters = 0;
+    let globalTruncated = bestCandidateByRoot.size > selectedThreads.length;
+
+    for (const { candidate, graph } of selectedThreads) {
+      const bounded = getBoundedThreadMessages(
+        graph.rows,
+        candidate.row.id,
+        candidate.semanticSimilarity,
+      );
+      const threadCharacters = JSON.stringify(bounded.messages).length;
+      if (
+        threads.length > 0 &&
+        totalThreadCharacters + threadCharacters > maxSearchCharacters
+      ) {
+        globalTruncated = true;
+        break;
+      }
+
+      totalThreadCharacters += threadCharacters;
+      threads.push({
+        rootMessageId: graph.rootMessageId.toString(),
+        matchedMessageId: candidate.row.id.toString(),
+        rootLink: buildMessageLink(ctx, graph.rootMessageId),
+        matchedMessageLink: buildMessageLink(ctx, candidate.row.id),
+        branchCount: graph.branchCount,
+        incomplete: graph.incomplete,
+        truncated: bounded.truncated,
+        messages: bounded.messages,
+      });
+    }
+
     const truncated =
-      exactCount > input.limit || semanticRows.length >= input.limit;
+      globalTruncated ||
+      threads.some((thread) => thread.truncated === true) ||
+      exactCount > searchCandidateLimit ||
+      lexicalRows.length >= searchCandidateLimit ||
+      semanticRows.length >= searchCandidateLimit;
 
     return {
       mode: 'search',
       query: input.query,
-      totalCount: messages.length,
+      totalCount: threads.length,
       exactCount,
       truncated,
       ...(truncated ? { notice: 'Поиск ограничен лимитом результатов.' } : {}),
-      messages,
+      threads,
     };
   } catch (error) {
     logger.error(
@@ -590,7 +1048,7 @@ export async function getRecentPublicChatContext(
 export const createChatHistoryTool = (ctx?: BotContext) =>
   dynamicTool({
     description:
-      'Искать историю текущей публичной группы. Используй mode=search для поиска по словам или смыслу, mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call сделай сводку с автором, датой и ID сообщения; если truncated=true, обязательно сообщи об ограничении выборки. Не используй для личных чатов, private-mode или read-only запросов.',
+      'Искать историю текущей публичной группы. Используй mode=search для поиска по словам или смыслу: он возвращает до пяти разных reply-тредов, собранных целиком из доступных сообщений. После tool-call кратко суммируй каждый тред, объясни релевантность и используй rootLink для начала обсуждения и matchedMessageLink для найденного сообщения; не придумывай ссылки. Если incomplete=true или truncated=true, обязательно сообщи, что доступна не вся ветка. Используй mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call для recent/user_stats сделай сводку с автором, датой и ID сообщения. Не используй для личных чатов, private-mode или read-only запросов.',
     inputSchema: historyInputSchema,
     execute: (input: unknown) => searchChatHistory(ctx, input),
   });

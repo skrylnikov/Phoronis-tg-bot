@@ -241,6 +241,7 @@ export type ChatWhereInput = {
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   privateModeEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   Message?: Prisma.MessageListRelationFilter
+  GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
   beneficiarySubscriptions?: Prisma.SubscriptionListRelationFilter
   PaymentOrder?: Prisma.PaymentOrderListRelationFilter
@@ -258,6 +259,7 @@ export type ChatOrderByWithRelationInput = {
   inktoberEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   Message?: Prisma.MessageOrderByRelationAggregateInput
+  GuestInteraction?: Prisma.GuestInteractionOrderByRelationAggregateInput
   Memory?: Prisma.MemoryOrderByRelationAggregateInput
   beneficiarySubscriptions?: Prisma.SubscriptionOrderByRelationAggregateInput
   PaymentOrder?: Prisma.PaymentOrderOrderByRelationAggregateInput
@@ -278,6 +280,7 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   privateModeEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   Message?: Prisma.MessageListRelationFilter
+  GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
   beneficiarySubscriptions?: Prisma.SubscriptionListRelationFilter
   PaymentOrder?: Prisma.PaymentOrderListRelationFilter
@@ -325,6 +328,7 @@ export type ChatCreateInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
@@ -342,6 +346,7 @@ export type ChatUncheckedCreateInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -359,6 +364,7 @@ export type ChatUpdateInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
@@ -376,6 +382,7 @@ export type ChatUncheckedUpdateInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -544,6 +551,20 @@ export type ChatUpdateOneRequiredWithoutMessageNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutMessageInput, Prisma.ChatUpdateWithoutMessageInput>, Prisma.ChatUncheckedUpdateWithoutMessageInput>
 }
 
+export type ChatCreateNestedOneWithoutGuestInteractionInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutGuestInteractionInput, Prisma.ChatUncheckedCreateWithoutGuestInteractionInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutGuestInteractionInput
+  connect?: Prisma.ChatWhereUniqueInput
+}
+
+export type ChatUpdateOneRequiredWithoutGuestInteractionNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutGuestInteractionInput, Prisma.ChatUncheckedCreateWithoutGuestInteractionInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutGuestInteractionInput
+  upsert?: Prisma.ChatUpsertWithoutGuestInteractionInput
+  connect?: Prisma.ChatWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutGuestInteractionInput, Prisma.ChatUpdateWithoutGuestInteractionInput>, Prisma.ChatUncheckedUpdateWithoutGuestInteractionInput>
+}
+
 export type ChatCreateNestedOneWithoutMemoryInput = {
   create?: Prisma.XOR<Prisma.ChatCreateWithoutMemoryInput, Prisma.ChatUncheckedCreateWithoutMemoryInput>
   connectOrCreate?: Prisma.ChatCreateOrConnectWithoutMemoryInput
@@ -568,6 +589,7 @@ export type ChatCreateWithoutBeneficiarySubscriptionsInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
@@ -584,6 +606,7 @@ export type ChatUncheckedCreateWithoutBeneficiarySubscriptionsInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -616,6 +639,7 @@ export type ChatUpdateWithoutBeneficiarySubscriptionsInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
@@ -632,6 +656,7 @@ export type ChatUncheckedUpdateWithoutBeneficiarySubscriptionsInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -648,6 +673,7 @@ export type ChatCreateWithoutPaymentOrderInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
@@ -664,6 +690,7 @@ export type ChatUncheckedCreateWithoutPaymentOrderInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -696,6 +723,7 @@ export type ChatUpdateWithoutPaymentOrderInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
@@ -712,6 +740,7 @@ export type ChatUncheckedUpdateWithoutPaymentOrderInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -728,6 +757,7 @@ export type ChatCreateWithoutPurchaseSessionInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
@@ -744,6 +774,7 @@ export type ChatUncheckedCreateWithoutPurchaseSessionInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -776,6 +807,7 @@ export type ChatUpdateWithoutPurchaseSessionInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
@@ -792,6 +824,7 @@ export type ChatUncheckedUpdateWithoutPurchaseSessionInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -808,6 +841,7 @@ export type ChatCreateWithoutLimitNoticeInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
@@ -824,6 +858,7 @@ export type ChatUncheckedCreateWithoutLimitNoticeInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -856,6 +891,7 @@ export type ChatUpdateWithoutLimitNoticeInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
@@ -872,6 +908,7 @@ export type ChatUncheckedUpdateWithoutLimitNoticeInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -887,6 +924,7 @@ export type ChatCreateWithoutMessageInput = {
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
@@ -903,6 +941,7 @@ export type ChatUncheckedCreateWithoutMessageInput = {
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -935,6 +974,7 @@ export type ChatUpdateWithoutMessageInput = {
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
@@ -951,6 +991,91 @@ export type ChatUncheckedUpdateWithoutMessageInput = {
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
+}
+
+export type ChatCreateWithoutGuestInteractionInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  privateModeEnabled?: boolean | null
+  Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
+  beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
+  PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
+  PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
+  LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
+}
+
+export type ChatUncheckedCreateWithoutGuestInteractionInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  privateModeEnabled?: boolean | null
+  Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
+}
+
+export type ChatCreateOrConnectWithoutGuestInteractionInput = {
+  where: Prisma.ChatWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChatCreateWithoutGuestInteractionInput, Prisma.ChatUncheckedCreateWithoutGuestInteractionInput>
+}
+
+export type ChatUpsertWithoutGuestInteractionInput = {
+  update: Prisma.XOR<Prisma.ChatUpdateWithoutGuestInteractionInput, Prisma.ChatUncheckedUpdateWithoutGuestInteractionInput>
+  create: Prisma.XOR<Prisma.ChatCreateWithoutGuestInteractionInput, Prisma.ChatUncheckedCreateWithoutGuestInteractionInput>
+  where?: Prisma.ChatWhereInput
+}
+
+export type ChatUpdateToOneWithWhereWithoutGuestInteractionInput = {
+  where?: Prisma.ChatWhereInput
+  data: Prisma.XOR<Prisma.ChatUpdateWithoutGuestInteractionInput, Prisma.ChatUncheckedUpdateWithoutGuestInteractionInput>
+}
+
+export type ChatUpdateWithoutGuestInteractionInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
+  LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
+}
+
+export type ChatUncheckedUpdateWithoutGuestInteractionInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -968,6 +1093,7 @@ export type ChatCreateWithoutMemoryInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
@@ -984,6 +1110,7 @@ export type ChatUncheckedCreateWithoutMemoryInput = {
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
@@ -1016,6 +1143,7 @@ export type ChatUpdateWithoutMemoryInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
@@ -1032,6 +1160,7 @@ export type ChatUncheckedUpdateWithoutMemoryInput = {
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -1045,6 +1174,7 @@ export type ChatUncheckedUpdateWithoutMemoryInput = {
 
 export type ChatCountOutputType = {
   Message: number
+  GuestInteraction: number
   Memory: number
   beneficiarySubscriptions: number
   PaymentOrder: number
@@ -1054,6 +1184,7 @@ export type ChatCountOutputType = {
 
 export type ChatCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | ChatCountOutputTypeCountMessageArgs
+  GuestInteraction?: boolean | ChatCountOutputTypeCountGuestInteractionArgs
   Memory?: boolean | ChatCountOutputTypeCountMemoryArgs
   beneficiarySubscriptions?: boolean | ChatCountOutputTypeCountBeneficiarySubscriptionsArgs
   PaymentOrder?: boolean | ChatCountOutputTypeCountPaymentOrderArgs
@@ -1076,6 +1207,13 @@ export type ChatCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
  */
 export type ChatCountOutputTypeCountMessageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.MessageWhereInput
+}
+
+/**
+ * ChatCountOutputType without action
+ */
+export type ChatCountOutputTypeCountGuestInteractionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.GuestInteractionWhereInput
 }
 
 /**
@@ -1124,6 +1262,7 @@ export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   inktoberEnabled?: boolean
   privateModeEnabled?: boolean
   Message?: boolean | Prisma.Chat$MessageArgs<ExtArgs>
+  GuestInteraction?: boolean | Prisma.Chat$GuestInteractionArgs<ExtArgs>
   Memory?: boolean | Prisma.Chat$MemoryArgs<ExtArgs>
   beneficiarySubscriptions?: boolean | Prisma.Chat$beneficiarySubscriptionsArgs<ExtArgs>
   PaymentOrder?: boolean | Prisma.Chat$PaymentOrderArgs<ExtArgs>
@@ -1168,6 +1307,7 @@ export type ChatSelectScalar = {
 export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "chatType" | "name" | "greeting" | "selfieSaturdayEnabled" | "inktoberEnabled" | "privateModeEnabled", ExtArgs["result"]["chat"]>
 export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.Chat$MessageArgs<ExtArgs>
+  GuestInteraction?: boolean | Prisma.Chat$GuestInteractionArgs<ExtArgs>
   Memory?: boolean | Prisma.Chat$MemoryArgs<ExtArgs>
   beneficiarySubscriptions?: boolean | Prisma.Chat$beneficiarySubscriptionsArgs<ExtArgs>
   PaymentOrder?: boolean | Prisma.Chat$PaymentOrderArgs<ExtArgs>
@@ -1182,6 +1322,7 @@ export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "Chat"
   objects: {
     Message: Prisma.$MessagePayload<ExtArgs>[]
+    GuestInteraction: Prisma.$GuestInteractionPayload<ExtArgs>[]
     Memory: Prisma.$MemoryPayload<ExtArgs>[]
     beneficiarySubscriptions: Prisma.$SubscriptionPayload<ExtArgs>[]
     PaymentOrder: Prisma.$PaymentOrderPayload<ExtArgs>[]
@@ -1592,6 +1733,7 @@ readonly fields: ChatFieldRefs;
 export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Message<T extends Prisma.Chat$MessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$MessageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  GuestInteraction<T extends Prisma.Chat$GuestInteractionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$GuestInteractionArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GuestInteractionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Memory<T extends Prisma.Chat$MemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$MemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   beneficiarySubscriptions<T extends Prisma.Chat$beneficiarySubscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$beneficiarySubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   PaymentOrder<T extends Prisma.Chat$PaymentOrderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$PaymentOrderArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentOrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2048,6 +2190,30 @@ export type Chat$MessageArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.MessageScalarFieldEnum | Prisma.MessageScalarFieldEnum[]
+}
+
+/**
+ * Chat.GuestInteraction
+ */
+export type Chat$GuestInteractionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the GuestInteraction
+   */
+  select?: Prisma.GuestInteractionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the GuestInteraction
+   */
+  omit?: Prisma.GuestInteractionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.GuestInteractionInclude<ExtArgs> | null
+  where?: Prisma.GuestInteractionWhereInput
+  orderBy?: Prisma.GuestInteractionOrderByWithRelationInput | Prisma.GuestInteractionOrderByWithRelationInput[]
+  cursor?: Prisma.GuestInteractionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.GuestInteractionScalarFieldEnum | Prisma.GuestInteractionScalarFieldEnum[]
 }
 
 /**

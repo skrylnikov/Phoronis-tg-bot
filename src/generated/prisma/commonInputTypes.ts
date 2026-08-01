@@ -426,6 +426,23 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
 }
 
+export type EnumGuestInteractionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GuestInteractionStatus | Prisma.EnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel> | $Enums.GuestInteractionStatus
+}
+
+export type EnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GuestInteractionStatus | Prisma.EnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel> | $Enums.GuestInteractionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
+}
+
 export type BoolFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
@@ -879,6 +896,23 @@ export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumGuestInteractionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.GuestInteractionStatus | Prisma.EnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel> | $Enums.GuestInteractionStatus
+}
+
+export type NestedEnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GuestInteractionStatus | Prisma.EnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GuestInteractionStatus[] | Prisma.ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel> | $Enums.GuestInteractionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
 }
 
 export type NestedBoolFilter<$PrismaModel = never> = {

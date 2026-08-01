@@ -213,6 +213,7 @@ export type UserWhereInput = {
   userName?: Prisma.StringNullableFilter<"User"> | string | null
   metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
+  GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
   UserFact?: Prisma.UserFactListRelationFilter
   Subscription?: Prisma.SubscriptionListRelationFilter
@@ -228,6 +229,7 @@ export type UserOrderByWithRelationInput = {
   userName?: Prisma.SortOrderInput | Prisma.SortOrder
   metaInfo?: Prisma.SortOrderInput | Prisma.SortOrder
   Message?: Prisma.MessageOrderByRelationAggregateInput
+  GuestInteraction?: Prisma.GuestInteractionOrderByRelationAggregateInput
   Memory?: Prisma.MemoryOrderByRelationAggregateInput
   UserFact?: Prisma.UserFactOrderByRelationAggregateInput
   Subscription?: Prisma.SubscriptionOrderByRelationAggregateInput
@@ -246,6 +248,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   userName?: Prisma.StringNullableFilter<"User"> | string | null
   metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
+  GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
   UserFact?: Prisma.UserFactListRelationFilter
   Subscription?: Prisma.SubscriptionListRelationFilter
@@ -285,6 +288,7 @@ export type UserCreateInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
@@ -300,6 +304,7 @@ export type UserUncheckedCreateInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -315,6 +320,7 @@ export type UserUpdateInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
@@ -330,6 +336,7 @@ export type UserUncheckedUpdateInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -479,6 +486,20 @@ export type UserUpdateOneRequiredWithoutMessageNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMessageInput, Prisma.UserUpdateWithoutMessageInput>, Prisma.UserUncheckedUpdateWithoutMessageInput>
 }
 
+export type UserCreateNestedOneWithoutGuestInteractionInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutGuestInteractionInput, Prisma.UserUncheckedCreateWithoutGuestInteractionInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutGuestInteractionInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutGuestInteractionNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutGuestInteractionInput, Prisma.UserUncheckedCreateWithoutGuestInteractionInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutGuestInteractionInput
+  upsert?: Prisma.UserUpsertWithoutGuestInteractionInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutGuestInteractionInput, Prisma.UserUpdateWithoutGuestInteractionInput>, Prisma.UserUncheckedUpdateWithoutGuestInteractionInput>
+}
+
 export type UserCreateNestedOneWithoutMemoryInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutMemoryInput, Prisma.UserUncheckedCreateWithoutMemoryInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemoryInput
@@ -514,6 +535,7 @@ export type UserCreateWithoutSubscriptionInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutUserInput
@@ -528,6 +550,7 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutUserInput
@@ -558,6 +581,7 @@ export type UserUpdateWithoutSubscriptionInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutUserNestedInput
@@ -572,6 +596,7 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutUserNestedInput
@@ -586,6 +611,7 @@ export type UserCreateWithoutPaymentOrderInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
@@ -600,6 +626,7 @@ export type UserUncheckedCreateWithoutPaymentOrderInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -630,6 +657,7 @@ export type UserUpdateWithoutPaymentOrderInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
@@ -644,6 +672,7 @@ export type UserUncheckedUpdateWithoutPaymentOrderInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -658,6 +687,7 @@ export type UserCreateWithoutPurchaseSessionInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
@@ -672,6 +702,7 @@ export type UserUncheckedCreateWithoutPurchaseSessionInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -702,6 +733,7 @@ export type UserUpdateWithoutPurchaseSessionInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
@@ -716,6 +748,7 @@ export type UserUncheckedUpdateWithoutPurchaseSessionInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -730,6 +763,7 @@ export type UserCreateWithoutLimitNoticeInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
@@ -744,6 +778,7 @@ export type UserUncheckedCreateWithoutLimitNoticeInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -774,6 +809,7 @@ export type UserUpdateWithoutLimitNoticeInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
@@ -788,6 +824,7 @@ export type UserUncheckedUpdateWithoutLimitNoticeInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -801,6 +838,7 @@ export type UserCreateWithoutMessageInput = {
   lastName?: string | null
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
@@ -815,6 +853,7 @@ export type UserUncheckedCreateWithoutMessageInput = {
   lastName?: string | null
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -845,6 +884,7 @@ export type UserUpdateWithoutMessageInput = {
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
@@ -859,6 +899,83 @@ export type UserUncheckedUpdateWithoutMessageInput = {
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
+  UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
+  Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutUserNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutUserNestedInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutGuestInteractionInput = {
+  id: bigint | number
+  firstName?: string | null
+  lastName?: string | null
+  userName?: string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
+  UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
+  Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
+  PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutUserInput
+  PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutUserInput
+  LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutGuestInteractionInput = {
+  id: bigint | number
+  firstName?: string | null
+  lastName?: string | null
+  userName?: string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
+  UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
+  Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutUserInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutUserInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutGuestInteractionInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutGuestInteractionInput, Prisma.UserUncheckedCreateWithoutGuestInteractionInput>
+}
+
+export type UserUpsertWithoutGuestInteractionInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutGuestInteractionInput, Prisma.UserUncheckedUpdateWithoutGuestInteractionInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutGuestInteractionInput, Prisma.UserUncheckedCreateWithoutGuestInteractionInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutGuestInteractionInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutGuestInteractionInput, Prisma.UserUncheckedUpdateWithoutGuestInteractionInput>
+}
+
+export type UserUpdateWithoutGuestInteractionInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
+  UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
+  Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutUserNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutUserNestedInput
+  LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutGuestInteractionInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -874,6 +991,7 @@ export type UserCreateWithoutMemoryInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutUserInput
@@ -888,6 +1006,7 @@ export type UserUncheckedCreateWithoutMemoryInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutUserInput
@@ -918,6 +1037,7 @@ export type UserUpdateWithoutMemoryInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutUserNestedInput
@@ -932,6 +1052,7 @@ export type UserUncheckedUpdateWithoutMemoryInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutUserNestedInput
@@ -946,6 +1067,7 @@ export type UserCreateWithoutUserFactInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutUserInput
@@ -960,6 +1082,7 @@ export type UserUncheckedCreateWithoutUserFactInput = {
   userName?: string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   Subscription?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutUserInput
@@ -990,6 +1113,7 @@ export type UserUpdateWithoutUserFactInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutUserNestedInput
@@ -1004,6 +1128,7 @@ export type UserUncheckedUpdateWithoutUserFactInput = {
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   Subscription?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutUserNestedInput
@@ -1018,6 +1143,7 @@ export type UserUncheckedUpdateWithoutUserFactInput = {
 
 export type UserCountOutputType = {
   Message: number
+  GuestInteraction: number
   Memory: number
   UserFact: number
   Subscription: number
@@ -1028,6 +1154,7 @@ export type UserCountOutputType = {
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | UserCountOutputTypeCountMessageArgs
+  GuestInteraction?: boolean | UserCountOutputTypeCountGuestInteractionArgs
   Memory?: boolean | UserCountOutputTypeCountMemoryArgs
   UserFact?: boolean | UserCountOutputTypeCountUserFactArgs
   Subscription?: boolean | UserCountOutputTypeCountSubscriptionArgs
@@ -1051,6 +1178,13 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
  */
 export type UserCountOutputTypeCountMessageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.MessageWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountGuestInteractionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.GuestInteractionWhereInput
 }
 
 /**
@@ -1103,6 +1237,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   userName?: boolean
   metaInfo?: boolean
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
+  GuestInteraction?: boolean | Prisma.User$GuestInteractionArgs<ExtArgs>
   Memory?: boolean | Prisma.User$MemoryArgs<ExtArgs>
   UserFact?: boolean | Prisma.User$UserFactArgs<ExtArgs>
   Subscription?: boolean | Prisma.User$SubscriptionArgs<ExtArgs>
@@ -1139,6 +1274,7 @@ export type UserSelectScalar = {
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "userName" | "metaInfo", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
+  GuestInteraction?: boolean | Prisma.User$GuestInteractionArgs<ExtArgs>
   Memory?: boolean | Prisma.User$MemoryArgs<ExtArgs>
   UserFact?: boolean | Prisma.User$UserFactArgs<ExtArgs>
   Subscription?: boolean | Prisma.User$SubscriptionArgs<ExtArgs>
@@ -1154,6 +1290,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "User"
   objects: {
     Message: Prisma.$MessagePayload<ExtArgs>[]
+    GuestInteraction: Prisma.$GuestInteractionPayload<ExtArgs>[]
     Memory: Prisma.$MemoryPayload<ExtArgs>[]
     UserFact: Prisma.$UserFactPayload<ExtArgs>[]
     Subscription: Prisma.$SubscriptionPayload<ExtArgs>[]
@@ -1562,6 +1699,7 @@ readonly fields: UserFieldRefs;
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Message<T extends Prisma.User$MessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$MessageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  GuestInteraction<T extends Prisma.User$GuestInteractionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$GuestInteractionArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GuestInteractionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Memory<T extends Prisma.User$MemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$MemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UserFact<T extends Prisma.User$UserFactArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$UserFactArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserFactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Subscription<T extends Prisma.User$SubscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$SubscriptionArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2016,6 +2154,30 @@ export type User$MessageArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.MessageScalarFieldEnum | Prisma.MessageScalarFieldEnum[]
+}
+
+/**
+ * User.GuestInteraction
+ */
+export type User$GuestInteractionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the GuestInteraction
+   */
+  select?: Prisma.GuestInteractionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the GuestInteraction
+   */
+  omit?: Prisma.GuestInteractionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.GuestInteractionInclude<ExtArgs> | null
+  where?: Prisma.GuestInteractionWhereInput
+  orderBy?: Prisma.GuestInteractionOrderByWithRelationInput | Prisma.GuestInteractionOrderByWithRelationInput[]
+  cursor?: Prisma.GuestInteractionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.GuestInteractionScalarFieldEnum | Prisma.GuestInteractionScalarFieldEnum[]
 }
 
 /**

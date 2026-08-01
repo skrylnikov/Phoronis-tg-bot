@@ -139,6 +139,18 @@ export interface SimilarChatMessage {
   };
 }
 
+export interface LexicalChatMessage
+  extends Omit<SimilarChatMessage, 'similarity'> {
+  lexicalRank: number;
+  exactMatch: boolean;
+}
+
+const messageSearchDocument = Prisma.sql`
+  coalesce(m."text", '') || ' ' ||
+  coalesce(m."summary", '') || ' ' ||
+  coalesce(m."searchText", '')
+`;
+
 export async function searchChatMessages(params: {
   chatId: bigint;
   embedding: number[];
@@ -192,6 +204,76 @@ export async function searchChatMessages(params: {
     JOIN "User" u ON u."id" = m."senderId"
     WHERE ${Prisma.join(conditions, ' AND ')}
     ORDER BY m."embedding" <=> ${vector}::vector
+    LIMIT ${params.limit}
+  `);
+}
+
+export async function searchChatMessagesLexical(params: {
+  chatId: bigint;
+  query: string;
+  limit: number;
+  beforeMessageId?: bigint;
+  senderId?: bigint;
+  startAt?: Date;
+  endAt?: Date;
+}): Promise<LexicalChatMessage[]> {
+  const conditions = [
+    Prisma.sql`m."chatId" = ${params.chatId}`,
+    Prisma.sql`m."private" = FALSE`,
+    Prisma.sql`(
+      m."text" IS NOT NULL OR
+      m."summary" IS NOT NULL OR
+      m."searchText" IS NOT NULL
+    )`,
+    Prisma.sql`
+      to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
+      websearch_to_tsquery('russian'::regconfig, ${params.query})
+    `,
+  ];
+
+  if (params.beforeMessageId !== undefined) {
+    conditions.push(Prisma.sql`m."id" < ${params.beforeMessageId}`);
+  }
+  if (params.senderId !== undefined) {
+    conditions.push(Prisma.sql`m."senderId" = ${params.senderId}`);
+  }
+  if (params.startAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" >= ${params.startAt}`);
+  }
+  if (params.endAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" < ${params.endAt}`);
+  }
+
+  return prisma.$queryRaw<LexicalChatMessage[]>(Prisma.sql`
+    SELECT
+      m."id",
+      m."replyToMessageId",
+      m."senderId",
+      m."messageType",
+      m."sentAt",
+      m."text",
+      m."summary",
+      m."searchText",
+      ts_rank_cd(
+        to_tsvector('russian'::regconfig, ${messageSearchDocument}),
+        websearch_to_tsquery('russian'::regconfig, ${params.query})
+      )::float8 AS "lexicalRank",
+      strpos(
+        lower(${messageSearchDocument}),
+        lower(${params.query})
+      ) > 0 AS "exactMatch",
+      json_build_object(
+        'firstName', u."firstName",
+        'lastName', u."lastName",
+        'userName', u."userName"
+      ) AS "sender"
+    FROM "Message" m
+    JOIN "User" u ON u."id" = m."senderId"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY
+      "exactMatch" DESC,
+      "lexicalRank" DESC,
+      m."id" DESC
     LIMIT ${params.limit}
   `);
 }

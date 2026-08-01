@@ -5,20 +5,24 @@ const {
   messageCount,
   messageFindFirst,
   messageFindMany,
+  messageQueryRaw,
   chatFindUnique,
   userFindMany,
   embedQuery,
   searchChatMessages,
+  searchChatMessagesLexical,
   error,
   warn,
 } = vi.hoisted(() => ({
   messageCount: vi.fn(),
   messageFindFirst: vi.fn(),
   messageFindMany: vi.fn(),
+  messageQueryRaw: vi.fn(),
   chatFindUnique: vi.fn(),
   userFindMany: vi.fn(),
   embedQuery: vi.fn(),
   searchChatMessages: vi.fn(),
+  searchChatMessagesLexical: vi.fn(),
   error: vi.fn(),
   warn: vi.fn(),
 }));
@@ -29,13 +33,18 @@ vi.mock('../db', () => ({
       count: messageCount,
       findFirst: messageFindFirst,
       findMany: messageFindMany,
+      $queryRaw: messageQueryRaw,
     },
+    $queryRaw: messageQueryRaw,
     chat: { findUnique: chatFindUnique },
     user: { findMany: userFindMany },
   },
 }));
 vi.mock('../ai/embedding/client', () => ({ embedQuery }));
-vi.mock('../ai/embedding/store', () => ({ searchChatMessages }));
+vi.mock('../ai/embedding/store', () => ({
+  searchChatMessages,
+  searchChatMessagesLexical,
+}));
 vi.mock('../logger', () => ({ logger: { error, warn } }));
 
 import {
@@ -94,6 +103,8 @@ beforeEach(() => {
   userFindMany.mockResolvedValue([]);
   messageFindMany.mockResolvedValue([]);
   messageCount.mockResolvedValue(0);
+  messageQueryRaw.mockResolvedValue([]);
+  searchChatMessagesLexical.mockResolvedValue([]);
   searchChatMessages.mockResolvedValue([]);
 });
 
@@ -152,10 +163,46 @@ describe('searchChatHistory', () => {
     messageCount.mockResolvedValue(1);
     messageFindMany.mockResolvedValue([message(101, 'Обсуждали релиз')]);
     embedQuery.mockResolvedValue([0.1, 0.2]);
+    searchChatMessagesLexical.mockResolvedValue([
+      {
+        ...message(101, 'Обсуждали релиз'),
+        lexicalRank: 1,
+        exactMatch: true,
+      },
+      {
+        ...message(103, 'Другой релевантный тред'),
+        lexicalRank: 2,
+        exactMatch: false,
+      },
+    ]);
     searchChatMessages.mockResolvedValue([
-      message(101, 'Обсуждали релиз'),
+      { ...message(101, 'Обсуждали релиз'), similarity: 0.89 },
       { ...message(102, 'Похожая тема'), similarity: 0.91 },
     ]);
+    messageQueryRaw
+      .mockResolvedValueOnce([
+        { candidateId: 101n, rootMessageId: 100n, incomplete: false },
+        { candidateId: 102n, rootMessageId: 100n, incomplete: false },
+        { candidateId: 103n, rootMessageId: 103n, incomplete: false },
+      ])
+      .mockResolvedValueOnce([
+        { ...message(100, 'Начало треда'), rootMessageId: 100n, depth: 0 },
+        {
+          ...message(101, 'Обсуждали релиз', { replyToMessageId: 100 }),
+          rootMessageId: 100n,
+          depth: 1,
+        },
+        {
+          ...message(102, 'Похожая тема', { replyToMessageId: 100 }),
+          rootMessageId: 100n,
+          depth: 1,
+        },
+        {
+          ...message(103, 'Другой релевантный тред'),
+          rootMessageId: 103n,
+          depth: 0,
+        },
+      ]);
 
     const result = JSON.parse(
       await searchChatHistory(createContext(), {
@@ -166,11 +213,98 @@ describe('searchChatHistory', () => {
     );
 
     expect(embedQuery).toHaveBeenCalledWith('где обсуждали релиз новой версии');
-    expect(result.messages.map((item: { id: string }) => item.id)).toEqual([
-      '101',
-      '102',
+    expect(result.threads).toHaveLength(2);
+    expect(result.threads[0]).toMatchObject({
+      rootMessageId: '100',
+      matchedMessageId: '101',
+      branchCount: 2,
+      incomplete: false,
+      truncated: false,
+    });
+    expect(
+      result.threads[0].messages.map((item: { id: string }) => item.id),
+    ).toEqual(['100', '101', '102']);
+    expect(result.threads[0].messages[1].similarity).toBe(0.89);
+    expect(result.threads[1]).toMatchObject({
+      rootMessageId: '103',
+      matchedMessageId: '103',
+    });
+  });
+
+  it('marks a thread incomplete when its parent is unavailable', async () => {
+    messageCount.mockResolvedValue(1);
+    messageFindMany.mockResolvedValue([message(101, 'Найдено')]);
+    searchChatMessagesLexical.mockResolvedValue([
+      {
+        ...message(101, 'Найдено'),
+        lexicalRank: 1,
+        exactMatch: true,
+      },
     ]);
-    expect(result.messages[1].similarity).toBe(0.91);
+    messageQueryRaw
+      .mockResolvedValueOnce([
+        { candidateId: 101n, rootMessageId: 101n, incomplete: true },
+      ])
+      .mockResolvedValueOnce([
+        {
+          ...message(101, 'Найдено', { replyToMessageId: 99 }),
+          rootMessageId: 101n,
+          depth: 0,
+        },
+      ]);
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext(), {
+        mode: 'search',
+        query: 'Найдено',
+      }),
+    );
+
+    expect(result.threads[0]).toMatchObject({
+      rootMessageId: '101',
+      incomplete: true,
+    });
+  });
+
+  it('limits search results to five distinct threads', async () => {
+    const candidates = Array.from({ length: 6 }, (_, index) =>
+      message(index + 1, `Тема ${index + 1}`),
+    );
+    messageCount.mockResolvedValue(6);
+    messageFindMany.mockResolvedValue(candidates);
+    searchChatMessagesLexical.mockResolvedValue(
+      candidates.map((row, index) => ({
+        ...row,
+        lexicalRank: index + 1,
+        exactMatch: true,
+      })),
+    );
+    messageQueryRaw
+      .mockResolvedValueOnce(
+        candidates.map((row) => ({
+          candidateId: row.id,
+          rootMessageId: row.id,
+          incomplete: false,
+        })),
+      )
+      .mockResolvedValueOnce(
+        candidates.map((row) => ({
+          ...row,
+          rootMessageId: row.id,
+          depth: 0,
+        })),
+      );
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext(), {
+        mode: 'search',
+        query: 'тема',
+        limit: 50,
+      }),
+    );
+
+    expect(result.threads).toHaveLength(5);
+    expect(result.truncated).toBe(true);
   });
 
   it('returns a user count and a bounded sample', async () => {
@@ -259,5 +393,27 @@ describe('canUseChatHistoryTool', () => {
     expect(canUseChatHistoryTool(createContext('group'), true)).toBe(false);
     expect(canUseChatHistoryTool(createContext('private'), false)).toBe(false);
     expect(canUseChatHistoryTool(undefined, false)).toBe(false);
+  });
+});
+
+describe('buildMessageLink', () => {
+  it('builds public and private supergroup links but skips basic groups', async () => {
+    const { buildMessageLink } = await import('../ai/tools/chat-history');
+    const publicContext = {
+      ...createContext('supergroup'),
+      chat: { id: -100123, type: 'supergroup', username: 'public_group' },
+    } as unknown as BotContext;
+    const privateContext = {
+      ...createContext('supergroup'),
+      chatId: -100123,
+      chat: { id: -100123, type: 'supergroup' },
+    } as unknown as BotContext;
+    const basicGroupContext = createContext('group');
+
+    expect(buildMessageLink(publicContext, 42n)).toBe(
+      'https://t.me/public_group/42',
+    );
+    expect(buildMessageLink(privateContext, 42n)).toBe('https://t.me/c/123/42');
+    expect(buildMessageLink(basicGroupContext, 42n)).toBeUndefined();
   });
 });

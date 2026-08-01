@@ -73,6 +73,15 @@ export const MessageType = {
 export type MessageType = (typeof MessageType)[keyof typeof MessageType]
 
 
+export const GuestInteractionStatus = {
+  PROCESSING: 'PROCESSING',
+  ANSWERED: 'ANSWERED',
+  FAILED: 'FAILED'
+} as const
+
+export type GuestInteractionStatus = (typeof GuestInteractionStatus)[keyof typeof GuestInteractionStatus]
+
+
 export const FactType = {
   TEXT_STYLE: 'TEXT_STYLE',
   FACT: 'FACT',

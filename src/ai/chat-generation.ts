@@ -25,6 +25,7 @@ export const chatGeneration = async (
   options: {
     readOnlyTools?: boolean;
     allowChatHistory?: boolean;
+    allowChatHistoryReadOnly?: boolean;
     model?: typeof chatModel;
   } = {},
 ) => {
@@ -80,8 +81,9 @@ export const chatGeneration = async (
   const clearMemoryTool = createClearMemoryTool(ctx);
   const userInfoTool = createUserInfoTool(ctx);
   const canReadGroupHistory =
-    canUseChatHistoryTool(ctx, Boolean(options.readOnlyTools)) &&
-    Boolean(options.allowChatHistory);
+    Boolean(options.allowChatHistory) &&
+    (canUseChatHistoryTool(ctx, Boolean(options.readOnlyTools)) ||
+      Boolean(options.allowChatHistoryReadOnly));
 
   trace?.update({
     input: JSON.stringify(messages),
