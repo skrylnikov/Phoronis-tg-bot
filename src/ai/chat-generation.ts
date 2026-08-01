@@ -6,6 +6,7 @@ import type { BotContext } from '../bot';
 import { prisma } from '../db';
 import { logger } from '../logger';
 import { chatModel } from './ai';
+import { isChatHistorySearchIntent } from './history-intent';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
 import {
@@ -80,10 +81,17 @@ export const chatGeneration = async (
   const memoryTool = createMemoryTool(ctx);
   const clearMemoryTool = createClearMemoryTool(ctx);
   const userInfoTool = createUserInfoTool(ctx);
-  const canReadGroupHistory =
+  const canReadChatHistory =
     Boolean(options.allowChatHistory) &&
     (canUseChatHistoryTool(ctx, Boolean(options.readOnlyTools)) ||
       Boolean(options.allowChatHistoryReadOnly));
+  const requireChatHistorySearch =
+    !options.readOnlyTools &&
+    canReadChatHistory &&
+    isChatHistorySearchIntent(
+      ctx?.msg?.text ?? ctx?.msg?.caption,
+      ctx?.msg?.reply_to_message?.text ?? ctx?.msg?.reply_to_message?.caption,
+    );
 
   trace?.update({
     input: JSON.stringify(messages),
@@ -93,30 +101,47 @@ export const chatGeneration = async (
 
   const generationStartedAt = performance.now();
   let firstTextAt: number | null = null;
-  const response = streamText({
+  const generationOptions = {
     model: options.model ?? chatModel,
     instructions: prompt.instructions,
     messages: prompt.messages,
-    tools: options.readOnlyTools
-      ? {
-          get_weather: weatherTool,
-          wikipedia: wikipediaTool,
-          get_user_info: userInfoTool,
-        }
-      : {
-          get_weather: weatherTool,
-          set_greeting: greetingTool,
-          wikipedia: wikipediaTool,
-          save_memory: memoryTool,
-          clear_memory: clearMemoryTool,
-          get_user_info: userInfoTool,
-          ...(canReadGroupHistory
-            ? { search_chat_history: createChatHistoryTool(ctx) }
-            : {}),
-        },
     stopWhen: stepCountIs(5),
     temperature: 1,
-  });
+  };
+  const readOnlyToolSet = {
+    get_weather: weatherTool,
+    wikipedia: wikipediaTool,
+    get_user_info: userInfoTool,
+  };
+  const writableToolSet = {
+    get_weather: weatherTool,
+    set_greeting: greetingTool,
+    wikipedia: wikipediaTool,
+    save_memory: memoryTool,
+    clear_memory: clearMemoryTool,
+    get_user_info: userInfoTool,
+    ...(canReadChatHistory
+      ? { search_chat_history: createChatHistoryTool(ctx) }
+      : {}),
+  };
+  const response = requireChatHistorySearch
+    ? streamText({
+        ...generationOptions,
+        tools: writableToolSet,
+        prepareStep: ({ stepNumber }) =>
+          stepNumber === 0
+            ? {
+                toolChoice: {
+                  type: 'tool' as const,
+                  toolName: 'search_chat_history' as const,
+                },
+              }
+            : { toolChoice: 'none' as const },
+      })
+    : streamText({
+        ...generationOptions,
+        tools: options.readOnlyTools ? readOnlyToolSet : writableToolSet,
+      });
 
   async function* measuredTextStream() {
     for await (const delta of response.textStream) {

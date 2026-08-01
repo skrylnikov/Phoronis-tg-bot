@@ -382,16 +382,27 @@ describe('searchChatHistory', () => {
       }),
     );
   });
+
+  it('allows history in a personal chat when private mode is disabled', async () => {
+    chatFindUnique.mockResolvedValue({ privateModeEnabled: false });
+
+    const result = JSON.parse(
+      await searchChatHistory(createContext('private'), { mode: 'recent' }),
+    );
+
+    expect(result.mode).toBe('recent');
+    expect(result.error).toBeUndefined();
+  });
 });
 
 describe('canUseChatHistoryTool', () => {
-  it('allows only ordinary public group generation', () => {
+  it('allows ordinary private and group chat generation', () => {
     expect(canUseChatHistoryTool(createContext('group'), false)).toBe(true);
     expect(canUseChatHistoryTool(createContext('supergroup'), false)).toBe(
       true,
     );
     expect(canUseChatHistoryTool(createContext('group'), true)).toBe(false);
-    expect(canUseChatHistoryTool(createContext('private'), false)).toBe(false);
+    expect(canUseChatHistoryTool(createContext('private'), false)).toBe(true);
     expect(canUseChatHistoryTool(undefined, false)).toBe(false);
   });
 });

@@ -122,7 +122,9 @@ export function canUseChatHistoryTool(
 ): boolean {
   return (
     !readOnlyTools &&
-    (ctx?.chat?.type === 'group' || ctx?.chat?.type === 'supergroup')
+    (ctx?.chat?.type === 'private' ||
+      ctx?.chat?.type === 'group' ||
+      ctx?.chat?.type === 'supergroup')
   );
 }
 
@@ -447,10 +449,6 @@ async function loadReplyGraphs(
 async function ensureHistoryAccess(ctx: BotContext): Promise<string | null> {
   if (!ctx.chatId || !ctx.msg || !ctx.chat) {
     return 'Не удалось определить контекст чата';
-  }
-
-  if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {
-    return 'История доступна только в группах';
   }
 
   const chat = await prisma.chat.findUnique({
@@ -1048,7 +1046,7 @@ export async function getRecentPublicChatContext(
 export const createChatHistoryTool = (ctx?: BotContext) =>
   dynamicTool({
     description:
-      'Искать историю текущей публичной группы. Используй mode=search для поиска по словам или смыслу: он возвращает до пяти разных reply-тредов, собранных целиком из доступных сообщений. После tool-call кратко суммируй каждый тред, объясни релевантность и используй rootLink для начала обсуждения и matchedMessageLink для найденного сообщения; не придумывай ссылки. Если incomplete=true или truncated=true, обязательно сообщи, что доступна не вся ветка. Используй mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call для recent/user_stats сделай сводку с автором, датой и ID сообщения. Не используй для личных чатов, private-mode или read-only запросов.',
+      'Искать историю текущего чата. Если пользователь спрашивает о прошлых сообщениях, обсуждениях, датах или участниках, сначала обязательно вызови этот tool, а не отвечай по общему контексту. Используй mode=search для поиска по словам или смыслу: он возвращает до пяти разных reply-тредов, собранных целиком из доступных сообщений. После tool-call кратко суммируй каждый тред, объясни релевантность и используй rootLink для начала обсуждения и matchedMessageLink для найденного сообщения; не придумывай ссылки. Если incomplete=true или truncated=true, обязательно сообщи, что доступна не вся ветка. Используй mode=user_stats для количества сообщений пользователя и его последних сообщений, mode=recent для последних сообщений или сценария «что я пропустил». Для поиска пользователя передай sender как @username, имя или Telegram ID. Для периода передай startAt и endAt в ISO 8601 с часовым поясом. В mode=recent без recentMode используй сценарий «что пропустил»: начинай после последнего сообщения пользователя сегодня по Europe/Moscow. Для просто последних сообщений передай recentMode=latest. После tool-call для recent/user_stats сделай сводку с автором, датой и ID сообщения. Не используй в private-mode или read-only запросах.',
     inputSchema: historyInputSchema,
     execute: (input: unknown) => searchChatHistory(ctx, input),
   });

@@ -151,6 +151,15 @@ const messageSearchDocument = Prisma.sql`
   coalesce(m."searchText", '')
 `;
 
+function buildBroadSearchQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean)
+    .map((term) => `"${term.replaceAll('"', '')}"`)
+    .join(' OR ');
+}
+
 export async function searchChatMessages(params: {
   chatId: bigint;
   embedding: number[];
@@ -217,6 +226,7 @@ export async function searchChatMessagesLexical(params: {
   startAt?: Date;
   endAt?: Date;
 }): Promise<LexicalChatMessage[]> {
+  const broadQuery = buildBroadSearchQuery(params.query);
   const conditions = [
     Prisma.sql`m."chatId" = ${params.chatId}`,
     Prisma.sql`m."private" = FALSE`,
@@ -226,8 +236,13 @@ export async function searchChatMessagesLexical(params: {
       m."searchText" IS NOT NULL
     )`,
     Prisma.sql`
-      to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
-      websearch_to_tsquery('russian'::regconfig, ${params.query})
+      (
+        to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
+          websearch_to_tsquery('russian'::regconfig, ${params.query})
+        OR
+        to_tsvector('russian'::regconfig, ${messageSearchDocument}) @@
+          websearch_to_tsquery('russian'::regconfig, ${broadQuery})
+      )
     `,
   ];
 
@@ -254,9 +269,15 @@ export async function searchChatMessagesLexical(params: {
       m."text",
       m."summary",
       m."searchText",
-      ts_rank_cd(
-        to_tsvector('russian'::regconfig, ${messageSearchDocument}),
-        websearch_to_tsquery('russian'::regconfig, ${params.query})
+      GREATEST(
+        ts_rank_cd(
+          to_tsvector('russian'::regconfig, ${messageSearchDocument}),
+          websearch_to_tsquery('russian'::regconfig, ${params.query})
+        ),
+        ts_rank_cd(
+          to_tsvector('russian'::regconfig, ${messageSearchDocument}),
+          websearch_to_tsquery('russian'::regconfig, ${broadQuery})
+        ) * 0.75
       )::float8 AS "lexicalRank",
       strpos(
         lower(${messageSearchDocument}),
