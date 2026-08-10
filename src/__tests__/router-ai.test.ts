@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe('RouterAI models', () => {
-  it('uses GPT-5.6 Luna for the paid-quota fallback', async () => {
+  it('uses Gemini 2.5 Flash Lite for the paid-quota fallback', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -88,7 +88,7 @@ describe('RouterAI models', () => {
 
     await generateText({ model: liteChatModel, prompt: 'fallback' });
 
-    expect(requestBody.model).toBe('openai/gpt-5.6-luna');
+    expect(requestBody.model).toBe('google/gemini-2.5-flash-lite');
   });
 
   it('streams text after completing a tool call', async () => {
@@ -155,7 +155,7 @@ describe('RouterAI models', () => {
     expect(requestBodies).toHaveLength(2);
   });
 
-  it('runs sequential tool calls through GPT-5.6 Terra', async () => {
+  it('runs sequential tool calls through Gemini 3.6 Flash', async () => {
     const requestBodies: RequestBody[] = [];
     const responses = [
       chatResponse(null, 'tool_calls', [
@@ -212,7 +212,7 @@ describe('RouterAI models', () => {
     });
     expect(requestBodies).toHaveLength(3);
     expect(
-      requestBodies.every((body) => body.model === 'openai/gpt-5.6-terra'),
+      requestBodies.every((body) => body.model === 'google/gemini-3.6-flash'),
     ).toBe(true);
   });
 
