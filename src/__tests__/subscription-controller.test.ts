@@ -71,7 +71,7 @@ describe('subscription terms acceptance', () => {
     expect(editMessageText).toHaveBeenCalledWith(
       expect.stringContaining('✅ Условия приняты'),
     );
-    expect(editMessageReplyMarkup).toHaveBeenCalledWith();
+    expect(editMessageReplyMarkup).not.toHaveBeenCalled();
     expect(reply).toHaveBeenCalledWith(
       'Тарифы\n\nВыберите тариф. Личные и групповые лимиты начнут действовать сразу после оплаты.',
       expect.objectContaining({

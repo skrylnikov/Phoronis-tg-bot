@@ -141,7 +141,6 @@ export async function subscriptionCallbackController(
       return;
     }
     await ctx.editMessageText(acceptedPaymentTermsText);
-    await ctx.editMessageReplyMarkup();
     const [options, minimumPlan] = await Promise.all([
       getPurchaseOptions(ctx.from.id),
       getMinimumPurchasablePlan(ctx.from.id),
