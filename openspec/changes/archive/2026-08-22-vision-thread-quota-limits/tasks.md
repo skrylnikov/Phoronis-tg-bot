@@ -217,16 +217,24 @@ openspec status --change vision-thread-quota-limits
 
 ## Task 9: Обновить AGENTS.md с OpenSpec маркерами
 
-**Status:** ⏳ To be checked after `openspec init`
+**Status:** ✅ Done
 
-**Expected:**
-- `openspec init` должен был добавить маркерные блоки в AGENTS.md
-- Если нет - нужно проверить и добавить вручную
+**Files:**
+- `AGENTS.md` (lines 16-44)
+
+**Changes:**
+- [x] Добавлена секция "OpenSpec Workflow"
+- [x] Документирована структура OpenSpec (config.yaml, specs/, changes/archive/)
+- [x] Описаны требования к спецификациям (русский язык, Markdown)
+- [x] Перечислены покрытые области (vision, quota limits)
+- [x] Добавлены инструкции по работе со спецификациями
 
 **Verification:**
 ```bash
-grep -i openspec AGENTS.md
+grep -i openspec AGENTS.md  # ✅ OpenSpec Workflow section present
 ```
+
+**Commit:** f9a251b
 
 ---
 
@@ -255,6 +263,6 @@ grep -i openspec AGENTS.md
 - [x] Tests updated and passing
 - [x] TypeScript compilation succeeds
 - [x] OpenSpec documentation created
-- [ ] Change archived (next step)
+- [x] Change archived (archived as 2026-08-22-vision-thread-quota-limits)
 - [ ] PR merged
 - [ ] Monitor QuotaUsage table after deploy

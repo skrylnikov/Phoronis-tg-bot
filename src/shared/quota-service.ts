@@ -84,7 +84,7 @@ export function isPlanAtLeast(
   return getPlanRank(plan) >= getPlanRank(minimumPlan);
 }
 
-const freeLimits: Record<QuotaKind, number> = {
+export const freeLimits: Record<QuotaKind, number> = {
   PRIMARY_RESPONSE: 10,
   IMAGE: 5,
   VOICE: 10,

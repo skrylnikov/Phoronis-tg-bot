@@ -120,35 +120,21 @@ async function findPhotoInReplyChain(
 
     const replyTo = currentMessage.reply_to_message;
     if (!replyTo) {
-      const dbMessage: { replyToMessageId: bigint | null } | null =
-        await prisma.message.findUnique({
-          where: {
-            chatId_id: { chatId: ctx.chatId, id: currentMessage.message_id },
-          },
-          select: { replyToMessageId: true },
-        });
-
-      if (!dbMessage?.replyToMessageId) break;
-
-      const parentMessage: {
-        id: bigint;
+      const dbMessage: {
         media: string | null;
         replyToMessageId: bigint | null;
       } | null = await prisma.message.findUnique({
         where: {
-          chatId_id: {
-            chatId: ctx.chatId,
-            id: Number(dbMessage.replyToMessageId),
-          },
+          chatId_id: { chatId: ctx.chatId, id: currentMessage.message_id },
         },
-        select: { id: true, media: true, replyToMessageId: true },
+        select: { media: true, replyToMessageId: true },
       });
 
-      if (!parentMessage) break;
+      if (!dbMessage?.replyToMessageId) break;
 
-      if (parentMessage.media) {
+      if (dbMessage.media) {
         try {
-          const media = JSON.parse(parentMessage.media) as {
+          const media = JSON.parse(dbMessage.media) as {
             fileId?: string;
             mimeType?: string;
           };
@@ -157,7 +143,7 @@ async function findPhotoInReplyChain(
             if (file.file_path) {
               return {
                 photo: { file_id: media.fileId } as PhotoSize,
-                messageId: Number(parentMessage.id),
+                messageId: currentMessage.message_id,
               };
             }
           }
@@ -166,14 +152,10 @@ async function findPhotoInReplyChain(
         }
       }
 
-      if (parentMessage.replyToMessageId) {
-        currentMessage = {
-          message_id: Number(parentMessage.replyToMessageId),
-          reply_to_message: undefined,
-        };
-      } else {
-        currentMessage = null;
-      }
+      currentMessage = {
+        message_id: Number(dbMessage.replyToMessageId),
+        reply_to_message: undefined,
+      };
     } else {
       currentMessage = replyTo as typeof startMessage;
     }

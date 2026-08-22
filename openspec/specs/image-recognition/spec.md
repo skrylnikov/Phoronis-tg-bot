@@ -1,7 +1,8 @@
 # image-recognition Specification
 
 ## Purpose
-TBD - created by archiving change vision-thread-quota-limits. Update Purpose after archive.
+
+Распознавание изображений через vision API (RouterAI) с автоматическим поиском фото в цепочке reply сообщений Telegram. Система ходит по reply chain до 10 уровней, используя как Telegram API, так и базу данных, чтобы найти изображение в контексте запроса пользователя к боту. Распознавание происходит только для фото, связанных с запросом через reply, что экономит квоту IMAGE и предотвращает обработку случайных изображений в чате.
 
 ## Requirements
 

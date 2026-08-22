@@ -21,9 +21,13 @@ OpenSpec используется для документирования спе
 ```
 openspec/
 ├── config.yaml          - Основной конфиг OpenSpec
-└── specs/              - Директория со спецификациями
-    ├── image-recognition-thread.md  - Логика распознавания изображений
-    └── quota-limits.md              - Лимиты квот подписок
+├── specs/              - Директория со спецификациями (source of truth)
+│   ├── image-recognition/
+│   │   └── spec.md     - Логика распознавания изображений в reply chain
+│   └── quota-limits/
+│       └── spec.md     - Лимиты квот подписок (personal/chat)
+└── changes/
+    └── archive/        - Заархивированные changes с proposal/design/tasks
 ```
 
 ### Требования к спецификациям

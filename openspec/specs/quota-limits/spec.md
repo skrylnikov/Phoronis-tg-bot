@@ -1,7 +1,8 @@
 # quota-limits Specification
 
 ## Purpose
-TBD - created by archiving change vision-thread-quota-limits. Update Purpose after archive.
+
+Определение и контроль дневных лимитов для различных типов запросов в Telegram боте: премиум-ответы AI (PRIMARY_RESPONSE), распознавание изображений (IMAGE), распознавание голосовых сообщений (VOICE), анализ контекста (ANALYSIS). Система управляет персональными квотами пользователей и групповыми квотами чатов, применяя финальные значения тарифных планов (платная подписка заменяет бесплатные лимиты, а не прибавляется к ним).
 
 ## Requirements
 
