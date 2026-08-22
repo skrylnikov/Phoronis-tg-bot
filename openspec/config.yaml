@@ -1,0 +1,47 @@
+schema: spec-driven
+
+context: |
+  Language: ru
+  All artifacts must be written in ru.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+  
+  Project: Phoronis Telegram Bot
+  Stack: Bun runtime, TypeScript, Grammy (Telegram Bot framework), Prisma ORM, PostgreSQL with pgvector
+  Purpose: AI-powered Telegram bot with image/voice recognition, subscription management, and context-aware responses
+  
+  Key technologies:
+  - Grammy framework for Telegram Bot API
+  - Prisma with PostgreSQL for data persistence
+  - LangChain and AI SDK for LLM integration
+  - Local TEI embeddings with vector search (pgvector)
+  - Yandex Cloud for voice recognition
+  - RouterAI for vision/image description
+  
+  Important conventions:
+  - All user-facing text MUST be in Russian
+  - Use BigInt for Telegram IDs in database, Number for API calls
+  - Quota limits are final values (not free+paid stacked)
+  - Vision recognition only in reply chains of bot requests
+  - Follow ponytail/lazy senior dev principle: simplest solution that works
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
