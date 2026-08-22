@@ -91,15 +91,18 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
 
 async function findPhotoInReplyChain(
   ctx: BotContext,
-  startMessage: {
-    message_id: number;
-    photo?: PhotoSize[];
-    reply_to_message?: {
-      message_id: number;
-      photo?: PhotoSize[];
-      reply_to_message?: unknown;
-    };
-  } | null | undefined,
+  startMessage:
+    | {
+        message_id: number;
+        photo?: PhotoSize[];
+        reply_to_message?: {
+          message_id: number;
+          photo?: PhotoSize[];
+          reply_to_message?: unknown;
+        };
+      }
+    | null
+    | undefined,
   maxDepth = 10,
 ): Promise<{ photo: PhotoSize; messageId: number } | null> {
   if (!startMessage || !ctx.chatId) return null;
@@ -165,7 +168,7 @@ async function findPhotoInReplyChain(
 
       if (parentMessage.replyToMessageId) {
         currentMessage = {
-          message_id: Number(parentMessage.id),
+          message_id: Number(parentMessage.replyToMessageId),
           reply_to_message: undefined,
         };
       } else {
@@ -287,7 +290,10 @@ processMessageController.on(':text', async (ctx) => {
           return;
         }
         try {
-          imageDescription = await describeTelegramPhoto(ctx, photoInChain.photo);
+          imageDescription = await describeTelegramPhoto(
+            ctx,
+            photoInChain.photo,
+          );
           if (savedReply) {
             await prisma.message.update({
               where: {

@@ -264,7 +264,7 @@ describe('cumulative quotas', () => {
     const query = prisma.$queryRaw.mock.calls[0]?.[0] as {
       values: unknown[];
     };
-    expect(query.values.at(-1)).toBe(38);
+    expect(query.values.at(-1)).toBe(80);
   });
 
   it('gives every group member the full combined group quota', async () => {
@@ -295,10 +295,10 @@ describe('cumulative quotas', () => {
       values: unknown[];
     };
     expect(firstQuery.values).toEqual(
-      expect.arrayContaining(['CHAT', 123n, -100n, 'PRIMARY_RESPONSE', 4]),
+      expect.arrayContaining(['CHAT', 123n, -100n, 'PRIMARY_RESPONSE', 8]),
     );
     expect(secondQuery.values).toEqual(
-      expect.arrayContaining(['CHAT', 456n, -100n, 'PRIMARY_RESPONSE', 4]),
+      expect.arrayContaining(['CHAT', 456n, -100n, 'PRIMARY_RESPONSE', 8]),
     );
   });
 
@@ -328,7 +328,7 @@ describe('cumulative quotas', () => {
       values: unknown[];
     };
     expect(personalQuery.values).toEqual(
-      expect.arrayContaining(['USER', 123n, 0n, 'PRIMARY_RESPONSE', 13]),
+      expect.arrayContaining(['USER', 123n, 0n, 'PRIMARY_RESPONSE', 30]),
     );
   });
 
@@ -389,7 +389,7 @@ describe('cumulative quotas', () => {
       now,
     });
 
-    expect(overview.personal.PRIMARY_RESPONSE).toEqual({ limit: 13, used: 2 });
-    expect(overview.chat?.PRIMARY_RESPONSE).toEqual({ limit: 4, used: 3 });
+    expect(overview.personal.PRIMARY_RESPONSE).toEqual({ limit: 30, used: 2 });
+    expect(overview.chat?.PRIMARY_RESPONSE).toEqual({ limit: 8, used: 3 });
   });
 });

@@ -18,7 +18,12 @@ export const planDetails: Record<SubscriptionPlan, PlanDetails> = {
   WEEK: {
     amount: 49,
     durationDays: 7,
-    personal: { PRIMARY_RESPONSE: 30, IMAGE: 15, VOICE: 30, ANALYSIS: Infinity },
+    personal: {
+      PRIMARY_RESPONSE: 30,
+      IMAGE: 15,
+      VOICE: 30,
+      ANALYSIS: Infinity,
+    },
     chat: { PRIMARY_RESPONSE: 3, IMAGE: 3, VOICE: 6, ANALYSIS: 1 },
   },
   MONTH: {
