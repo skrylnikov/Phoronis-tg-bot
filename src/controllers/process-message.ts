@@ -254,6 +254,18 @@ processMessageController.on(':photo', async (ctx) => {
       return;
     }
 
+    const shouldRespond =
+      ctx.msg.caption?.toLowerCase().startsWith('ио') ||
+      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
+      ctx.chat.type === 'private';
+    if (!shouldRespond) {
+      logger.debug(
+        { event: 'message.response_skipped', messageType: 'MEDIA' },
+        'Media message does not require a response',
+      );
+      return;
+    }
+
     const reservation = await reserveQuota({
       userId: ctx.from.id,
       chatId: ctx.chatId,
@@ -282,23 +294,12 @@ processMessageController.on(':photo', async (ctx) => {
       throw error;
     }
 
-    const shouldRespond =
-      ctx.msg.caption?.toLowerCase().startsWith('ио') ||
-      ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
-      ctx.chat.type === 'private';
-    if (shouldRespond) {
-      if (ctx.msg.reply_to_message?.from?.id === ctx.me.id && ctx.msg.caption) {
-        await handleUserReaction(ctx, ctx.msg.caption);
-      }
-      await aiController(ctx, imageDescription, undefined, undefined, {
-        includeRecentChatContext: !isPrivateMode,
-      });
-    } else {
-      logger.debug(
-        { event: 'message.response_skipped', messageType: 'MEDIA' },
-        'Media message does not require a response',
-      );
+    if (ctx.msg.reply_to_message?.from?.id === ctx.me.id && ctx.msg.caption) {
+      await handleUserReaction(ctx, ctx.msg.caption);
     }
+    await aiController(ctx, imageDescription, undefined, undefined, {
+      includeRecentChatContext: !isPrivateMode,
+    });
   } catch (error) {
     handleError(error, 'Processing media message');
   }

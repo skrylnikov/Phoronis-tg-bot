@@ -41,7 +41,7 @@ describe('subscription pricing', () => {
     expect(getMoscowDay(new Date('2026-07-28T23:30:00Z'))).toEqual(
       new Date('2026-07-29T00:00:00.000Z'),
     );
-    expect(planDetails.WEEK.personal.PRIMARY_RESPONSE).toBe(10);
-    expect(planDetails.YEAR.chat.VOICE).toBe(10);
+    expect(planDetails.WEEK.personal.PRIMARY_RESPONSE).toBe(30);
+    expect(planDetails.YEAR.chat.VOICE).toBe(20);
   });
 });

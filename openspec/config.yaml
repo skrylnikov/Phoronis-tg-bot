@@ -1,0 +1,14 @@
+version: 1.0
+project:
+  name: Phoronis Telegram Bot
+  description: Telegram bot with AI capabilities, image/voice recognition, and subscription management
+  
+specs_directory: ./specs
+
+conventions:
+  language: ru
+  format: markdown
+  
+validation:
+  enabled: true
+  strict: false
