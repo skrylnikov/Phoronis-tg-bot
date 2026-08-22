@@ -4,7 +4,6 @@ import type { BotContext } from '../bot';
 import { analyticsChatId } from '../config';
 import { prisma } from '../db';
 import { logger } from '../logger';
-import { weeklyPromotionEndsAt } from '../shared';
 
 const confirmationLifetimeMs = 10 * 60 * 1000;
 export const broadcastDelayMs = 2_000;
@@ -42,22 +41,7 @@ function removeExpiredConfirmations(now = new Date()): void {
   }
 }
 
-function formatPromotion(now: Date): string {
-  if (now >= weeklyPromotionEndsAt) return '';
-
-  return `
-<details>
-<summary>🔥 Акция до 3 августа, 00:00 МСК</summary>
-
-Сейчас действуют специальные цены: **29 / 49 / 99 / 299 ⭐** вместо **49 / 99 / 199 / 599 ⭐** за неделю, месяц, квартал и год.
-
-</details>`;
-}
-
-export function buildWhatsNewPost(
-  stats: WhatsNewStats,
-  now = new Date(),
-): string {
+export function buildWhatsNewPost(stats: WhatsNewStats): string {
   return `## Ио: большое обновление
 
 Я переехала на новую инфраструктуру — теперь работаю быстрее и стабильнее. Спасибо, что доверяете мне ваши разговоры, вопросы и идеи 💜
@@ -89,7 +73,7 @@ export function buildWhatsNewPost(
 
 Все лимиты обновляются в **00:00 МСК**. Неиспользованные не переносятся; дни новой покупки добавляются после уже оплаченного срока. Пока подписка активна, можно купить такой же или более высокий тариф.
 
-</details>${formatPromotion(now)}
+</details>
 
 Спасибо, что вы с Ио. Продолжаю делать её полезнее для ваших чатов.
 

@@ -14,9 +14,6 @@ vi.mock('../db', () => ({ prisma }));
 vi.mock('../logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
-vi.mock('../shared', () => ({
-  weeklyPromotionEndsAt: new Date('2026-08-02T21:00:00.000Z'),
-}));
 
 import {
   broadcastDelayMs,
@@ -79,15 +76,14 @@ afterEach(() => {
 });
 
 describe('whats-new broadcast', () => {
-  it('builds the rich post with promotion, limits, and current statistics', () => {
-    const markdown = buildWhatsNewPost(
-      { botReplies: 123, recognizedVoices: 45 },
-      new Date('2026-07-28T12:00:00.000Z'),
-    );
+  it('builds the rich post with limits and current statistics', () => {
+    const markdown = buildWhatsNewPost({
+      botReplies: 123,
+      recognizedVoices: 45,
+    });
 
     expect(markdown).toContain('## Ио: большое обновление');
     expect(markdown).toContain('<details>');
-    expect(markdown).toContain('29 / 49 / 99 / 299 ⭐');
     expect(markdown).toContain('123 сообщений');
     expect(markdown).toContain('45 голосовых сообщений и кружков');
     expect(markdown).toContain('3 бесплатных + 10 по тарифу = 13 ответов');

@@ -8,19 +8,53 @@ import {
 import { getDiscountedPrice } from '../shared/subscriptions';
 
 describe('subscription pricing', () => {
-  it('uses the weekly 50% promotion and rounds the week plan to 29 Stars', () => {
-    const price = getDiscountedPrice({
-      baseAmount: 49,
-      paidPurchases: 0,
-      now: new Date('2026-07-28T12:00:00+03:00'),
-    });
+  it('applies 20% August promotion discount on all plans while active', () => {
+    const now = new Date('2026-08-23T12:00:00+03:00');
 
-    expect(price.amount).toBe(29);
-    expect(price.actualDiscount).toBe(41);
+    expect(
+      getDiscountedPrice({ baseAmount: 49, paidPurchases: 0, now }),
+    ).toMatchObject({
+      amount: 39,
+      actualDiscount: 20,
+      requestedDiscount: 20,
+    });
+    expect(
+      getDiscountedPrice({ baseAmount: 99, paidPurchases: 0, now }),
+    ).toMatchObject({
+      amount: 79,
+      actualDiscount: 20,
+      requestedDiscount: 20,
+    });
+    expect(
+      getDiscountedPrice({ baseAmount: 199, paidPurchases: 0, now }),
+    ).toMatchObject({
+      amount: 159,
+      actualDiscount: 20,
+      requestedDiscount: 20,
+    });
+    expect(
+      getDiscountedPrice({ baseAmount: 599, paidPurchases: 0, now }),
+    ).toMatchObject({
+      amount: 479,
+      actualDiscount: 20,
+      requestedDiscount: 20,
+    });
   });
 
-  it('uses a loyalty discount after the promotion ends and caps it at 30%', () => {
-    const now = new Date('2026-08-10T12:00:00+03:00');
+  it('ends August promotion after 2026-08-31 23:59:59 Europe/Moscow', () => {
+    const afterPromotionUTC = new Date('2026-08-31T21:00:00.000Z');
+    const price = getDiscountedPrice({
+      baseAmount: 49,
+      paidPurchases: 1,
+      now: afterPromotionUTC,
+    });
+
+    expect(price.requestedDiscount).toBe(10);
+    expect(price.amount).toBe(39);
+  });
+
+  it('uses a loyalty discount after the August promotion ends and caps it at 30%', () => {
+    const now = new Date('2026-09-01T12:00:00+03:00');
 
     expect(
       getDiscountedPrice({ baseAmount: 49, paidPurchases: 1, now }),
