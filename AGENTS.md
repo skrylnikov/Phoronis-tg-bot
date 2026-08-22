@@ -13,6 +13,31 @@
 
 **No test framework is currently configured** - Tests must be added manually. To add tests: install vitest or jest and configure in package.json.
 
+## Development Philosophy
+
+### Ponytail (YAGNI Ladder)
+
+This project follows the **Ponytail** approach for efficient, maintainable code. When writing code, agents should follow the YAGNI ladder defined in `.cursor/rules/ponytail.mdc`:
+
+1. Does this need to be built at all? (YAGNI)
+2. Does it already exist in this codebase? Reuse it.
+3. Does the standard library do this? Use it.
+4. Does a native platform feature cover it? Use it.
+5. Does an already-installed dependency solve it? Use it.
+6. Can this be one line? Make it one line.
+7. Only then: write the minimum code that works.
+
+**Key principles:**
+- Lazy means efficient, not careless. The best code is the code never written.
+- Shortest working diff wins, but only after understanding the problem.
+- No abstractions, dependencies, or boilerplate unless explicitly requested.
+- Bug fixes target root causes, not symptoms.
+- Mark deliberate simplifications with `ponytail:` comments naming the ceiling and upgrade path.
+
+**Not lazy about:** Input validation, error handling preventing data loss, security, accessibility, product safety/quota rules, anything explicitly requested.
+
+This complements (does not replace) the product-specific guidelines, OpenSpec workflow, and safety/quota/product rules defined throughout this document.
+
 ## OpenSpec Workflow
 
 OpenSpec используется для документирования спецификаций и требований к функциональности.

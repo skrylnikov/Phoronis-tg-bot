@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.9-alpine AS runtime
+FROM oven/bun:1.4.0-alpine AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/skrylnikov/Phoronis-tg-bot"
 WORKDIR /app

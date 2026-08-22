@@ -1,20 +1,20 @@
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import { prisma } from '../db';
 import {
-  saveUser,
+  countPaidOrders,
+  createLimitNotice,
+  createPurchaseSessionRepo,
+  findActiveChatSubscriptions,
+  findActiveUserSubscriptions,
+  findChatById,
+  findPurchaseSession,
+  findQuotaUsages,
+  releaseQuotaUsage,
+  reserveQuotaUsage,
   saveChat,
   saveMessage,
-  findActiveUserSubscriptions,
-  findActiveChatSubscriptions,
-  createPurchaseSessionRepo,
-  findPurchaseSession,
-  countPaidOrders,
-  findChatById,
-  reserveQuotaUsage,
-  releaseQuotaUsage,
-  findQuotaUsages,
+  saveUser,
   updateLimitNotice,
-  createLimitNotice,
 } from '../repositories';
 
 describe('User Repository', () => {
@@ -49,7 +49,7 @@ describe('Chat Repository', () => {
   test('findChatById returns chat title', async () => {
     const chatId = BigInt(Date.now());
     await prisma.chat.create({
-      data: { id: chatId, title: 'Test Group' },
+      data: { id: chatId, title: 'Test Group', chatType: 'GROUP' },
     });
 
     const chat = await findChatById(chatId);
@@ -66,18 +66,21 @@ describe('Message Repository', () => {
     await prisma.user.create({
       data: { id: userId, firstName: 'Test' },
     });
-    await prisma.chat.create({ data: { id: chatId } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test', chatType: 'PRIVATE' },
+    });
 
     await saveMessage({
-      messageId,
-      fromId: userId,
+      id: messageId,
+      senderId: userId,
       chatId,
       sentAt: new Date(),
+      messageType: 'TEXT',
       text: 'Test message',
     });
 
     const message = await prisma.message.findUnique({
-      where: { chatId_messageId: { chatId, messageId } },
+      where: { chatId_id: { chatId, id: BigInt(messageId) } },
     });
     expect(message).toBeDefined();
     expect(message?.text).toBe('Test message');
@@ -113,7 +116,9 @@ describe('Subscription Repository', () => {
     const expiresAt = new Date(Date.now() + 60000);
 
     await prisma.user.create({ data: { id: userId, firstName: 'Test' } });
-    await prisma.chat.create({ data: { id: chatId } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test', chatType: 'PRIVATE' },
+    });
 
     const session = await createPurchaseSessionRepo(userId, chatId, expiresAt);
     expect(session.token).toBeDefined();
@@ -127,7 +132,9 @@ describe('Subscription Repository', () => {
     const expiresAt = new Date(Date.now() + 60000);
 
     await prisma.user.create({ data: { id: userId, firstName: 'Test' } });
-    await prisma.chat.create({ data: { id: chatId } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test', chatType: 'PRIVATE' },
+    });
 
     const created = await createPurchaseSessionRepo(userId, chatId, expiresAt);
     const found = await findPurchaseSession(created.token);
@@ -210,7 +217,9 @@ describe('Quota Repository', () => {
     const cutoff = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000);
 
     await prisma.user.create({ data: { id: userId, firstName: 'Test' } });
-    await prisma.chat.create({ data: { id: chatId } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test', chatType: 'PRIVATE' },
+    });
     await createLimitNotice(userId, chatId, 'IMAGE_LIMIT', cutoff);
 
     const result = await updateLimitNotice(
