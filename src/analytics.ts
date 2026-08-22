@@ -1,10 +1,20 @@
 import type { User } from '@grammyjs/types';
 import type { Api } from 'grammy';
 import { analyticsChatId } from './config';
-import { prisma } from './db';
 import { getMoscowDay, MOSCOW_TIME_ZONE } from './domain/quota-service';
 import { getPlanTitle } from './domain/subscriptions';
 import type { SubscriptionPlan } from './generated/prisma/client';
+import {
+  aggregatePaidOrders,
+  aggregateRefundedOrders,
+  countActiveSubscriptions,
+  countMessagesInRange,
+  findChatById,
+  findDailyAnalytics,
+  groupQuotaUsageByKind,
+  updateDailyAnalyticsReportSent,
+  upsertDailyAnalytics,
+} from './repositories';
 
 const moscowOffsetMs = 3 * 60 * 60 * 1000;
 
@@ -55,10 +65,7 @@ export async function sendPurchaseNotification(input: {
   plan: SubscriptionPlan;
   amount: number;
 }): Promise<void> {
-  const chat = await prisma.chat.findUnique({
-    where: { id: input.beneficiaryChatId },
-    select: { title: true },
-  });
+  const chat = await findChatById(input.beneficiaryChatId);
   await input.api.sendMessage(
     analyticsChatId,
     [
@@ -79,39 +86,18 @@ export async function sendDailyAnalyticsReport(
   if (dateParts.hour < 23) return false;
 
   const day = getMoscowDay(now);
-  const existing = await prisma.dailyAnalytics.findUnique({
-    where: { date: day },
-    select: { reportSentAt: true },
-  });
+  const existing = await findDailyAnalytics(day);
   if (existing?.reportSentAt) return false;
-  await prisma.dailyAnalytics.upsert({
-    where: { date: day },
-    create: { date: day },
-    update: {},
-  });
+  await upsertDailyAnalytics(day);
 
   const { start, end } = getMoscowDayRange(now);
   const [messageCount, usages, paid, refunded, activeSubscriptions] =
     await Promise.all([
-      prisma.message.count({ where: { sentAt: { gte: start, lt: end } } }),
-      prisma.quotaUsage.groupBy({
-        by: ['kind'],
-        where: { date: day },
-        _sum: { count: true },
-      }),
-      prisma.paymentOrder.aggregate({
-        where: { status: 'PAID', paidAt: { gte: start, lt: end } },
-        _count: { _all: true },
-        _sum: { amount: true },
-      }),
-      prisma.paymentOrder.aggregate({
-        where: { status: 'REFUNDED', refundedAt: { gte: start, lt: end } },
-        _count: { _all: true },
-        _sum: { amount: true },
-      }),
-      prisma.subscription.count({
-        where: { startsAt: { lte: now }, endsAt: { gt: now }, revokedAt: null },
-      }),
+      countMessagesInRange(start, end),
+      groupQuotaUsageByKind(day),
+      aggregatePaidOrders(start, end),
+      aggregateRefundedOrders(start, end),
+      countActiveSubscriptions(now),
     ]);
   const used = (kind: 'PRIMARY_RESPONSE' | 'IMAGE' | 'VOICE') =>
     usages.find((usage) => usage.kind === kind)?._sum.count ?? 0;
@@ -134,9 +120,6 @@ export async function sendDailyAnalyticsReport(
       `• Активных подписок сейчас: ${activeSubscriptions}`,
     ].join('\n'),
   );
-  await prisma.dailyAnalytics.update({
-    where: { date: day },
-    data: { reportSentAt: now },
-  });
+  await updateDailyAnalyticsReportSent(day, now);
   return true;
 }
