@@ -13,11 +13,11 @@ const { prisma } = vi.hoisted(() => ({
 
 vi.mock('../config', () => ({ analyticsChatId: 777 }));
 vi.mock('../db', () => ({ prisma }));
-vi.mock('../shared/quota-service', () => ({
+vi.mock('../domain/quota-service', () => ({
   MOSCOW_TIME_ZONE: 'Europe/Moscow',
   getMoscowDay: () => new Date('2026-07-28T00:00:00.000Z'),
 }));
-vi.mock('../shared/subscriptions', () => ({
+vi.mock('../domain/subscriptions', () => ({
   getPlanTitle: () => '1 месяц',
 }));
 

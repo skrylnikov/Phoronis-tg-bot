@@ -6,7 +6,7 @@ const { createPurchaseSession, shouldSendLimitNotice } = vi.hoisted(() => ({
   shouldSendLimitNotice: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('../shared', () => ({
+vi.mock('../domain', () => ({
   createPurchaseSession,
   shouldSendLimitNotice,
 }));

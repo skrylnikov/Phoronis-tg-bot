@@ -1,17 +1,18 @@
 import type { Context } from 'grammy';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { prisma, saveMessage, warn } = vi.hoisted(() => ({
+const { prisma, saveMessage, warn, error } = vi.hoisted(() => ({
   prisma: {
     chat: { findUnique: vi.fn() },
   },
   saveMessage: vi.fn(),
   warn: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock('../db', () => ({ prisma }));
-vi.mock('../logger', () => ({ logger: { warn } }));
-vi.mock('../shared', () => ({ saveMessage }));
+vi.mock('../logger', () => ({ logger: { warn, error } }));
+vi.mock('../domain', () => ({ saveMessage }));
 
 import {
   newChatMembersController,
