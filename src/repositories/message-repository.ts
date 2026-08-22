@@ -22,6 +22,7 @@ export interface SaveMessageParams {
   senderId: bigint;
   media?: string | null;
   replyToMessageId?: bigint;
+  messageType?: string;
 }
 
 export const saveMessage = async (message: SaveMessageParams) => {
@@ -42,6 +43,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: message.replyToMessageId ?? null,
+        messageType: (message.messageType as any) ?? 'TEXT',
       },
       update: {
         senderId: message.senderId,
@@ -51,6 +53,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: message.replyToMessageId ?? null,
+        messageType: (message.messageType as any) ?? 'TEXT',
       },
       where: {
         chatId_id: {
