@@ -38,6 +38,40 @@ This project follows the **Ponytail** approach for efficient, maintainable code.
 
 This complements (does not replace) the product-specific guidelines, OpenSpec workflow, and safety/quota/product rules defined throughout this document.
 
+## OpenSpec Workflow
+
+OpenSpec используется для документирования спецификаций и требований к функциональности.
+
+### Структура OpenSpec
+```
+openspec/
+├── config.yaml          - Основной конфиг OpenSpec
+├── specs/              - Директория со спецификациями (source of truth)
+│   ├── image-recognition/
+│   │   └── spec.md     - Логика распознавания изображений в reply chain
+│   └── quota-limits/
+│       └── spec.md     - Лимиты квот подписок (personal/chat)
+└── changes/
+    └── archive/        - Заархивированные changes с proposal/design/tasks
+```
+
+### Требования к спецификациям
+- Все спецификации пишутся на русском языке (требование product owner)
+- Формат: Markdown
+- Каждая спека описывает конкретную функциональность или бизнес-логику
+- Включает: обзор, требования, текущую реализацию, ожидаемое поведение, критерии приемки
+
+### Покрытые области
+- Распознавание изображений только в треде запроса пользователя
+- Лимиты распознавания изображений и голосовых сообщений (личные и групповые)
+- Лимиты премиум-запросов к AI
+
+### Работа со спецификациями
+1. Перед изменением функциональности проверь наличие соответствующей спеки
+2. При добавлении новых фич создавай спеку в `openspec/specs/`
+3. Обновляй спеки при изменении поведения системы
+4. Используй спеки как source of truth для бизнес-логики
+
 ## Code Style Guidelines
 
 ### Imports & Formatting

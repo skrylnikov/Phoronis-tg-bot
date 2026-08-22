@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe('RouterAI models', () => {
-  it('uses Gemini 2.5 Flash Lite for the paid-quota fallback', async () => {
+  it('uses DeepSeek v4 Flash for the paid-quota fallback', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -88,7 +88,7 @@ describe('RouterAI models', () => {
 
     await generateText({ model: liteChatModel, prompt: 'fallback' });
 
-    expect(requestBody.model).toBe('google/gemini-2.5-flash-lite');
+    expect(requestBody.model).toBe('deepseek/deepseek-v4-flash');
   });
 
   it('streams text after completing a tool call', async () => {
@@ -155,7 +155,7 @@ describe('RouterAI models', () => {
     expect(requestBodies).toHaveLength(2);
   });
 
-  it('runs sequential tool calls through Gemini 3.6 Flash', async () => {
+  it('runs sequential tool calls through Gemini 3.7 Flash', async () => {
     const requestBodies: RequestBody[] = [];
     const responses = [
       chatResponse(null, 'tool_calls', [
@@ -212,11 +212,11 @@ describe('RouterAI models', () => {
     });
     expect(requestBodies).toHaveLength(3);
     expect(
-      requestBodies.every((body) => body.model === 'google/gemini-3.6-flash'),
+      requestBodies.every((body) => body.model === 'google/gemini-3.7-flash'),
     ).toBe(true);
   });
 
-  it('requests JSON Schema structured output through Nex-N2-Mini', async () => {
+  it('requests JSON Schema structured output through Qwen 3.7 Flash', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -233,11 +233,11 @@ describe('RouterAI models', () => {
     });
 
     expect(result.output).toEqual({ answer: 'ok' });
-    expect(requestBody.model).toBe('nex-agi/nex-n2-mini');
+    expect(requestBody.model).toBe('qwen/qwen3.7-flash');
     expect(requestBody.response_format?.type).toBe('json_schema');
   });
 
-  it('sends image input through Nex-N2-Mini', async () => {
+  it('sends image input through Qwen 3.7 Flash', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -266,7 +266,7 @@ describe('RouterAI models', () => {
       ],
     });
 
-    expect(requestBody.model).toBe('nex-agi/nex-n2-mini');
+    expect(requestBody.model).toBe('qwen/qwen3.7-flash');
     const content = requestBody.messages?.[0]?.content;
     expect(Array.isArray(content) && content[0]?.type).toBe('image_url');
     expect(Array.isArray(content) && content[0]?.image_url?.url).toMatch(

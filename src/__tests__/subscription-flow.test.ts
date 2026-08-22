@@ -45,13 +45,13 @@ import {
 } from '../shared/quota-service';
 import {
   activatePayment,
+  augustPromotionEndsAt,
   createPaymentOrder,
   getInvoicePayload,
   getPurchaseOptions,
   paymentTermsVersion,
   refundPayment,
   validatePaymentOrder,
-  weeklyPromotionEndsAt,
 } from '../shared/subscriptions';
 
 beforeEach(() => {
@@ -191,13 +191,13 @@ describe('subscription purchase flow', () => {
   });
 
   it('expires a promotional order no later than the promotion', async () => {
-    const now = new Date('2026-08-02T20:50:00.000Z');
-    const acceptedAt = new Date('2026-08-02T20:49:00.000Z');
+    const now = new Date('2026-08-31T20:45:00.000Z');
+    const acceptedAt = new Date('2026-08-31T20:44:00.000Z');
     prisma.purchaseSession.findUnique.mockResolvedValue({
       token: 'session',
       userId: 123n,
       beneficiaryChatId: -100n,
-      expiresAt: new Date('2026-08-02T21:20:00.000Z'),
+      expiresAt: new Date('2026-08-31T21:15:00.000Z'),
       termsAcceptedAt: acceptedAt,
       termsVersion: paymentTermsVersion,
     });
@@ -213,19 +213,19 @@ describe('subscription purchase flow', () => {
       now,
     });
 
-    expect(order.expiresAt).toEqual(weeklyPromotionEndsAt);
+    expect(order.expiresAt).toEqual(augustPromotionEndsAt);
     expect(order.termsAcceptedAt).toEqual(acceptedAt);
     expect(order.termsVersion).toBe(paymentTermsVersion);
   });
 
   it('rejects and expires stale orders during pre-checkout', async () => {
-    const now = new Date('2026-08-03T00:00:00.000Z');
+    const now = new Date('2026-09-01T00:00:00.000Z');
     prisma.paymentOrder.findUnique.mockResolvedValue({
       id: 'order-1',
       status: 'PENDING',
       userId: 123n,
-      amount: 29,
-      expiresAt: new Date('2026-08-02T21:00:00.000Z'),
+      amount: 39,
+      expiresAt: new Date('2026-08-31T20:59:59.999Z'),
     });
     prisma.paymentOrder.updateMany.mockResolvedValue({ count: 1 });
 
@@ -233,7 +233,7 @@ describe('subscription purchase flow', () => {
       invoicePayload: getInvoicePayload('order-1'),
       userId: 123,
       currency: 'XTR',
-      amount: 29,
+      amount: 39,
       now,
     });
 
@@ -264,7 +264,7 @@ describe('cumulative quotas', () => {
     const query = prisma.$queryRaw.mock.calls[0]?.[0] as {
       values: unknown[];
     };
-    expect(query.values.at(-1)).toBe(38);
+    expect(query.values.at(-1)).toBe(80);
   });
 
   it('gives every group member the full combined group quota', async () => {
@@ -295,10 +295,10 @@ describe('cumulative quotas', () => {
       values: unknown[];
     };
     expect(firstQuery.values).toEqual(
-      expect.arrayContaining(['CHAT', 123n, -100n, 'PRIMARY_RESPONSE', 4]),
+      expect.arrayContaining(['CHAT', 123n, -100n, 'PRIMARY_RESPONSE', 8]),
     );
     expect(secondQuery.values).toEqual(
-      expect.arrayContaining(['CHAT', 456n, -100n, 'PRIMARY_RESPONSE', 4]),
+      expect.arrayContaining(['CHAT', 456n, -100n, 'PRIMARY_RESPONSE', 8]),
     );
   });
 
@@ -328,7 +328,7 @@ describe('cumulative quotas', () => {
       values: unknown[];
     };
     expect(personalQuery.values).toEqual(
-      expect.arrayContaining(['USER', 123n, 0n, 'PRIMARY_RESPONSE', 13]),
+      expect.arrayContaining(['USER', 123n, 0n, 'PRIMARY_RESPONSE', 30]),
     );
   });
 
@@ -389,7 +389,7 @@ describe('cumulative quotas', () => {
       now,
     });
 
-    expect(overview.personal.PRIMARY_RESPONSE).toEqual({ limit: 13, used: 2 });
-    expect(overview.chat?.PRIMARY_RESPONSE).toEqual({ limit: 4, used: 3 });
+    expect(overview.personal.PRIMARY_RESPONSE).toEqual({ limit: 30, used: 2 });
+    expect(overview.chat?.PRIMARY_RESPONSE).toEqual({ limit: 8, used: 3 });
   });
 });

@@ -9,20 +9,20 @@ describe('subscription presentation', () => {
     const text = formatSubscriptionCatalog([
       {
         plan: 'WEEK',
-        amount: 29,
-        actualDiscount: 41,
-        requestedDiscount: 50,
-        promotionEndsAt: new Date('2026-08-02T21:00:00.000Z'),
+        amount: 39,
+        actualDiscount: 20,
+        requestedDiscount: 20,
+        promotionEndsAt: new Date('2026-08-31T20:59:59.999Z'),
       },
     ]);
 
     expect(text).toContain('Обычная цена: 49 ⭐');
-    expect(text).toContain('Цена со скидкой 41%: 29 ⭐');
+    expect(text).toContain('Цена со скидкой 20%: 39 ⭐');
     expect(text).toContain(
-      'Личные лимиты в день:\n• Основные ответы: 13\n• Изображения: 8\n• Голосовые: 8\n• Анализ контекста: безлимит',
+      'Личные лимиты в день:\n• Основные ответы: 30\n• Изображения: 15\n• Голосовые: 30\n• Анализ контекста: безлимит',
     );
     expect(text).toContain(
-      'Групповые лимиты для каждого участника в день:\n• Основные ответы: 1\n• Изображения: 1\n• Голосовые: 1\n• Анализ контекста: 1',
+      'Групповые лимиты для каждого участника в день:\n• Основные ответы: 3\n• Изображения: 3\n• Голосовые: 6\n• Анализ контекста: 1',
     );
     expect(text).toContain('Все лимиты обновляются ежедневно в 00:00 МСК.');
   });

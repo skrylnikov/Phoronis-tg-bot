@@ -12,7 +12,7 @@ import {
 
 const sessionLifetimeMs = 30 * 60 * 1000;
 const orderLifetimeMs = 30 * 60 * 1000;
-export const weeklyPromotionEndsAt = new Date('2026-08-02T21:00:00.000Z');
+export const augustPromotionEndsAt = new Date('2026-08-31T20:59:59.999Z');
 export const paymentTermsVersion = '2026-07-28';
 
 export const subscriptionPlans = [
@@ -93,9 +93,9 @@ export function getDiscountedPrice(input: {
   now?: Date;
 }) {
   const now = input.now ?? new Date();
-  const hasWeeklyPromotion = now < weeklyPromotionEndsAt;
+  const hasAugustPromotion = now < augustPromotionEndsAt;
   const loyaltyDiscount = Math.min(30, input.paidPurchases * 10);
-  const requestedDiscount = hasWeeklyPromotion ? 50 : loyaltyDiscount;
+  const requestedDiscount = hasAugustPromotion ? 20 : loyaltyDiscount;
   const amount = roundToNine(
     input.baseAmount * (1 - requestedDiscount / 100),
     input.baseAmount,
@@ -108,7 +108,7 @@ export function getDiscountedPrice(input: {
     amount,
     actualDiscount,
     requestedDiscount,
-    promotionEndsAt: weeklyPromotionEndsAt,
+    promotionEndsAt: augustPromotionEndsAt,
   };
 }
 
@@ -224,8 +224,8 @@ export async function createPaymentOrder(input: {
   });
   const regularExpiry = new Date(now.getTime() + orderLifetimeMs);
   const expiresAt =
-    price.requestedDiscount === 50 && weeklyPromotionEndsAt < regularExpiry
-      ? weeklyPromotionEndsAt
+    price.requestedDiscount === 20 && augustPromotionEndsAt < regularExpiry
+      ? augustPromotionEndsAt
       : regularExpiry;
   return prisma.$transaction(async (tx) => {
     const claimedSession = await tx.purchaseSession.deleteMany({
