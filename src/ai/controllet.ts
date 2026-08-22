@@ -3,8 +3,6 @@ import { InlineKeyboard } from 'grammy';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
-import type { Message, User } from '../generated/prisma/client';
-import { logger } from '../logger';
 import {
   createPurchaseSession,
   releaseQuota,
@@ -14,9 +12,11 @@ import {
   saveUser,
   shouldSendLimitNotice,
 } from '../domain';
+import { extractMentionedUserIds } from '../domain/entities';
 import { getRecentMemoriesForUsers } from '../domain/memory';
-import { extractMentionedUserIds } from '../domain/shared/entities';
 import { getTopUserFacts } from '../domain/user/fact-analyzer';
+import type { Message, User } from '../generated/prisma/client';
+import { logger } from '../logger';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
@@ -345,13 +345,15 @@ export const aiController = async (
 
     const mentionedIds = await extractMentionedUserIds(ctx);
 
-    const allUserIds = [...new Set(
-      [
-        ctx.from?.id,
-        ...list.map((x) => Number(x.sender.id)),
-        ...mentionedIds,
-      ].filter((x): x is number => x !== undefined),
-    )];
+    const allUserIds = [
+      ...new Set(
+        [
+          ctx.from?.id,
+          ...list.map((x) => Number(x.sender.id)),
+          ...mentionedIds,
+        ].filter((x): x is number => x !== undefined),
+      ),
+    ];
 
     const [userList, prompt, allMemories] = await Promise.all([
       prisma.user.findMany({
@@ -456,15 +458,17 @@ export const aiController = async (
         .filter(Boolean)
         .join('\n'),
 
-      time: new Date().toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).replace(',', ''),
+      time: new Date()
+        .toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        })
+        .replace(',', ''),
     });
 
     const messages: ModelMessage[] = [

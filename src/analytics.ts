@@ -2,9 +2,9 @@ import type { User } from '@grammyjs/types';
 import type { Api } from 'grammy';
 import { analyticsChatId } from './config';
 import { prisma } from './db';
+import { getMoscowDay, MOSCOW_TIME_ZONE } from './domain/quota-service';
+import { getPlanTitle } from './domain/subscriptions';
 import type { SubscriptionPlan } from './generated/prisma/client';
-import { getMoscowDay, MOSCOW_TIME_ZONE } from './shared/quota-service';
-import { getPlanTitle } from './shared/subscriptions';
 
 const moscowOffsetMs = 3 * 60 * 60 * 1000;
 

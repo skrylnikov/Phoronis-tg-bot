@@ -8,7 +8,6 @@ import {
 import { describeTelegramPhoto } from '../ai/image-description';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   releaseQuota,
   reserveQuota,
@@ -18,6 +17,7 @@ import {
 } from '../domain';
 import { recordUserReaction } from '../domain/user/fact-impact-tracker';
 import { analyzeUserMessages } from '../domain/user/message-analyzer';
+import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 import { sendMediaLimitNotice } from './limit-notice';
 

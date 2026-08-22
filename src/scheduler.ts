@@ -3,12 +3,12 @@ import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from './advisory-lock';
 import { sendDailyAnalyticsReport } from './analytics';
 import { bot } from './bot';
 import { prisma } from './db';
+import { recalculateFactImpactScores } from './domain/user/fact-impact-tracker';
+import { startMetaInfoMigration } from './domain/user/migrate-meta-info';
 import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
-import { recalculateFactImpactScores } from './domain/user/fact-impact-tracker';
-import { startMetaInfoMigration } from './domain/user/migrate-meta-info';
 
 let impactScoreTask: ScheduledTask | null = null;
 

@@ -42,7 +42,7 @@ import {
   getQuotaOverview,
   releaseQuota,
   reserveQuota,
-} from '../shared/quota-service';
+} from '../domain/quota-service';
 import {
   activatePayment,
   augustPromotionEndsAt,
@@ -52,7 +52,7 @@ import {
   paymentTermsVersion,
   refundPayment,
   validatePaymentOrder,
-} from '../shared/subscriptions';
+} from '../domain/subscriptions';
 
 beforeEach(() => {
   vi.clearAllMocks();

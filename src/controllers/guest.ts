@@ -5,7 +5,6 @@ import { describeTelegramPhoto } from '../ai/image-description';
 import { createRichMessageIfNeeded, toMarkdownV2 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   claimGuestInteraction,
   markGuestInteractionAnswered,
@@ -17,6 +16,7 @@ import {
   saveUser,
 } from '../domain';
 import { analyzeUserMessages } from '../domain/user/message-analyzer';
+import { logger } from '../logger';
 
 const guestAnswerId = 'phoronis-guest-answer';
 const guestAnswerTitle = 'Ответ Ио';

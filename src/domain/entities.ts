@@ -1,6 +1,6 @@
-import type { BotContext } from '../../bot';
-import { prisma } from '../../db';
-import { logger } from '../../logger';
+import type { BotContext } from '../bot';
+import { prisma } from '../db';
+import { logger } from '../logger';
 
 async function findUserIdByUsername(userName: string): Promise<number | null> {
   try {

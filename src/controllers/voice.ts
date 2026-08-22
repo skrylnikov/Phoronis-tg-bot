@@ -11,7 +11,6 @@ import type { BotContext } from '../bot';
 import { token } from '../config.js';
 
 import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   releaseQuota,
   reserveQuota,
@@ -19,6 +18,7 @@ import {
   saveMessage,
   saveUser,
 } from '../domain';
+import { logger } from '../logger';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -89,7 +89,8 @@ export const voiceController = async (ctx: BotContext) => {
       },
       'Voice recognition started',
     );
-    let file = rawFile;
+
+    let file: Buffer;
     if (ctx.message.video_note) {
       const result = ffmpeg({
         MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile) }],
@@ -105,6 +106,8 @@ export const voiceController = async (ctx: BotContext) => {
         ],
       });
       file = Buffer.from(result.MEMFS[0].data);
+    } else {
+      file = Buffer.from(rawFile);
     }
 
     const recognizedResult = await yandex.speechkit.recognize({

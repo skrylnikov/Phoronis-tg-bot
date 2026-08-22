@@ -1,7 +1,7 @@
 import type { BotContext } from '../../bot';
 import { prisma } from '../../db';
 import { logger } from '../../logger';
-import { releaseQuota, reserveQuota } from '../../shared/quota-service';
+import { releaseQuota, reserveQuota } from '../quota-service';
 import { analyzeUserMetaInfo } from './fact-analyzer';
 
 function isGroupChat(ctx: BotContext): boolean {

@@ -2,8 +2,8 @@ import { generateText } from 'ai';
 import { utilityModel } from '../ai/ai';
 import { sendWithRichFallback } from '../ai/rich-message';
 import { bot } from '../bot';
-import { logger } from '../logger';
 import { saveMessage } from '../domain';
+import { logger } from '../logger';
 
 // Список тем Inktober
 const inktoberThemes = [

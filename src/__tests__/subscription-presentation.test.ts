@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatInvoiceDescription,
   formatSubscriptionCatalog,
-} from '../shared/subscription-presentation';
+} from '../domain/subscription-presentation';
 
 describe('subscription presentation', () => {
   it('shows the promotional price and every daily quota in the catalog', () => {

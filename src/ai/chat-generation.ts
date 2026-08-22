@@ -16,7 +16,7 @@ import {
   weatherTool,
   wikipediaTool,
 } from './tools';
-import { createClearMemoryTool, createMemoryTool } from './domain/memory';
+import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,

@@ -7,4 +7,5 @@ export const wordTokenize = (text: string) =>
     .split(/\s|\.|,|!|\?/)
     .filter((x) => x.length !== 0);
 
-export const tokenize = (text: string) => sentenceTokenize(text).map(wordTokenize);
+export const tokenize = (text: string) =>
+  sentenceTokenize(text).map(wordTokenize);

@@ -1,7 +1,6 @@
 import type { Context } from 'grammy';
-
-import { logger } from '../logger';
 import { saveMessage } from '../domain';
+import { logger } from '../logger';
 
 export const meController = async (ctx: Context) => {
   try {

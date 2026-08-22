@@ -15,7 +15,11 @@ async function searchWikipedia(query: string): Promise<string> {
     throw new Error(`Wikipedia API error: ${response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    query?: {
+      search?: Array<{ title: string }>;
+    };
+  };
   const results = data.query?.search || [];
 
   if (results.length === 0) {
@@ -36,9 +40,16 @@ async function searchWikipedia(query: string): Promise<string> {
       const extractResponse = await fetch(extractUrl.toString());
       if (!extractResponse.ok) return null;
 
-      const extractData = await extractResponse.json();
+      const extractData = (await extractResponse.json()) as {
+        query?: {
+          pages?: Record<string, { title?: string; extract?: string }>;
+        };
+      };
       const pages = extractData.query?.pages || {};
-      const page = Object.values(pages)[0] as { title?: string; extract?: string };
+      const page = Object.values(pages)[0] as {
+        title?: string;
+        extract?: string;
+      };
 
       return page?.extract ? `${page.title}\n\n${page.extract}` : null;
     }),

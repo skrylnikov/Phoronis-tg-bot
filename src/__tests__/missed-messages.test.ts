@@ -51,7 +51,7 @@ import {
   canUseChatHistoryTool,
   getRecentPublicChatContext,
   searchChatHistory,
-} from '../../domain/chat-history';
+} from '../ai/tools/chat-history';
 
 function createContext(
   type: 'private' | 'group' | 'supergroup' = 'group',
