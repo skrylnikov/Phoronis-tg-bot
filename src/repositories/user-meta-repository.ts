@@ -1,5 +1,5 @@
 import { prisma } from '../db';
-import type { Prisma } from '../generated/prisma/client';
+import type { FactType, Prisma } from '../generated/prisma/client';
 
 export async function findUserByIdRepo(userId: bigint) {
   return prisma.user.findUnique({
