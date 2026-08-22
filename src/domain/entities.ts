@@ -1,23 +1,5 @@
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
-import { logger } from '../logger';
-
-async function findUserIdByUsername(userName: string): Promise<number | null> {
-  try {
-    const user = await prisma.user.findFirst({
-      where: { userName },
-      select: { id: true },
-    });
-
-    return user ? Number(user.id) : null;
-  } catch (err) {
-    logger.error(
-      { event: 'user.lookup_by_username_failed', err, username: userName },
-      'Error finding user by username',
-    );
-    return null;
-  }
-}
+import { findUserIdByUsername } from '../repositories/user-repository';
 
 export async function extractMentionedUserIds(
   ctx: BotContext,

@@ -272,13 +272,6 @@ export async function activatePayment(input: {
   if (!orderId || input.currency !== 'XTR') return null;
   const now = input.now ?? new Date();
 
-  const existingCharge = await findPaymentOrderByChargeId(input.chargeId);
-  if (existingCharge) {
-    return existingCharge.subscription
-      ? { ...existingCharge.subscription, activatedNow: false }
-      : null;
-  }
-
   const pendingOrder = await findPendingPaymentOrder(
     orderId,
     BigInt(input.userId),
@@ -287,7 +280,9 @@ export async function activatePayment(input: {
   if (!pendingOrder) return null;
 
   const details = planDetails[pendingOrder.plan];
-  const subscription = await activatePaymentWithSubscription({
+  if (!details) return null;
+  
+  return activatePaymentWithSubscription({
     orderId: pendingOrder.id,
     userId: pendingOrder.userId,
     beneficiaryChatId: pendingOrder.beneficiaryChatId,
@@ -296,19 +291,15 @@ export async function activatePayment(input: {
     startsAt: now,
     durationDays: details.durationDays,
     now,
+    amount: input.amount,
   });
-
-  return subscription ? { ...subscription, activatedNow: true } : null;
 }
 
 export async function refundPayment(chargeId: string, now = new Date()) {
-  const durationMs = (await findPaymentOrderByChargeId(chargeId))?.plan
-    ? planDetails[(await findPaymentOrderByChargeId(chargeId))!.plan]
-        .durationDays *
-      24 *
-      60 *
-      60 *
-      1000
-    : 0;
+  const order = await findPaymentOrderByChargeId(chargeId);
+  if (!order?.plan) return null;
+  
+  const durationMs =
+    planDetails[order.plan].durationDays * 24 * 60 * 60 * 1000;
   return refundPaymentWithSubscription(chargeId, now, durationMs);
 }

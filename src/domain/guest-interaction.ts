@@ -1,6 +1,12 @@
-import { prisma } from '../db';
-
-const staleProcessingMs = 5 * 60 * 1000;
+import {
+  createGuestInteraction,
+  findGuestInteraction,
+  markGuestInteractionAnsweredRepo,
+  markGuestInteractionFailedRepo,
+  getRecentGuestInteractionsRepo,
+  updateGuestInteraction,
+  staleProcessingMs,
+} from '../repositories/guest-interaction-repository';
 
 export type GuestInteractionClaim =
   | { kind: 'claimed'; id: string }
@@ -15,15 +21,7 @@ export async function claimGuestInteraction(input: {
   query: string;
   referenceText?: string;
 }): Promise<GuestInteractionClaim> {
-  const existing = await prisma.guestInteraction.findUnique({
-    where: { guestQueryId: input.guestQueryId },
-    select: {
-      id: true,
-      answer: true,
-      status: true,
-      updatedAt: true,
-    },
-  });
+  const existing = await findGuestInteraction(input.guestQueryId);
 
   if (existing?.status === 'ANSWERED') {
     return { kind: 'answered', answer: existing.answer };
@@ -37,40 +35,31 @@ export async function claimGuestInteraction(input: {
   }
 
   if (existing) {
-    await prisma.guestInteraction.update({
-      where: { id: existing.id },
-      data: {
-        chatId: input.chatId,
-        userId: input.userId,
-        messageId: input.messageId,
-        query: input.query,
-        referenceText: input.referenceText,
-        answer: null,
-        error: null,
-        status: 'PROCESSING',
-      },
+    await updateGuestInteraction(existing.id, {
+      chatId: input.chatId,
+      userId: input.userId,
+      messageId: input.messageId,
+      query: input.query,
+      referenceText: input.referenceText,
+      answer: null,
+      error: null,
+      status: 'PROCESSING',
     });
     return { kind: 'claimed', id: existing.id };
   }
 
   try {
-    const interaction = await prisma.guestInteraction.create({
-      data: {
-        guestQueryId: input.guestQueryId,
-        chatId: input.chatId,
-        userId: input.userId,
-        messageId: input.messageId,
-        query: input.query,
-        referenceText: input.referenceText,
-      },
-      select: { id: true },
+    const interaction = await createGuestInteraction({
+      guestQueryId: input.guestQueryId,
+      chatId: input.chatId,
+      userId: input.userId,
+      messageId: input.messageId,
+      query: input.query,
+      referenceText: input.referenceText,
     });
     return { kind: 'claimed', id: interaction.id };
   } catch (error) {
-    const concurrent = await prisma.guestInteraction.findUnique({
-      where: { guestQueryId: input.guestQueryId },
-      select: { status: true, answer: true },
-    });
+    const concurrent = await findGuestInteraction(input.guestQueryId);
     if (concurrent?.status === 'ANSWERED') {
       return { kind: 'answered', answer: concurrent.answer };
     }
@@ -85,40 +74,16 @@ export async function markGuestInteractionAnswered(
   id: string,
   answer: string,
 ): Promise<void> {
-  await prisma.guestInteraction.update({
-    where: { id },
-    data: {
-      answer,
-      error: null,
-      status: 'ANSWERED',
-      answeredAt: new Date(),
-    },
-  });
+  await markGuestInteractionAnsweredRepo(id, answer);
 }
 
 export async function markGuestInteractionFailed(
   id: string,
   error: unknown,
 ): Promise<void> {
-  await prisma.guestInteraction.update({
-    where: { id },
-    data: {
-      status: 'FAILED',
-      error: error instanceof Error ? error.message : String(error),
-    },
-  });
+  await markGuestInteractionFailedRepo(id, error);
 }
 
 export async function getRecentGuestInteractions(chatId: bigint, limit = 10) {
-  return prisma.guestInteraction.findMany({
-    where: { chatId, status: 'ANSWERED' },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    select: {
-      query: true,
-      referenceText: true,
-      answer: true,
-      createdAt: true,
-    },
-  });
+  return getRecentGuestInteractionsRepo(chatId, limit);
 }

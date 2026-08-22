@@ -1,149 +1,123 @@
+import type { Message as GrammyMessage } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import { type Message, Prisma } from '../generated/prisma/client';
-import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 
-const messageCache = new LRUCache<string, boolean>({
+const cache = new LRUCache<string, true>({
   max: 10000,
-  ttl: 24 * 60 * 60 * 1000,
+  ttl: 60 * 60 * 1000,
   updateAgeOnGet: false,
   updateAgeOnHas: false,
 });
 
-async function checkMessageExists(
-  chatId: bigint,
-  messageId: bigint,
-): Promise<boolean> {
-  const key = `${chatId}_${messageId}`;
+export interface SaveMessageParams {
+  id: bigint;
+  chatId: bigint;
+  text?: string;
+  caption?: string;
+  private?: boolean;
+  summary?: string;
+  sentAt: Date;
+  senderId: bigint;
+  media?: string | null;
+  replyToMessageId?: bigint;
+}
 
-  if (messageCache.has(key)) {
-    return messageCache.get(key) || false;
-  }
-
+export const saveMessage = async (message: SaveMessageParams) => {
   try {
-    const message = await prisma.message.findUnique({
+    const cacheKey = `${message.chatId}:${message.id}`;
+    if (cache.has(cacheKey)) {
+      return;
+    }
+
+    const isReply = !!message.replyToMessageId;
+
+    await prisma.message.upsert({
+      create: {
+        id: message.id,
+        chatId: message.chatId,
+        senderId: message.senderId,
+        sentAt: message.sentAt,
+        text: message.text ?? message.caption ?? null,
+        summary: message.summary ?? null,
+        private: message.private ?? false,
+        media: message.media ?? null,
+        ...(isReply
+          ? {
+              replyToMessage: {
+                connect: {
+                  chatId_id: {
+                    chatId: message.chatId,
+                    id: message.replyToMessageId!,
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      update: {
+        senderId: message.senderId,
+        sentAt: message.sentAt,
+        text: message.text ?? message.caption ?? null,
+        summary: message.summary ?? null,
+        private: message.private ?? false,
+        media: message.media ?? null,
+        ...(isReply
+          ? {
+              replyToMessage: {
+                connect: {
+                  chatId_id: {
+                    chatId: message.chatId,
+                    id: message.replyToMessageId!,
+                  },
+                },
+              },
+            }
+          : {}),
+      },
       where: {
         chatId_id: {
-          chatId,
-          id: messageId,
+          chatId: message.chatId,
+          id: message.id,
         },
       },
-      select: {
-        id: true,
-      },
     });
 
-    const exists = message !== null;
-    messageCache.set(key, exists);
-    return exists;
+    cache.set(cacheKey, true);
   } catch (error) {
-    handleError(
-      error,
-      `Error checking message existence ${chatId}_${messageId}`,
-    );
-    return false;
+    handleError(error, `Error saving message ${message.id}`);
   }
+};
+
+export async function countMessagesRepo(where: {
+  chatId: bigint;
+  senderId: bigint;
+  private: boolean;
+}) {
+  return prisma.message.count({ where });
 }
 
-async function findReplyId(
+export async function findMessagesRepo(where: {
+  chatId: bigint;
+  senderId: bigint;
+  private: boolean;
+}) {
+  return prisma.message.findMany({
+    where,
+    include: { replyToMessage: true },
+    orderBy: { sentAt: 'desc' },
+    take: 30,
+  });
+}
+
+export async function findMessageByIdRepo(
   chatId: bigint,
-  replyToMsgId: bigint | undefined,
-): Promise<bigint | null> {
-  if (!replyToMsgId) return null;
-
-  try {
-    const exists = await checkMessageExists(chatId, replyToMsgId);
-    return exists ? replyToMsgId : null;
-  } catch (error) {
-    handleError(error, `Error finding reply ID for ${chatId}_${replyToMsgId}`);
-    return null;
-  }
+  messageId: bigint,
+) {
+  return prisma.message.findUnique({
+    where: {
+      chatId_id: { chatId, id: messageId },
+    },
+  });
 }
-
-export interface SaveMessageResult {
-  message: Message;
-  created: boolean;
-}
-
-export type SaveMessageParams = {
-  id: number | bigint;
-  chatId: number | bigint;
-  senderId: number | bigint;
-  sentAt: Date;
-  messageType: 'TEXT' | 'MEDIA' | 'VOICE';
-  replyToMessageId?: number | bigint | undefined;
-  text?: string | null;
-  media?: string | null;
-  summary?: string | null;
-  sessionId?: string | null;
-  private?: boolean | null;
-};
-
-function isDuplicateMessageError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
-}
-
-export const saveMessageIfAbsent = async (
-  params: SaveMessageParams,
-): Promise<SaveMessageResult> => {
-  const chatId = BigInt(params.chatId);
-  const messageId = BigInt(params.id);
-
-  try {
-    const replyId = await findReplyId(
-      chatId,
-      params.replyToMessageId ? BigInt(params.replyToMessageId) : undefined,
-    );
-
-    const message = await prisma.message.create({
-      data: {
-        id: messageId,
-        chatId,
-        senderId: BigInt(params.senderId),
-        replyToMessageId: replyId,
-        sentAt: params.sentAt,
-        messageType: params.messageType,
-        text: params.text,
-        media: params.media,
-        summary: params.summary,
-        sessionId: params.sessionId,
-        private: params.private,
-      },
-    });
-
-    messageCache.set(`${chatId}_${messageId}`, true);
-    return { message, created: true };
-  } catch (error) {
-    if (isDuplicateMessageError(error)) {
-      const existing = await prisma.message.findUnique({
-        where: { chatId_id: { chatId, id: messageId } },
-      });
-      if (existing) {
-        messageCache.set(`${chatId}_${messageId}`, true);
-        logger.info(
-          {
-            event: 'message.duplicate_ignored',
-            chatId: Number(chatId),
-            messageId: Number(messageId),
-          },
-          'Duplicate message persistence ignored',
-        );
-        return { message: existing, created: false };
-      }
-    }
-    handleError(error, `Error saving message ${params.id}`);
-    throw error;
-  }
-};
-
-export const saveMessage = async (
-  params: SaveMessageParams,
-): Promise<Message> => {
-  const result = await saveMessageIfAbsent(params);
-  return result.message;
-};

@@ -1,5 +1,15 @@
-import { prisma } from '../../db';
 import { logger } from '../../logger';
+import {
+  createManyFactImpactsRepo,
+  findFactImpactsRepo,
+  updateManyFactImpactsRepo,
+} from '../../repositories/fact-impact-repository';
+import {
+  findMessageByIdRepo,
+  findUserFactsWithImpactsRepo,
+  updateUserFactRepo,
+  updateManyUserFactsRepo,
+} from '../../repositories';
 
 export interface TelegramReaction {
   type: string;
@@ -54,19 +64,18 @@ export async function recordUserReaction(
   userMessage?: string,
   telegramReactions?: TelegramReaction[],
 ) {
-  const factImpacts = await prisma.factImpact.findMany({
-    where: { usedInMessageId: BigInt(botMessageId) },
+  const factImpacts = await findFactImpactsRepo({
+    usedInMessageId: BigInt(botMessageId),
   });
 
   if (factImpacts.length === 0) {
     return;
   }
 
-  const botMessage = await prisma.message.findUnique({
-    where: {
-      chatId_id: { chatId: BigInt(chatId), id: BigInt(botMessageId) },
-    },
-  });
+  const botMessage = await findMessageByIdRepo(
+    BigInt(chatId),
+    BigInt(botMessageId),
+  );
 
   const botReply = botMessage?.text || botMessage?.summary || '';
 
@@ -83,15 +92,15 @@ export async function recordUserReaction(
   if (!reaction) {
     return;
   }
-  await prisma.factImpact.updateMany({
-    where: {
+  await updateManyFactImpactsRepo(
+    {
       id: { in: factImpacts.map((fi) => fi.id) },
     },
-    data: {
+    {
       userReaction: reaction.reaction,
       messageReaction: reaction.messageReaction,
     },
-  });
+  );
 
   logger.info(
     {
@@ -113,21 +122,21 @@ export async function trackFactUsage(
     return;
   }
 
-  await prisma.factImpact.createMany({
-    data: usedFactIds.map((factId) => ({
+  await createManyFactImpactsRepo(
+    usedFactIds.map((factId) => ({
       factId,
       usedInMessageId: BigInt(botMessageId),
       timestamp: new Date(),
     })),
-  });
+  );
 
-  await prisma.userFact.updateMany({
-    where: { id: { in: usedFactIds } },
-    data: {
+  await updateManyUserFactsRepo(
+    { id: { in: usedFactIds } },
+    {
       usageCount: { increment: 1 },
       lastUsedAt: new Date(),
     },
-  });
+  );
 
   logger.info(
     {
@@ -140,9 +149,8 @@ export async function trackFactUsage(
 }
 
 export async function recalculateFactImpactScores() {
-  const facts = await prisma.userFact.findMany({
-    where: { usageCount: { gt: 0 } },
-    include: { FactImpact: true },
+  const facts = await findUserFactsWithImpactsRepo({
+    usageCount: { gt: 0 },
   });
 
   for (const fact of facts) {
@@ -192,9 +200,8 @@ export async function recalculateFactImpactScores() {
 
     const normalizedScore = score / Math.sqrt(impacts.length);
 
-    await prisma.userFact.update({
-      where: { id: fact.id },
-      data: { impactScore: normalizedScore },
+    await updateUserFactRepo(fact.id, {
+      impactScore: normalizedScore,
     });
   }
 
@@ -205,19 +212,16 @@ export async function recalculateFactImpactScores() {
 }
 
 export async function getFactImpactStats(userId: number) {
-  const facts = await prisma.userFact.findMany({
-    where: { userId: BigInt(userId) },
-    orderBy: { impactScore: 'desc' },
-    take: 10,
-  });
+  const { findTopUserFactsByScoreRepo, countUserFactsRepo, countUserFactsWithConditionRepo } = await import('../../repositories');
+  
+  const facts = await findTopUserFactsByScoreRepo(BigInt(userId), 10);
 
-  const total = await prisma.userFact.count({
-    where: { userId: BigInt(userId) },
-  });
+  const total = await countUserFactsRepo(BigInt(userId));
 
-  const withPositiveImpact = await prisma.userFact.count({
-    where: { userId: BigInt(userId), impactScore: { gt: 0 } },
-  });
+  const withPositiveImpact = await countUserFactsWithConditionRepo(
+    BigInt(userId),
+    { impactScore: { gt: 0 } },
+  );
 
   return {
     topFacts: facts,

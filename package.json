@@ -16,7 +16,7 @@
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "test:unit": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "bun test src/__tests__/repositories.integration.test.ts"
   },
   "author": "",
   "license": "ISC",

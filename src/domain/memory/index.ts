@@ -6,8 +6,16 @@ import {
   searchSimilarMemories,
   updateMemoryEmbedding,
 } from '../../ai/embedding/store';
-import { prisma } from '../../db';
 import { logger } from '../../logger';
+import {
+  createMemoryRepo,
+  deleteMemoriesRepo,
+  findMemoriesForClearRepo,
+  findRecentMemoriesForUsersRepo,
+  findRecentMemoriesRepo,
+  getUserPersonalMemoriesRepo,
+  updateMemoryRepo,
+} from '../../repositories/memory-repository';
 
 interface SaveMemoryOptions {
   userId: number;
@@ -145,12 +153,9 @@ export async function saveMemory(options: SaveMemoryOptions) {
   );
 
   if (checkResult.isDuplicate && checkResult.similarMemoryId) {
-    await prisma.memory.update({
-      where: { id: checkResult.similarMemoryId },
-      data: {
-        content,
-        updatedAt: new Date(),
-      },
+    await updateMemoryRepo(checkResult.similarMemoryId, {
+      content,
+      updatedAt: new Date(),
     });
 
     if (checkResult.embedding) {
@@ -164,12 +169,9 @@ export async function saveMemory(options: SaveMemoryOptions) {
   }
 
   if (checkResult.isContradiction && checkResult.similarMemoryId) {
-    await prisma.memory.update({
-      where: { id: checkResult.similarMemoryId },
-      data: {
-        content,
-        updatedAt: new Date(),
-      },
+    await updateMemoryRepo(checkResult.similarMemoryId, {
+      content,
+      updatedAt: new Date(),
     });
 
     if (checkResult.embedding) {
@@ -182,13 +184,11 @@ export async function saveMemory(options: SaveMemoryOptions) {
     return checkResult.similarMemoryId;
   }
 
-  const memory = await prisma.memory.create({
-    data: {
-      userId: BigInt(userId),
-      chatId: BigInt(chatId),
-      content,
-      isUser,
-    },
+  const memory = await createMemoryRepo({
+    userId: BigInt(userId),
+    chatId: BigInt(chatId),
+    content,
+    isUser,
   });
 
   if (checkResult.embedding) {
@@ -237,10 +237,7 @@ export async function clearMemories(
             ],
           };
 
-  const rows = await prisma.memory.findMany({
-    where,
-    select: { id: true },
-  });
+  const rows = await findMemoriesForClearRepo(where);
 
   if (rows.length === 0) {
     return 0;
@@ -248,9 +245,7 @@ export async function clearMemories(
 
   const ids = rows.map((r) => r.id);
 
-  await prisma.memory.deleteMany({
-    where: { id: { in: ids } },
-  });
+  await deleteMemoriesRepo(ids);
 
   return rows.length;
 }
@@ -260,24 +255,11 @@ export async function getRecentMemories(
   chatId: number,
   limit: number = 10,
 ): Promise<string[]> {
-  const memories = await prisma.memory.findMany({
-    where: {
-      OR: [
-        {
-          userId: BigInt(userId),
-          isUser: true,
-        },
-        {
-          chatId: BigInt(chatId),
-          isUser: false,
-        },
-      ],
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: limit,
-  });
+  const memories = await findRecentMemoriesRepo(
+    BigInt(userId),
+    BigInt(chatId),
+    limit,
+  );
 
   return memories.map((m: { content: string }) => m.content);
 }
@@ -293,37 +275,22 @@ export async function getRecentMemoriesForUsers(
     result.set(id, []);
   });
 
-  const userMemories = await prisma.memory.findMany({
-    where: {
-      userId: { in: userIds.map(BigInt) },
-      isUser: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: userIds.length * limit,
-  });
+  const { userMemories, chatMemories } =
+    await findRecentMemoriesForUsersRepo(userIds, BigInt(chatId), limit);
 
   userMemories.forEach((memory) => {
     const userId = Number(memory.userId);
-    const userMemories = result.get(userId);
-    if (userMemories && userMemories.length < limit) {
-      userMemories.push(memory.content);
+    const userMemoriesArray = result.get(userId);
+    if (userMemoriesArray && userMemoriesArray.length < limit) {
+      userMemoriesArray.push(memory.content);
     }
-  });
-
-  const chatMemories = await prisma.memory.findMany({
-    where: {
-      chatId: BigInt(chatId),
-      isUser: false,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
   });
 
   const chatMemoriesContent = chatMemories.map((m) => m.content);
 
   userIds.forEach((id) => {
-    const userMemories = result.get(id) || [];
-    result.set(id, [...userMemories, ...chatMemoriesContent]);
+    const userMemoriesArray = result.get(id) || [];
+    result.set(id, [...userMemoriesArray, ...chatMemoriesContent]);
   });
 
   return result;
@@ -333,19 +300,5 @@ export async function getUserPersonalMemories(
   userId: bigint,
   options: { chatId?: bigint; allChats?: boolean } = {},
 ) {
-  const memories = await prisma.memory.findMany({
-    where: {
-      userId,
-      isUser: true,
-      ...(options.allChats ? {} : { chatId: options.chatId }),
-    },
-    select: {
-      content: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-  });
-
-  return memories;
+  return getUserPersonalMemoriesRepo(userId, options);
 }

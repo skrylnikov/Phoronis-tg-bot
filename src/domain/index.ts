@@ -4,7 +4,6 @@ export {
   findChatById,
   saveChat,
   saveMessage,
-  saveMessageIfAbsent,
   saveUser,
 } from '../repositories';
 export * from './analysis-limiter';

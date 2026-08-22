@@ -2,6 +2,7 @@ import type { User } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({
@@ -39,3 +40,22 @@ export const saveUser = async (user: User) => {
     handleError(error, `Error saving user ${user.id}`);
   }
 };
+
+export async function findUserIdByUsername(
+  userName: string,
+): Promise<number | null> {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { userName },
+      select: { id: true },
+    });
+
+    return user ? Number(user.id) : null;
+  } catch (err) {
+    logger.error(
+      { event: 'user.lookup_by_username_failed', err, username: userName },
+      'Error finding user by username',
+    );
+    return null;
+  }
+}
