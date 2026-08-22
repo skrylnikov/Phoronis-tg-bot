@@ -3,17 +3,6 @@ import { getMoscowDay, planDetails } from '../shared/quota-service';
 import { getDiscountedPrice } from '../shared/subscriptions';
 
 describe('subscription pricing', () => {
-  it('uses the weekly 50% promotion and rounds the week plan to 29 Stars', () => {
-    const price = getDiscountedPrice({
-      baseAmount: 49,
-      paidPurchases: 0,
-      now: new Date('2026-07-28T12:00:00+03:00'),
-    });
-
-    expect(price.amount).toBe(29);
-    expect(price.actualDiscount).toBe(41);
-  });
-
   it('applies 20% August promotion discount on all plans while active', () => {
     const now = new Date('2026-08-23T12:00:00+03:00');
 

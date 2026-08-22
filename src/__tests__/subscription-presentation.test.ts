@@ -9,15 +9,15 @@ describe('subscription presentation', () => {
     const text = formatSubscriptionCatalog([
       {
         plan: 'WEEK',
-        amount: 29,
-        actualDiscount: 41,
-        requestedDiscount: 50,
-        promotionEndsAt: new Date('2026-08-02T21:00:00.000Z'),
+        amount: 39,
+        actualDiscount: 20,
+        requestedDiscount: 20,
+        promotionEndsAt: new Date('2026-08-31T20:59:59.999Z'),
       },
     ]);
 
     expect(text).toContain('Обычная цена: 49 ⭐');
-    expect(text).toContain('Цена со скидкой 41%: 29 ⭐');
+    expect(text).toContain('Цена со скидкой 20%: 39 ⭐');
     expect(text).toContain(
       'Личные лимиты в день:\n• Основные ответы: 13\n• Изображения: 8\n• Голосовые: 8\n• Анализ контекста: безлимит',
     );

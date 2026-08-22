@@ -45,13 +45,13 @@ import {
 } from '../shared/quota-service';
 import {
   activatePayment,
+  augustPromotionEndsAt,
   createPaymentOrder,
   getInvoicePayload,
   getPurchaseOptions,
   paymentTermsVersion,
   refundPayment,
   validatePaymentOrder,
-  weeklyPromotionEndsAt,
 } from '../shared/subscriptions';
 
 beforeEach(() => {
@@ -191,13 +191,13 @@ describe('subscription purchase flow', () => {
   });
 
   it('expires a promotional order no later than the promotion', async () => {
-    const now = new Date('2026-08-02T20:50:00.000Z');
-    const acceptedAt = new Date('2026-08-02T20:49:00.000Z');
+    const now = new Date('2026-08-31T20:45:00.000Z');
+    const acceptedAt = new Date('2026-08-31T20:44:00.000Z');
     prisma.purchaseSession.findUnique.mockResolvedValue({
       token: 'session',
       userId: 123n,
       beneficiaryChatId: -100n,
-      expiresAt: new Date('2026-08-02T21:20:00.000Z'),
+      expiresAt: new Date('2026-08-31T21:15:00.000Z'),
       termsAcceptedAt: acceptedAt,
       termsVersion: paymentTermsVersion,
     });
@@ -213,19 +213,19 @@ describe('subscription purchase flow', () => {
       now,
     });
 
-    expect(order.expiresAt).toEqual(weeklyPromotionEndsAt);
+    expect(order.expiresAt).toEqual(augustPromotionEndsAt);
     expect(order.termsAcceptedAt).toEqual(acceptedAt);
     expect(order.termsVersion).toBe(paymentTermsVersion);
   });
 
   it('rejects and expires stale orders during pre-checkout', async () => {
-    const now = new Date('2026-08-03T00:00:00.000Z');
+    const now = new Date('2026-09-01T00:00:00.000Z');
     prisma.paymentOrder.findUnique.mockResolvedValue({
       id: 'order-1',
       status: 'PENDING',
       userId: 123n,
-      amount: 29,
-      expiresAt: new Date('2026-08-02T21:00:00.000Z'),
+      amount: 39,
+      expiresAt: new Date('2026-08-31T20:59:59.999Z'),
     });
     prisma.paymentOrder.updateMany.mockResolvedValue({ count: 1 });
 
@@ -233,7 +233,7 @@ describe('subscription purchase flow', () => {
       invoicePayload: getInvoicePayload('order-1'),
       userId: 123,
       currency: 'XTR',
-      amount: 29,
+      amount: 39,
       now,
     });
 
