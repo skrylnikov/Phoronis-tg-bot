@@ -1,6 +1,5 @@
 import { fmt, italic } from '@grammyjs/parse-mode';
 import { generateText } from 'ai';
-import axios from 'axios';
 import ffmpeg from 'ffmpeg.js';
 import { langfuse, utilityModel } from '../ai';
 import {
@@ -19,7 +18,7 @@ import {
   saveChat,
   saveMessage,
   saveUser,
-} from '../shared';
+} from '../domain';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -73,10 +72,13 @@ export const voiceController = async (ctx: BotContext) => {
       return;
     }
 
-    const rawFile = await axios.get(
+    const response = await fetch(
       `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`,
-      { responseType: 'arraybuffer' },
     );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+    const rawFile = await response.arrayBuffer();
 
     logger.debug(
       {
@@ -87,10 +89,10 @@ export const voiceController = async (ctx: BotContext) => {
       },
       'Voice recognition started',
     );
-    let file = rawFile.data;
+    let file = rawFile;
     if (ctx.message.video_note) {
       const result = ffmpeg({
-        MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile.data) }],
+        MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile) }],
         arguments: [
           '-i',
           'test.mp4',

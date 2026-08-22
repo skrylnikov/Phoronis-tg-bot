@@ -15,9 +15,9 @@ import {
   saveChat,
   saveMessageIfAbsent,
   saveUser,
-} from '../shared';
-import { recordUserReaction } from '../tools/user/fact-impact-tracker';
-import { analyzeUserMessages } from '../tools/user/message-analyzer';
+} from '../domain';
+import { recordUserReaction } from '../domain/user/fact-impact-tracker';
+import { analyzeUserMessages } from '../domain/user/message-analyzer';
 import { handleError } from '../utils/error-handler';
 import { sendMediaLimitNotice } from './limit-notice';
 

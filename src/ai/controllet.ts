@@ -1,7 +1,5 @@
 import type { ModelMessage } from 'ai';
-import { format } from 'date-fns';
 import { InlineKeyboard } from 'grammy';
-import { unique } from 'remeda';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import { prisma } from '../db';
@@ -15,10 +13,10 @@ import {
   saveMessage,
   saveUser,
   shouldSendLimitNotice,
-} from '../shared';
-import { getRecentMemoriesForUsers } from '../tools/memory';
-import { extractMentionedUserIds } from '../tools/shared/entities';
-import { getTopUserFacts } from '../tools/user/fact-analyzer';
+} from '../domain';
+import { getRecentMemoriesForUsers } from '../domain/memory';
+import { extractMentionedUserIds } from '../domain/shared/entities';
+import { getTopUserFacts } from '../domain/user/fact-analyzer';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
@@ -347,13 +345,13 @@ export const aiController = async (
 
     const mentionedIds = await extractMentionedUserIds(ctx);
 
-    const allUserIds = unique(
+    const allUserIds = [...new Set(
       [
         ctx.from?.id,
         ...list.map((x) => Number(x.sender.id)),
         ...mentionedIds,
       ].filter((x): x is number => x !== undefined),
-    );
+    )];
 
     const [userList, prompt, allMemories] = await Promise.all([
       prisma.user.findMany({
@@ -458,7 +456,15 @@ export const aiController = async (
         .filter(Boolean)
         .join('\n'),
 
-      time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
+      time: new Date().toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).replace(',', ''),
     });
 
     const messages: ModelMessage[] = [

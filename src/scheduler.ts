@@ -7,8 +7,8 @@ import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
-import { recalculateFactImpactScores } from './tools/user/fact-impact-tracker';
-import { startMetaInfoMigration } from './tools/user/migrate-meta-info';
+import { recalculateFactImpactScores } from './domain/user/fact-impact-tracker';
+import { startMetaInfoMigration } from './domain/user/migrate-meta-info';
 
 let impactScoreTask: ScheduledTask | null = null;
 

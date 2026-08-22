@@ -1,5 +1,5 @@
 import type { BotContext } from '../bot';
-import { createPurchaseSession, shouldSendLimitNotice } from '../shared';
+import { createPurchaseSession, shouldSendLimitNotice } from '../domain';
 
 function isGroupChat(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';

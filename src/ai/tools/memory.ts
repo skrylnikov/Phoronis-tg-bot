@@ -2,7 +2,7 @@ import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
 import { logger } from '../../logger';
-import { clearMemories, saveMemory } from '../../tools/memory';
+import { clearMemories, saveMemory } from '../../domain/memory';
 
 async function isChatCreator(ctx: BotContext): Promise<boolean> {
   if (!ctx.from || !ctx.chat) {

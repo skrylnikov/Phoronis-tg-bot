@@ -2,7 +2,7 @@ import { aiController } from '../ai';
 import { describeTelegramPhoto } from '../ai/image-description';
 import type { BotContext } from '../bot';
 import { prisma } from '../db';
-import { releaseQuota, reserveQuota, saveChat, saveUser } from '../shared';
+import { releaseQuota, reserveQuota, saveChat, saveUser } from '../domain';
 import { sendMediaLimitNotice } from './limit-notice';
 
 const usageText = 'Использование: /ask ваш вопрос';

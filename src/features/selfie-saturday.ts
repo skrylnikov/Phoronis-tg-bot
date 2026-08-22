@@ -3,7 +3,7 @@ import { utilityModel } from '../ai/ai';
 import { sendWithRichFallback } from '../ai/rich-message';
 import { bot } from '../bot';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
+import { saveMessage } from '../domain';
 
 // Функция для генерации сообщения
 async function generateSelfieMessage(): Promise<string> {

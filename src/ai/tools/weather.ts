@@ -1,5 +1,4 @@
 import { tool } from 'ai';
-import axios from 'axios';
 import { z } from 'zod';
 import { openWeatherToken } from '../../config';
 
@@ -11,11 +10,14 @@ export const weatherTool = tool({
   execute: async (input: unknown) => {
     const { location } = input as { location: string };
     try {
-      const weatherResponse = await axios.get<unknown>(
+      const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${openWeatherToken}&lang=ru&units=metric`,
-        { responseType: 'json' },
       );
-      return JSON.stringify(weatherResponse.data);
+      if (!response.ok) {
+        throw new Error(`Weather API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return JSON.stringify(data);
     } catch (_error) {
       return 'Не удалось получить информацию о погоде';
     }

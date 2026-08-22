@@ -2,7 +2,7 @@ import type { Context } from 'grammy';
 
 import { prisma } from '../db';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
+import { saveMessage } from '../domain';
 
 export const newChatMembersDelayMs = 3000;
 

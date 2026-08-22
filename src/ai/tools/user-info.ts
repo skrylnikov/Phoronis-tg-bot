@@ -2,8 +2,8 @@ import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
 import { prisma } from '../../db';
-import { getUserPersonalMemories } from '../../tools/memory';
-import { getAllUserFacts } from '../../tools/user/fact-analyzer';
+import { getUserPersonalMemories } from '../../domain/memory';
+import { getAllUserFacts } from '../../domain/user/fact-analyzer';
 
 const userInfoInputSchema = z.object({
   userId: z

@@ -14,7 +14,7 @@ vi.mock('../db', () => ({ prisma }));
 vi.mock('../tools/memory', () => ({ getUserPersonalMemories }));
 vi.mock('../tools/user/fact-analyzer', () => ({ getAllUserFacts }));
 
-import { createUserInfoTool } from '../ai/tools/user-info';
+import { createUserInfoTool } from '../../domain/user-info';
 
 function createContext(): BotContext {
   return {

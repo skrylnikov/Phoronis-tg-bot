@@ -79,11 +79,11 @@ openspec/
 ### Project Structure
 ```
 src/
-├── controllers/       - Bot message handlers and route logic
-├── ai/              - AI/LLM integration (LangChain, RouterAI)
-├── tools/           - Utility functions organized by domain
+├── controllers/     - Bot message handlers and route logic
+├── ai/              - AI/LLM integration and AI tools
+├── domain/          - Business logic and domain utilities
+├── repositories/    - Data access layer (Prisma)
 ├── features/        - Feature implementations (selfie-saturday, etc.)
-├── shared/          - Shared utilities and helpers
 ├── generated/prisma/ - Generated Prisma client (don't edit)
 ├── bot.ts           - Bot initialization and context type
 ├── db.ts            - Prisma client export
@@ -104,9 +104,10 @@ src/
 ### Database Patterns
 - Use Prisma for all database operations
 - Upsert pattern for chat/user updates: `prisma.chat.upsert({ create, update, where })`
-- Use LRU cache for frequently accessed entities (see `src/shared/save-chat.ts`)
+- Use LRU cache for frequently accessed entities (see `src/repositories/`)
 - Transaction operations: `await prisma.$transaction([...])`
 - Generated client location: `src/generated/prisma/`
+- Data access is encapsulated in `src/repositories/` layer
 
 ### Bot Development Patterns
 - Use Grammy Composer for middleware: `export const controller = new Composer<BotContext>()`
@@ -117,7 +118,7 @@ src/
 - Register controllers in `src/controllers/index.ts` to compose middleware
 
 ### AI Integration
-- Use LangChain for complex chains and AI SDK for text generation
+- Use AI SDK for text generation (LangChain removed)
 - RouterAI for model access via `@ai-sdk/openai-compatible`
 - Langfuse for prompt management and observability
 - Local TEI embeddings with vector search in PostgreSQL/pgvector
@@ -148,11 +149,10 @@ src/
 ### Dependencies & Libraries
 - Grammy framework for Telegram Bot API
 - Prisma ORM with PostgreSQL
-- LangChain for AI chains and workflows
+- AI SDK for text generation
 - Text Embeddings Inference for local multilingual embeddings
 - pgvector for vector storage and search in PostgreSQL
 - Pino logger for structured logging
-- Remeda for functional utilities
 - LRU Cache for performance optimization
 - Telegramify-markdown for safe markdown formatting
 - Node-cron for scheduled tasks

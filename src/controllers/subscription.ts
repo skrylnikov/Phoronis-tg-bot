@@ -25,7 +25,7 @@ import {
   saveUser,
   subscriptionPlans,
   validatePaymentOrder,
-} from '../shared';
+} from '../domain';
 
 function isGroup(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';

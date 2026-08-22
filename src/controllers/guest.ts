@@ -15,8 +15,8 @@ import {
   saveChat,
   saveMessage,
   saveUser,
-} from '../shared';
-import { analyzeUserMessages } from '../tools/user/message-analyzer';
+} from '../domain';
+import { analyzeUserMessages } from '../domain/user/message-analyzer';
 
 const guestAnswerId = 'phoronis-guest-answer';
 const guestAnswerTitle = 'Ответ Ио';

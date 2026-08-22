@@ -3,7 +3,7 @@ import { utilityModel } from '../ai/ai';
 import { sendWithRichFallback } from '../ai/rich-message';
 import { bot } from '../bot';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
+import { saveMessage } from '../domain';
 
 // Список тем Inktober
 const inktoberThemes = [

@@ -1,5 +1,3 @@
-import { map, piped } from 'remeda';
-
 export const sentenceTokenize = (text: string) =>
   text.toLowerCase().split(/\.|!|\?/);
 
@@ -9,4 +7,4 @@ export const wordTokenize = (text: string) =>
     .split(/\s|\.|,|!|\?/)
     .filter((x) => x.length !== 0);
 
-export const tokenize = piped(sentenceTokenize, map(wordTokenize));
+export const tokenize = (text: string) => sentenceTokenize(text).map(wordTokenize);
