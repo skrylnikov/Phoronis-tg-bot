@@ -89,6 +89,98 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
   return optimalPhoto;
 }
 
+async function findPhotoInReplyChain(
+  ctx: BotContext,
+  startMessage: {
+    message_id: number;
+    photo?: PhotoSize[];
+    reply_to_message?: {
+      message_id: number;
+      photo?: PhotoSize[];
+      reply_to_message?: unknown;
+    };
+  } | null | undefined,
+  maxDepth = 10,
+): Promise<{ photo: PhotoSize; messageId: number } | null> {
+  if (!startMessage || !ctx.chatId) return null;
+
+  let currentMessage: typeof startMessage | null = startMessage;
+  let depth = 0;
+
+  while (currentMessage && depth < maxDepth) {
+    if (currentMessage.photo && currentMessage.photo.length > 0) {
+      const photo = selectOptimalPhoto(currentMessage.photo);
+      if (photo) {
+        return { photo, messageId: currentMessage.message_id };
+      }
+    }
+
+    const replyTo = currentMessage.reply_to_message;
+    if (!replyTo) {
+      const dbMessage: { replyToMessageId: bigint | null } | null =
+        await prisma.message.findUnique({
+          where: {
+            chatId_id: { chatId: ctx.chatId, id: currentMessage.message_id },
+          },
+          select: { replyToMessageId: true },
+        });
+
+      if (!dbMessage?.replyToMessageId) break;
+
+      const parentMessage: {
+        id: bigint;
+        media: string | null;
+        replyToMessageId: bigint | null;
+      } | null = await prisma.message.findUnique({
+        where: {
+          chatId_id: {
+            chatId: ctx.chatId,
+            id: Number(dbMessage.replyToMessageId),
+          },
+        },
+        select: { id: true, media: true, replyToMessageId: true },
+      });
+
+      if (!parentMessage) break;
+
+      if (parentMessage.media) {
+        try {
+          const media = JSON.parse(parentMessage.media) as {
+            fileId?: string;
+            mimeType?: string;
+          };
+          if (media.fileId && media.mimeType === 'image/jpeg') {
+            const file = await ctx.api.getFile(media.fileId);
+            if (file.file_path) {
+              return {
+                photo: { file_id: media.fileId } as PhotoSize,
+                messageId: Number(parentMessage.id),
+              };
+            }
+          }
+        } catch {
+          // Skip invalid media
+        }
+      }
+
+      if (parentMessage.replyToMessageId) {
+        currentMessage = {
+          message_id: Number(parentMessage.id),
+          reply_to_message: undefined,
+        };
+      } else {
+        currentMessage = null;
+      }
+    } else {
+      currentMessage = replyTo as typeof startMessage;
+    }
+
+    depth += 1;
+  }
+
+  return null;
+}
+
 export const processMessageController = new Composer<BotContext>();
 
 processMessageController.on(':text', async (ctx) => {
@@ -171,11 +263,15 @@ processMessageController.on(':text', async (ctx) => {
     }
 
     let imageDescription: string | undefined;
-    const repliedPhoto = ctx.msg.reply_to_message?.photo;
-    if (repliedPhoto) {
-      const sourceMessageId = ctx.msg.reply_to_message?.message_id ?? 0;
+    const photoInChain = await findPhotoInReplyChain(
+      ctx,
+      ctx.msg.reply_to_message,
+    );
+    if (photoInChain) {
       const savedReply = await prisma.message.findUnique({
-        where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+        where: {
+          chatId_id: { chatId: ctx.chatId, id: photoInChain.messageId },
+        },
         select: { summary: true },
       });
       imageDescription = savedReply?.summary ?? undefined;
@@ -191,12 +287,12 @@ processMessageController.on(':text', async (ctx) => {
           return;
         }
         try {
-          const photo = selectOptimalPhoto(repliedPhoto);
-          if (!photo) return;
-          imageDescription = await describeTelegramPhoto(ctx, photo);
+          imageDescription = await describeTelegramPhoto(ctx, photoInChain.photo);
           if (savedReply) {
             await prisma.message.update({
-              where: { chatId_id: { chatId: ctx.chatId, id: sourceMessageId } },
+              where: {
+                chatId_id: { chatId: ctx.chatId, id: photoInChain.messageId },
+              },
               data: { summary: imageDescription },
             });
           }

@@ -18,8 +18,8 @@ export const planDetails: Record<SubscriptionPlan, PlanDetails> = {
   WEEK: {
     amount: 49,
     durationDays: 7,
-    personal: { PRIMARY_RESPONSE: 30, IMAGE: 15, VOICE: 15, ANALYSIS: Infinity },
-    chat: { PRIMARY_RESPONSE: 1, IMAGE: 3, VOICE: 3, ANALYSIS: 1 },
+    personal: { PRIMARY_RESPONSE: 30, IMAGE: 15, VOICE: 30, ANALYSIS: Infinity },
+    chat: { PRIMARY_RESPONSE: 3, IMAGE: 3, VOICE: 6, ANALYSIS: 1 },
   },
   MONTH: {
     amount: 99,
@@ -27,10 +27,10 @@ export const planDetails: Record<SubscriptionPlan, PlanDetails> = {
     personal: {
       PRIMARY_RESPONSE: 50,
       IMAGE: 30,
-      VOICE: 30,
+      VOICE: 60,
       ANALYSIS: Infinity,
     },
-    chat: { PRIMARY_RESPONSE: 3, IMAGE: 5, VOICE: 5, ANALYSIS: 3 },
+    chat: { PRIMARY_RESPONSE: 5, IMAGE: 5, VOICE: 10, ANALYSIS: 3 },
   },
   QUARTER: {
     amount: 199,
@@ -38,10 +38,10 @@ export const planDetails: Record<SubscriptionPlan, PlanDetails> = {
     personal: {
       PRIMARY_RESPONSE: 100,
       IMAGE: 50,
-      VOICE: 50,
+      VOICE: 100,
       ANALYSIS: Infinity,
     },
-    chat: { PRIMARY_RESPONSE: 5, IMAGE: 10, VOICE: 10, ANALYSIS: 5 },
+    chat: { PRIMARY_RESPONSE: 10, IMAGE: 10, VOICE: 20, ANALYSIS: 5 },
   },
   YEAR: {
     amount: 599,
@@ -49,13 +49,13 @@ export const planDetails: Record<SubscriptionPlan, PlanDetails> = {
     personal: {
       PRIMARY_RESPONSE: 500,
       IMAGE: 200,
-      VOICE: 200,
+      VOICE: 400,
       ANALYSIS: Infinity,
     },
     chat: {
-      PRIMARY_RESPONSE: 10,
+      PRIMARY_RESPONSE: 20,
       IMAGE: 20,
-      VOICE: 20,
+      VOICE: 40,
       ANALYSIS: 10,
     },
   },
@@ -82,7 +82,7 @@ export function isPlanAtLeast(
 const freeLimits: Record<QuotaKind, number> = {
   PRIMARY_RESPONSE: 10,
   IMAGE: 5,
-  VOICE: 5,
+  VOICE: 10,
   ANALYSIS: 1,
 };
 
@@ -167,19 +167,10 @@ function sumLimits(
 export function getPersonalDailyLimits(
   subscriptions: Array<{ plan: SubscriptionPlan }>,
 ): Record<QuotaKind, number> {
-  const paidLimits = sumLimits(subscriptions, 'personal');
-  return Object.fromEntries(
-    (Object.keys(freeLimits) as QuotaKind[]).map((kind) => {
-      const freeLimit = freeLimits[kind];
-      const paidLimit = paidLimits[kind];
-      return [
-        kind,
-        freeLimit === Infinity || paidLimit === Infinity
-          ? Infinity
-          : freeLimit + paidLimit,
-      ];
-    }),
-  ) as Record<QuotaKind, number>;
+  if (subscriptions.length === 0) {
+    return freeLimits;
+  }
+  return sumLimits(subscriptions, 'personal');
 }
 
 function summarizeSubscriptions<

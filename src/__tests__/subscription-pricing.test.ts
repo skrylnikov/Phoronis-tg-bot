@@ -42,6 +42,6 @@ describe('subscription pricing', () => {
       new Date('2026-07-29T00:00:00.000Z'),
     );
     expect(planDetails.WEEK.personal.PRIMARY_RESPONSE).toBe(30);
-    expect(planDetails.YEAR.chat.VOICE).toBe(20);
+    expect(planDetails.YEAR.chat.VOICE).toBe(40);
   });
 });
