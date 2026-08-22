@@ -31,8 +31,6 @@ export const saveMessage = async (message: SaveMessageParams) => {
       return;
     }
 
-    const isReply = !!message.replyToMessageId;
-
     await prisma.message.upsert({
       create: {
         id: message.id,
@@ -43,18 +41,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         summary: message.summary ?? null,
         private: message.private ?? false,
         media: message.media ?? null,
-        ...(isReply
-          ? {
-              replyToMessage: {
-                connect: {
-                  chatId_id: {
-                    chatId: message.chatId,
-                    id: message.replyToMessageId!,
-                  },
-                },
-              },
-            }
-          : {}),
+        replyToMessageId: message.replyToMessageId ?? null,
       },
       update: {
         senderId: message.senderId,
@@ -63,18 +50,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         summary: message.summary ?? null,
         private: message.private ?? false,
         media: message.media ?? null,
-        ...(isReply
-          ? {
-              replyToMessage: {
-                connect: {
-                  chatId_id: {
-                    chatId: message.chatId,
-                    id: message.replyToMessageId!,
-                  },
-                },
-              },
-            }
-          : {}),
+        replyToMessageId: message.replyToMessageId ?? null,
       },
       where: {
         chatId_id: {
