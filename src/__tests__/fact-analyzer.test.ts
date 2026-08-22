@@ -30,7 +30,7 @@ vi.mock('ai', () => ({
 }));
 
 vi.mock('../ai/ai', () => ({
-  utilityModel: { modelId: 'nex-agi/nex-n2-mini' },
+  utilityModel: { modelId: 'qwen/qwen3.7-flash' },
 }));
 
 vi.mock('../ai/embedding/client', () => ({
