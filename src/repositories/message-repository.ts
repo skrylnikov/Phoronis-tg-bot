@@ -1,7 +1,7 @@
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import type { Prisma, MessageType } from '../generated/prisma/client';
+import type { MessageType, Prisma } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, true>({
