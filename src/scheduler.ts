@@ -97,21 +97,25 @@ export function startScheduler() {
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
           const results = await Promise.allSettled(
-            chatsToSend.map((chat: { id: bigint }) => sendSelfieSaturdayMessage(chat.id)),
+            chatsToSend.map((chat: { id: bigint }) =>
+              sendSelfieSaturdayMessage(chat.id),
+            ),
           );
 
-          results.forEach((result: PromiseSettledResult<unknown>, index: number) => {
-            if (result.status === 'rejected') {
-              logger.error(
-                {
-                  event: 'scheduler.selfie_send_failed',
-                  chatId: Number(chatsToSend[index].id),
-                  err: result.reason,
-                },
-                'Selfie Saturday send failed',
-              );
-            }
-          });
+          results.forEach(
+            (result: PromiseSettledResult<unknown>, index: number) => {
+              if (result.status === 'rejected') {
+                logger.error(
+                  {
+                    event: 'scheduler.selfie_send_failed',
+                    chatId: Number(chatsToSend[index].id),
+                    err: result.reason,
+                  },
+                  'Selfie Saturday send failed',
+                );
+              }
+            },
+          );
 
           logger.info(
             { event: 'scheduler.selfie_completed' },
@@ -163,21 +167,25 @@ export function startScheduler() {
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
           const results = await Promise.allSettled(
-            chatsToSend.map((chat: { id: bigint }) => sendInktoberMessage(chat.id)),
+            chatsToSend.map((chat: { id: bigint }) =>
+              sendInktoberMessage(chat.id),
+            ),
           );
 
-          results.forEach((result: PromiseSettledResult<unknown>, index: number) => {
-            if (result.status === 'rejected') {
-              logger.error(
-                {
-                  event: 'scheduler.inktober_send_failed',
-                  chatId: Number(chatsToSend[index].id),
-                  err: result.reason,
-                },
-                'Inktober send failed',
-              );
-            }
-          });
+          results.forEach(
+            (result: PromiseSettledResult<unknown>, index: number) => {
+              if (result.status === 'rejected') {
+                logger.error(
+                  {
+                    event: 'scheduler.inktober_send_failed',
+                    chatId: Number(chatsToSend[index].id),
+                    err: result.reason,
+                  },
+                  'Inktober send failed',
+                );
+              }
+            },
+          );
 
           logger.info(
             { event: 'scheduler.inktober_completed' },
