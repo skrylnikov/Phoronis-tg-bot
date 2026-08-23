@@ -300,7 +300,7 @@ async function resolveReplyRoots(
 async function loadReplyGraphRows(
   chatId: bigint,
   rootIds: bigint[],
-): Promise<HistoryRow[]> {
+): Promise<Array<HistoryRow & { rootMessageId: bigint; depth: number }>> {
   if (rootIds.length === 0) return [];
   const rows: ChatHistoryReplyGraphRow[] = await fetchChatHistoryReplyGraphRepo(
     chatId,
@@ -322,7 +322,9 @@ async function loadReplyGraphRows(
           lastName: null,
           userName: null,
         },
-      }) as HistoryRow,
+        rootMessageId: r.rootMessageId,
+        depth: r.depth,
+      }) as HistoryRow & { rootMessageId: bigint; depth: number },
   );
 }
 
@@ -360,9 +362,10 @@ async function loadReplyGraphs(
   const rowsByRoot = new Map<string, HistoryRow[]>();
 
   for (const row of rows) {
-    const rootRows = rowsByRoot.get(row.id.toString()) ?? [];
+    const rootId = (row as any).rootMessageId?.toString() ?? row.id.toString();
+    const rootRows = rowsByRoot.get(rootId) ?? [];
     rootRows.push(row);
-    rowsByRoot.set(row.id.toString(), rootRows);
+    rowsByRoot.set(rootId, rootRows);
   }
 
   const incompleteByRoot = new Map<string, boolean>();
