@@ -102,8 +102,10 @@ describe('subscription purchase flow', () => {
 
   it('does not mark an already processed charge as a new purchase', async () => {
     prisma.paymentOrder.findUnique.mockResolvedValue({
+      id: 'order-1',
       subscription: { id: 'subscription-1', endsAt: new Date('2026-08-01') },
     });
+    prisma.paymentOrder.findFirst.mockResolvedValue(null);
 
     const subscription = await activatePayment({
       invoicePayload: getInvoicePayload('order-1'),

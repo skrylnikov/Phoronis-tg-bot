@@ -270,6 +270,14 @@ export async function activatePayment(input: {
   if (!orderId || input.currency !== 'XTR') return null;
   const now = input.now ?? new Date();
 
+  // Check for existing charge FIRST (idempotency)
+  const existingOrder = await findPaymentOrderByChargeId(input.chargeId);
+  if (existingOrder) {
+    // Already processed - return existing subscription with activatedNow: false
+    const subscription = await findSubscriptionByOrderId(existingOrder.id);
+    return subscription ? { ...subscription, activatedNow: false } : null;
+  }
+
   const pendingOrder = await findPendingPaymentOrder(
     orderId,
     BigInt(input.userId),
