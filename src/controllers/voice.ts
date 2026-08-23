@@ -127,7 +127,7 @@ export const voiceController = async (ctx: BotContext) => {
 
     const result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
 
-    const [reply, beautifierPrompt, summarizePrompt, savedVoiceMessage] =
+    const [reply, beautifierPrompt, summarizePrompt, _savedVoiceMessage] =
       await Promise.all([
         ctx.reply(result.text, {
           reply_to_message_id: ctx.message.message_id,

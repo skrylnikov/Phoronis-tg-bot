@@ -33,7 +33,7 @@ vi.mock('../repositories/embedding-repository', async () => {
     ...actual,
     findChatHistoryReplyRootsRepo: (
       chatId: bigint,
-      currentMessageId: bigint,
+      _currentMessageId: bigint,
       candidateIds: bigint[],
     ) => messageQueryRaw(candidateIds, chatId),
     fetchChatHistoryReplyGraphRepo: (chatId: bigint, rootIds: bigint[]) =>

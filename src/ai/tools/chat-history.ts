@@ -1,12 +1,11 @@
 import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
-import type { MessageType, Prisma } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import { findChatByIdRepo } from '../../repositories/chat-repository';
 import {
   type ChatHistoryReplyGraphRow,
-  type ChatHistoryReplyRoot,
   fetchChatHistoryReplyGraphRepo,
   findChatHistoryReplyRootsRepo,
 } from '../../repositories/embedding-repository';

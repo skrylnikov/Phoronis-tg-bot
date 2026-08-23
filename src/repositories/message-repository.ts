@@ -1,4 +1,3 @@
-import type { Message as GrammyMessage } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';

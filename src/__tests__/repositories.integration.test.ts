@@ -1,10 +1,9 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { prisma } from '../db';
 import {
   countPaidOrders,
   createLimitNotice,
   createPurchaseSessionRepo,
-  findActiveChatSubscriptions,
   findActiveUserSubscriptions,
   findChatById,
   findPurchaseSession,

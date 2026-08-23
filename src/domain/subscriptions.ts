@@ -1,6 +1,5 @@
 import {
   PaymentOrderStatus,
-  Prisma,
   SubscriptionPlan,
 } from '../generated/prisma/client';
 import {
@@ -9,7 +8,6 @@ import {
   createPaymentOrderWithSession,
   createPurchaseSessionRepo,
   expirePaymentOrder,
-  findActiveUserSubscriptions,
   findPaymentOrder,
   findPaymentOrderByChargeId,
   findPendingPaymentOrder,
