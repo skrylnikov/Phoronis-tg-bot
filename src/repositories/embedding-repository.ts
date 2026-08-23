@@ -382,6 +382,7 @@ export async function findChatHistoryReplyRootsRepo(
       LEFT JOIN "Message" parent
         ON parent."chatId" = a."chatId"
         AND parent."id" = a."replyToMessageId"
+        AND parent."private" = FALSE
         AND parent."id" < ${currentMessageId}
       WHERE a."replyToMessageId" IS NOT NULL
         AND NOT (parent."id" = ANY(a.path))

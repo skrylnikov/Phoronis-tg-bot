@@ -97,7 +97,7 @@ describe('Subscription Repository', () => {
     await prisma.subscription.create({
       data: {
         userId,
-        beneficiaryChatId: 0n,
+        beneficiaryChatId: -100n,
         plan: 'MONTH',
         startsAt,
         endsAt,
@@ -152,7 +152,7 @@ describe('Subscription Repository', () => {
     await prisma.paymentOrder.create({
       data: {
         userId,
-        beneficiaryChatId: 0n,
+        beneficiaryChatId: -100n,
         plan: 'WEEK',
         baseAmount: 49,
         amount: 39,

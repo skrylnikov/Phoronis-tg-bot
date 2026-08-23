@@ -163,7 +163,6 @@ featuresController.command('status', async (ctx) => {
       title: true,
       selfieSaturdayEnabled: true,
       inktoberEnabled: true,
-      greetingEnabled: true,
       greeting: true,
     });
 

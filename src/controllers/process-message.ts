@@ -326,7 +326,7 @@ processMessageController.on(':photo', async (ctx) => {
     const isPrivateMode = chat?.privateModeEnabled ?? false;
     const photo = selectOptimalPhoto(ctx.msg.photo);
     if (!photo) return;
-    await saveMessage({
+    const saveResult = await saveMessage({
       id: BigInt(ctx.msg.message_id),
       chatId: BigInt(ctx.chatId),
       senderId: BigInt(ctx.from.id),
@@ -339,6 +339,19 @@ processMessageController.on(':photo', async (ctx) => {
       media: JSON.stringify({ fileId: photo.file_id, mimeType: 'image/jpeg' }),
       private: isPrivateMode ?? false,
     });
+
+    if (!saveResult.created) {
+      logger.debug(
+        {
+          event: 'message.duplicate_skipped',
+          messageId: ctx.msg.message_id,
+          chatId: ctx.chatId,
+          messageType: 'MEDIA',
+        },
+        'Duplicate photo message skipped',
+      );
+      return;
+    }
 
     const shouldRespond =
       ctx.msg.caption?.toLowerCase().startsWith('ио') ||
