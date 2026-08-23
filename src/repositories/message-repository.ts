@@ -92,7 +92,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: replyId,
-        messageType: (message.messageType ?? 'TEXT') as string,
+        messageType: message.messageType ?? 'TEXT',
       },
       update: {
         senderId: message.senderId,
@@ -102,7 +102,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: replyId,
-        messageType: (message.messageType ?? 'TEXT') as string,
+        messageType: message.messageType ?? 'TEXT',
       },
       where: {
         chatId_id: {

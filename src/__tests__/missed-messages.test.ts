@@ -54,8 +54,8 @@ vi.mock('../repositories/message-repository', () => ({
   countMessagesRepo: (where: unknown) => messageCount(where),
   findFirstMessageRepo: (where: unknown, options?: unknown) =>
     messageFindFirst(options || { where }),
-  findManyMessagesRepo: (where: unknown, options?: unknown) =>
-    messageFindMany({ where, ...options }),
+  findManyMessagesRepo: (where: unknown, options?: Record<string, unknown>) =>
+    messageFindMany({ where, ...(options || {}) }),
   findMessageWithSelectRepo: vi.fn(),
   saveMessage: vi.fn(),
   updateMessageSummaryRepo: vi.fn(),
