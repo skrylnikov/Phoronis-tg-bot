@@ -41,4 +41,4 @@
 - [x] 7.1 Добавить unit-тесты для outcome mapping, backoff, heartbeat, dedupe и readiness state machine; проверить `bun test` и отсутствие новых flaky timers.
 - [x] 7.2 Добавить интеграционные проверки миграций, PostgreSQL claim/order guarantees, payment transaction и durable job recovery; проверить их на чистой схеме и после перезапуска worker.
 - [x] 7.3 Выполнить полный локальный quality gate: `bun run db:generate`, `bun run typecheck`, `bun run lint`, тесты и `git diff --check`; зафиксировать результаты в change notes или PR description.
-- [ ] 7.4 Провести поэтапный rollout с наблюдением readiness, очередей, lease loss, failed jobs и payment notifications; проверить staging/production-next до включения обязательного buyer notification и сохранить процедуру остановки job workers без удаления данных.
+- [x] 7.4 Провести поэтапный rollout с наблюдением readiness, очередей, lease loss, failed jobs и payment notifications; проверить staging/production-next до включения обязательного buyer notification и сохранить процедуру остановки job workers без удаления данных.
