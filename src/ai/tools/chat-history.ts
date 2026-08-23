@@ -359,7 +359,9 @@ async function loadReplyGraphs(
   const rowsByRoot = new Map<string, HistoryRow[]>();
 
   for (const row of rows) {
-    const rootId = (row as any).rootMessageId?.toString() ?? row.id.toString();
+    const rootId = 'rootMessageId' in row && typeof row.rootMessageId === 'bigint'
+      ? row.rootMessageId.toString()
+      : row.id.toString();
     const rootRows = rowsByRoot.get(rootId) ?? [];
     rootRows.push(row);
     rowsByRoot.set(rootId, rootRows);

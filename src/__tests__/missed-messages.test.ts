@@ -51,10 +51,10 @@ vi.mock('../repositories/chat-repository', () => ({
 }));
 
 vi.mock('../repositories/message-repository', () => ({
-  countMessagesRepo: (where: any) => messageCount(where),
-  findFirstMessageRepo: (where: any, options?: any) =>
+  countMessagesRepo: (where: unknown) => messageCount(where),
+  findFirstMessageRepo: (where: unknown, options?: unknown) =>
     messageFindFirst(options || { where }),
-  findManyMessagesRepo: (where: any, options?: any) =>
+  findManyMessagesRepo: (where: unknown, options?: unknown) =>
     messageFindMany({ where, ...options }),
   findMessageWithSelectRepo: vi.fn(),
   saveMessage: vi.fn(),
