@@ -102,6 +102,38 @@ describe('saveMessage parent check', () => {
     const createCall = prismaMessageCreate.mock.calls[0][0];
     expect(createCall.data.replyToMessageId).toBe(null);
   });
+
+  it.each([
+    ['primary', 'google/gemini-3.7-flash'],
+    ['fallback', 'deepseek/deepseek-v4-flash'],
+  ])('persists the %s model ID for an AI response', async (_tier, modelId) => {
+    prismaMessageCreate.mockResolvedValueOnce({});
+
+    await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'AI response',
+      modelId,
+    });
+
+    expect(prismaMessageCreate.mock.calls[0][0].data.modelId).toBe(modelId);
+  });
+
+  it('persists null for an old or non-AI message', async () => {
+    prismaMessageCreate.mockResolvedValueOnce({});
+
+    await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'User message',
+    });
+
+    expect(prismaMessageCreate.mock.calls[0][0].data.modelId).toBe(null);
+  });
 });
 
 describe('saveMessage idempotency', () => {

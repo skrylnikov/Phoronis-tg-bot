@@ -1,5 +1,10 @@
 import type { ModelMessage } from 'ai';
 import { InlineKeyboard } from 'grammy';
+import {
+  recordAiAttempt,
+  recordAiFailure,
+  recordAiSuccess,
+} from '../analytics-runtime';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
 import {
@@ -29,6 +34,7 @@ import { langfuse } from './langfuse';
 import { richMarkdownInstructions } from './rich-message';
 import { TelegramStreamSink } from './telegram-stream';
 import { getRecentPublicChatContext } from './tools';
+import type { TypingStatus } from './typing-status';
 
 function convertFactsToMetaInfo(
   facts: Awaited<ReturnType<typeof getTopUserFacts>>,
@@ -131,6 +137,7 @@ interface AiControllerOptions {
   readOnlyTools?: boolean;
   resolveContext?: boolean;
   includeRecentChatContext?: boolean;
+  typingStatus?: TypingStatus;
 }
 
 export const aiController = async (
@@ -176,6 +183,8 @@ export const aiController = async (
     kind: 'PRIMARY_RESPONSE',
   });
   const model = quotaReservation.allowed ? chatModel : liteChatModel;
+  const trackAnalytics = options.persistResponse !== false;
+  if (trackAnalytics) recordAiAttempt();
   logger.info(
     {
       event: 'ai.response_started',
@@ -197,9 +206,10 @@ export const aiController = async (
       );
     });
   };
-  const typingInterval = options.ephemeralReceiverUserId
-    ? undefined
-    : setInterval(sendTyping, 5000);
+  const typingInterval =
+    options.ephemeralReceiverUserId || options.typingStatus
+      ? undefined
+      : setInterval(sendTyping, 5000);
 
   try {
     if (
@@ -240,7 +250,7 @@ export const aiController = async (
       );
     }
 
-    if (!options.ephemeralReceiverUserId) {
+    if (!options.ephemeralReceiverUserId && !options.typingStatus) {
       sendTyping();
     }
     streamSink = await TelegramStreamSink.create(ctx, {
@@ -257,6 +267,7 @@ export const aiController = async (
         ctx.from.id,
         ctx.chatId,
         chat.type === 'private',
+        trackAnalytics,
       );
       userContext = resolvedContext.userContext;
       chatContext = resolvedContext.chatContext;
@@ -529,6 +540,9 @@ export const aiController = async (
       const reply = await streamSink.finish(result);
       streamFinalized = true;
       completed = true;
+      if (trackAnalytics) {
+        recordAiSuccess(performance.now() - startedAt);
+      }
       logger.info(
         {
           event: 'ai.response_completed',
@@ -555,6 +569,7 @@ export const aiController = async (
           messageType: 'TEXT',
           text: result.toString(),
           private: options.privateMode ?? false,
+          modelId: model.modelId,
         });
       } catch (err) {
         logger.error(
@@ -566,8 +581,13 @@ export const aiController = async (
           'Failed to persist AI response',
         );
       }
+    } else if (trackAnalytics) {
+      recordAiFailure(performance.now() - startedAt);
     }
   } catch (err) {
+    if (trackAnalytics && !completed) {
+      recordAiFailure(performance.now() - startedAt);
+    }
     logger.error(
       {
         event: 'ai.response_failed',

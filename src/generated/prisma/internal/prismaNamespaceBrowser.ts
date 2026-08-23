@@ -237,6 +237,7 @@ export const MessageScalarFieldEnum = {
   chatId: 'chatId',
   senderId: 'senderId',
   sessionId: 'sessionId',
+  modelId: 'modelId',
   replyToMessageId: 'replyToMessageId',
   messageType: 'messageType',
   text: 'text',

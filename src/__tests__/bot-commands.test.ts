@@ -6,8 +6,14 @@ describe('registerBotCommands', () => {
   it('merges /ask into existing group commands as ephemeral', async () => {
     const getMyCommands = vi
       .fn()
-      .mockResolvedValueOnce([{ command: 'start', description: 'Start' }])
-      .mockResolvedValueOnce([{ command: 'status', description: 'Status' }]);
+      .mockResolvedValueOnce([
+        { command: 'start', description: 'Start' },
+        { command: 'analytics', description: 'Analytics' },
+      ])
+      .mockResolvedValueOnce([
+        { command: 'status', description: 'Status' },
+        { command: 'analytics', description: 'Analytics' },
+      ]);
     const setMyCommands = vi.fn().mockResolvedValue(true);
     const api = { getMyCommands, setMyCommands } as unknown as Api;
 
@@ -37,6 +43,13 @@ describe('registerBotCommands', () => {
       ],
       { scope: { type: 'all_group_chats' } },
     );
+    for (const [registeredCommands] of setMyCommands.mock.calls) {
+      expect(
+        registeredCommands.some(
+          (command: { command: string }) => command.command === 'analytics',
+        ),
+      ).toBe(false);
+    }
     expect(setMyCommands).toHaveBeenNthCalledWith(
       2,
       [

@@ -1,5 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { routerAIToken } from '../config';
+import { chatModelId, liteChatModelId } from './model-ids';
 
 export const routerAI = createOpenAICompatible({
   name: 'routerAI',
@@ -8,6 +9,6 @@ export const routerAI = createOpenAICompatible({
   supportsStructuredOutputs: true,
 });
 
-export const chatModel = routerAI('google/gemini-3.7-flash');
-export const liteChatModel = routerAI('deepseek/deepseek-v4-flash');
+export const chatModel = routerAI(chatModelId);
+export const liteChatModel = routerAI(liteChatModelId);
 export const utilityModel = routerAI('qwen/qwen3.7-flash');

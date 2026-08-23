@@ -1,3 +1,4 @@
+import { recordVectorSearch } from '../../analytics-runtime';
 import { logger } from '../../logger';
 import { requestEmbeddingBackfill } from './backfill';
 import { embedQuery, embedQueryAndPassage } from './client';
@@ -27,6 +28,7 @@ async function searchWithEmbedding(
   userId: number,
   chatId: number,
   isPrivateChat: boolean,
+  trackAnalytics: boolean,
 ): Promise<SearchContextResult> {
   const startedAt = performance.now();
   const [userContext, chatContext] = await Promise.all([
@@ -56,6 +58,10 @@ async function searchWithEmbedding(
     'Vector context search completed',
   );
 
+  if (trackAnalytics) {
+    recordVectorSearch(userContext.length + chatContext.length);
+  }
+
   return {
     userContext: userContext.length > 0 ? userContext : null,
     chatContext: chatContext.length > 0 ? chatContext : null,
@@ -67,6 +73,7 @@ export async function searchContext(
   userId: number,
   chatId: number,
   isPrivateChat: boolean,
+  trackAnalytics = true,
 ): Promise<SearchContextResult> {
   if (content.length <= 10) {
     return { userContext: null, chatContext: null };
@@ -74,7 +81,13 @@ export async function searchContext(
 
   try {
     const embedding = await embedQuery(content);
-    return await searchWithEmbedding(embedding, userId, chatId, isPrivateChat);
+    return await searchWithEmbedding(
+      embedding,
+      userId,
+      chatId,
+      isPrivateChat,
+      trackAnalytics,
+    );
   } catch (error) {
     logger.warn(
       { event: 'embedding.context_search_failed', err: error },
@@ -89,6 +102,7 @@ export async function searchAndIndexMessage(
   content: string,
   userId: number,
   isPrivateChat: boolean,
+  trackAnalytics = true,
 ): Promise<SearchContextResult> {
   if (content.length <= 10) {
     requestEmbeddingBackfill();
@@ -103,6 +117,7 @@ export async function searchAndIndexMessage(
       userId,
       identity.chatId,
       isPrivateChat,
+      trackAnalytics,
     );
 
     try {

@@ -21,6 +21,7 @@ const privateCommands = [
   { command: 'terms', description: 'Условия подписки' },
   { command: 'paysupport', description: 'Поддержка по оплате' },
 ];
+const hiddenCommands = new Set(['analytics']);
 
 export async function registerBotCommands(api: Api): Promise<void> {
   const [defaultCommands, registeredGroupCommands] = await Promise.all([
@@ -34,6 +35,7 @@ export async function registerBotCommands(api: Api): Promise<void> {
   const commands = [
     ...baseCommands.filter(
       (command) =>
+        !hiddenCommands.has(command.command) &&
         !monetizationGroupCommands.some(
           (replacement) => replacement.command === command.command,
         ),
@@ -47,6 +49,7 @@ export async function registerBotCommands(api: Api): Promise<void> {
       [
         ...defaultCommands.filter(
           (command) =>
+            !hiddenCommands.has(command.command) &&
             !privateCommands.some(
               (replacement) => replacement.command === command.command,
             ),

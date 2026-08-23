@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   aiController: vi.fn(),
@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   findChatByIdRepo: vi.fn(),
   findMessageWithSelectRepo: vi.fn(),
   getFile: vi.fn(),
+  releaseQuota: vi.fn(),
   reserveQuota: vi.fn(),
   saveMessage: vi.fn(),
   searchAndIndexMessage: vi.fn(),
@@ -24,7 +25,7 @@ vi.mock('../application/user-message-analysis', () => ({
   scheduleUserMessageAnalysis: vi.fn(),
 }));
 vi.mock('../domain', () => ({
-  releaseQuota: vi.fn(),
+  releaseQuota: mocks.releaseQuota,
   reserveQuota: mocks.reserveQuota,
   saveChat: vi.fn(),
   saveMessage: mocks.saveMessage,
@@ -72,6 +73,17 @@ function imageMedia(fileId: string): string {
   return JSON.stringify({ fileId, mimeType: 'image/jpeg' });
 }
 
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getFile.mockResolvedValue({ file_path: 'photos/image.jpg' });
@@ -80,6 +92,8 @@ beforeEach(() => {
   mocks.reserveQuota.mockResolvedValue({ allowed: true });
   mocks.describeTelegramPhoto.mockResolvedValue('Описание фото');
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe('findPhotoInReplyChain DB fallback', () => {
   it('finds a photo after two DB parent hops', async () => {
@@ -256,6 +270,163 @@ describe('early typing status', () => {
     await processMessageController.middleware()(ctx, async () => {});
 
     expect(events).toEqual(['typing', 'describe']);
+  });
+
+  it('refreshes typing while a replied photo is recognized', async () => {
+    vi.useFakeTimers();
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    mocks.searchAndIndexMessage.mockResolvedValue({
+      userContext: null,
+      chatContext: null,
+    });
+    const recognition = deferred<string>();
+    mocks.describeTelegramPhoto.mockReturnValue(recognition.promise);
+    const replyWithChatAction = vi.fn().mockResolvedValue(true);
+    const message = {
+      message_id: 41,
+      date: 1_750_000_000,
+      text: 'Ио, опиши фото',
+      reply_to_message: {
+        message_id: 40,
+        photo: [{ file_id: 'photo-40', width: 100, height: 100 }],
+      },
+    };
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: message,
+      update: { message },
+      replyWithChatAction,
+    } as never;
+
+    const processing = processMessageController.middleware()(
+      ctx,
+      async () => {},
+    );
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mocks.describeTelegramPhoto).toHaveBeenCalled();
+    expect(replyWithChatAction).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(replyWithChatAction).toHaveBeenCalledTimes(3);
+
+    recognition.resolve('Описание фото');
+    await processing;
+    const callsAfterCompletion = replyWithChatAction.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    expect(replyWithChatAction).toHaveBeenCalledTimes(callsAfterCompletion);
+  });
+
+  it('refreshes typing while a direct photo is recognized', async () => {
+    vi.useFakeTimers();
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    const recognition = deferred<string>();
+    mocks.describeTelegramPhoto.mockReturnValue(recognition.promise);
+    const replyWithChatAction = vi.fn().mockResolvedValue(true);
+    const message = {
+      message_id: 41,
+      date: 1_750_000_000,
+      caption: 'Ио, опиши фото',
+      photo: [{ file_id: 'photo-41', width: 100, height: 100, file_size: 1 }],
+    };
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: message,
+      update: { message },
+      replyWithChatAction,
+    } as never;
+
+    const processing = processMessageController.middleware()(
+      ctx,
+      async () => {},
+    );
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mocks.describeTelegramPhoto).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(replyWithChatAction).toHaveBeenCalledTimes(2);
+
+    recognition.resolve('Описание фото');
+    await processing;
+
+    expect(mocks.aiController.mock.calls[0]?.[4]).toMatchObject({
+      typingStatus: { stop: expect.any(Function) },
+    });
+  });
+
+  it('stops refreshing typing when photo recognition fails', async () => {
+    vi.useFakeTimers();
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    const reservation = { allowed: true };
+    mocks.reserveQuota.mockResolvedValue(reservation);
+    const recognitionError = new Error('Vision unavailable');
+    mocks.describeTelegramPhoto.mockRejectedValue(recognitionError);
+    const replyWithChatAction = vi.fn().mockResolvedValue(true);
+    const message = {
+      message_id: 41,
+      date: 1_750_000_000,
+      caption: 'Ио, опиши фото',
+      photo: [{ file_id: 'photo-41', width: 100, height: 100, file_size: 1 }],
+    };
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: message,
+      update: { message },
+      replyWithChatAction,
+    } as never;
+
+    await expect(
+      processMessageController.middleware()(ctx, async () => {}),
+    ).rejects.toThrow(recognitionError);
+
+    expect(mocks.releaseQuota).toHaveBeenCalledWith(reservation);
+    const callsAfterFailure = replyWithChatAction.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(replyWithChatAction).toHaveBeenCalledTimes(callsAfterFailure);
+  });
+
+  it('stops refreshing typing when the image quota is denied', async () => {
+    vi.useFakeTimers();
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    mocks.reserveQuota.mockResolvedValue({ allowed: false });
+    const replyWithChatAction = vi.fn().mockResolvedValue(true);
+    const message = {
+      message_id: 41,
+      date: 1_750_000_000,
+      caption: 'Ио, опиши фото',
+      photo: [{ file_id: 'photo-41', width: 100, height: 100, file_size: 1 }],
+    };
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: message,
+      update: { message },
+      replyWithChatAction,
+    } as never;
+
+    await processMessageController.middleware()(ctx, async () => {});
+
+    const callsAfterQuotaDenial = replyWithChatAction.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(replyWithChatAction).toHaveBeenCalledTimes(callsAfterQuotaDenial);
+    expect(mocks.describeTelegramPhoto).not.toHaveBeenCalled();
+    expect(mocks.aiController).not.toHaveBeenCalled();
   });
 
   it('does not start typing for a skipped group message', async () => {

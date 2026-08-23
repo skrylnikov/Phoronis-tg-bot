@@ -263,6 +263,7 @@ model Message {
   sender   User   @relation(fields: [senderId], references: [id])
 
   sessionId        String?
+  modelId          String?
   replyToMessageId BigInt?
   replyToMessage   Message? @relation("replies", fields: [replyToMessageId, chatId], references: [id, chatId])
 

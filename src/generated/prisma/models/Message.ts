@@ -47,6 +47,7 @@ export type MessageMinAggregateOutputType = {
   chatId: bigint | null
   senderId: bigint | null
   sessionId: string | null
+  modelId: string | null
   replyToMessageId: bigint | null
   messageType: $Enums.MessageType | null
   text: string | null
@@ -63,6 +64,7 @@ export type MessageMaxAggregateOutputType = {
   chatId: bigint | null
   senderId: bigint | null
   sessionId: string | null
+  modelId: string | null
   replyToMessageId: bigint | null
   messageType: $Enums.MessageType | null
   text: string | null
@@ -79,6 +81,7 @@ export type MessageCountAggregateOutputType = {
   chatId: number
   senderId: number
   sessionId: number
+  modelId: number
   replyToMessageId: number
   messageType: number
   text: number
@@ -113,6 +116,7 @@ export type MessageMinAggregateInputType = {
   chatId?: true
   senderId?: true
   sessionId?: true
+  modelId?: true
   replyToMessageId?: true
   messageType?: true
   text?: true
@@ -129,6 +133,7 @@ export type MessageMaxAggregateInputType = {
   chatId?: true
   senderId?: true
   sessionId?: true
+  modelId?: true
   replyToMessageId?: true
   messageType?: true
   text?: true
@@ -145,6 +150,7 @@ export type MessageCountAggregateInputType = {
   chatId?: true
   senderId?: true
   sessionId?: true
+  modelId?: true
   replyToMessageId?: true
   messageType?: true
   text?: true
@@ -248,6 +254,7 @@ export type MessageGroupByOutputType = {
   chatId: bigint
   senderId: bigint
   sessionId: string | null
+  modelId: string | null
   replyToMessageId: bigint | null
   messageType: $Enums.MessageType
   text: string | null
@@ -287,6 +294,7 @@ export type MessageWhereInput = {
   chatId?: Prisma.BigIntFilter<"Message"> | bigint | number
   senderId?: Prisma.BigIntFilter<"Message"> | bigint | number
   sessionId?: Prisma.StringNullableFilter<"Message"> | string | null
+  modelId?: Prisma.StringNullableFilter<"Message"> | string | null
   replyToMessageId?: Prisma.BigIntNullableFilter<"Message"> | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFilter<"Message"> | $Enums.MessageType
   text?: Prisma.StringNullableFilter<"Message"> | string | null
@@ -308,6 +316,7 @@ export type MessageOrderByWithRelationInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  modelId?: Prisma.SortOrderInput | Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   messageType?: Prisma.SortOrder
   text?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -333,6 +342,7 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   chatId?: Prisma.BigIntFilter<"Message"> | bigint | number
   senderId?: Prisma.BigIntFilter<"Message"> | bigint | number
   sessionId?: Prisma.StringNullableFilter<"Message"> | string | null
+  modelId?: Prisma.StringNullableFilter<"Message"> | string | null
   replyToMessageId?: Prisma.BigIntNullableFilter<"Message"> | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFilter<"Message"> | $Enums.MessageType
   text?: Prisma.StringNullableFilter<"Message"> | string | null
@@ -354,6 +364,7 @@ export type MessageOrderByWithAggregationInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  modelId?: Prisma.SortOrderInput | Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   messageType?: Prisma.SortOrder
   text?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -378,6 +389,7 @@ export type MessageScalarWhereWithAggregatesInput = {
   chatId?: Prisma.BigIntWithAggregatesFilter<"Message"> | bigint | number
   senderId?: Prisma.BigIntWithAggregatesFilter<"Message"> | bigint | number
   sessionId?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
+  modelId?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   replyToMessageId?: Prisma.BigIntNullableWithAggregatesFilter<"Message"> | bigint | number | null
   messageType?: Prisma.EnumMessageTypeWithAggregatesFilter<"Message"> | $Enums.MessageType
   text?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
@@ -392,6 +404,7 @@ export type MessageScalarWhereWithAggregatesInput = {
 export type MessageCreateInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -412,6 +425,7 @@ export type MessageUncheckedCreateInput = {
   chatId: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -428,6 +442,7 @@ export type MessageUncheckedCreateInput = {
 export type MessageUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -448,6 +463,7 @@ export type MessageUncheckedUpdateInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -466,6 +482,7 @@ export type MessageCreateManyInput = {
   chatId: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -480,6 +497,7 @@ export type MessageCreateManyInput = {
 export type MessageUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -495,6 +513,7 @@ export type MessageUncheckedUpdateManyInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -531,6 +550,7 @@ export type MessageCountOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  modelId?: Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrder
   messageType?: Prisma.SortOrder
   text?: Prisma.SortOrder
@@ -555,6 +575,7 @@ export type MessageMaxOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  modelId?: Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrder
   messageType?: Prisma.SortOrder
   text?: Prisma.SortOrder
@@ -571,6 +592,7 @@ export type MessageMinOrderByAggregateInput = {
   chatId?: Prisma.SortOrder
   senderId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  modelId?: Prisma.SortOrder
   replyToMessageId?: Prisma.SortOrder
   messageType?: Prisma.SortOrder
   text?: Prisma.SortOrder
@@ -771,6 +793,7 @@ export type MessageUpdateOneWithoutSourceFactsNestedInput = {
 export type MessageCreateWithoutSenderInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -789,6 +812,7 @@ export type MessageUncheckedCreateWithoutSenderInput = {
   id: bigint | number
   chatId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -836,6 +860,7 @@ export type MessageScalarWhereInput = {
   chatId?: Prisma.BigIntFilter<"Message"> | bigint | number
   senderId?: Prisma.BigIntFilter<"Message"> | bigint | number
   sessionId?: Prisma.StringNullableFilter<"Message"> | string | null
+  modelId?: Prisma.StringNullableFilter<"Message"> | string | null
   replyToMessageId?: Prisma.BigIntNullableFilter<"Message"> | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFilter<"Message"> | $Enums.MessageType
   text?: Prisma.StringNullableFilter<"Message"> | string | null
@@ -850,6 +875,7 @@ export type MessageScalarWhereInput = {
 export type MessageCreateWithoutChatInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -868,6 +894,7 @@ export type MessageUncheckedCreateWithoutChatInput = {
   id: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -910,6 +937,7 @@ export type MessageUpdateManyWithWhereWithoutChatInput = {
 export type MessageCreateWithoutRepliesInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -929,6 +957,7 @@ export type MessageUncheckedCreateWithoutRepliesInput = {
   chatId: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -949,6 +978,7 @@ export type MessageCreateOrConnectWithoutRepliesInput = {
 export type MessageCreateWithoutReplyToMessageInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -967,6 +997,7 @@ export type MessageUncheckedCreateWithoutReplyToMessageInput = {
   id: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -1003,6 +1034,7 @@ export type MessageUpdateToOneWithWhereWithoutRepliesInput = {
 export type MessageUpdateWithoutRepliesInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1022,6 +1054,7 @@ export type MessageUncheckedUpdateWithoutRepliesInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1053,6 +1086,7 @@ export type MessageUpdateManyWithWhereWithoutReplyToMessageInput = {
 export type MessageCreateWithoutSourceFactsInput = {
   id: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -1072,6 +1106,7 @@ export type MessageUncheckedCreateWithoutSourceFactsInput = {
   chatId: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -1103,6 +1138,7 @@ export type MessageUpdateToOneWithWhereWithoutSourceFactsInput = {
 export type MessageUpdateWithoutSourceFactsInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1122,6 +1158,7 @@ export type MessageUncheckedUpdateWithoutSourceFactsInput = {
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1138,6 +1175,7 @@ export type MessageCreateManySenderInput = {
   id: bigint | number
   chatId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -1152,6 +1190,7 @@ export type MessageCreateManySenderInput = {
 export type MessageUpdateWithoutSenderInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1170,6 +1209,7 @@ export type MessageUncheckedUpdateWithoutSenderInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1187,6 +1227,7 @@ export type MessageUncheckedUpdateManyWithoutSenderInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1202,6 +1243,7 @@ export type MessageCreateManyChatInput = {
   id: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   replyToMessageId?: bigint | number | null
   messageType: $Enums.MessageType
   text?: string | null
@@ -1216,6 +1258,7 @@ export type MessageCreateManyChatInput = {
 export type MessageUpdateWithoutChatInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1234,6 +1277,7 @@ export type MessageUncheckedUpdateWithoutChatInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1251,6 +1295,7 @@ export type MessageUncheckedUpdateManyWithoutChatInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1266,6 +1311,7 @@ export type MessageCreateManyReplyToMessageInput = {
   id: bigint | number
   senderId: bigint | number
   sessionId?: string | null
+  modelId?: string | null
   messageType: $Enums.MessageType
   text?: string | null
   media?: string | null
@@ -1279,6 +1325,7 @@ export type MessageCreateManyReplyToMessageInput = {
 export type MessageUpdateWithoutReplyToMessageInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1297,6 +1344,7 @@ export type MessageUncheckedUpdateWithoutReplyToMessageInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1313,6 +1361,7 @@ export type MessageUncheckedUpdateManyWithoutReplyToMessageInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
   text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1368,6 +1417,7 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   chatId?: boolean
   senderId?: boolean
   sessionId?: boolean
+  modelId?: boolean
   replyToMessageId?: boolean
   messageType?: boolean
   text?: boolean
@@ -1390,6 +1440,7 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   chatId?: boolean
   senderId?: boolean
   sessionId?: boolean
+  modelId?: boolean
   replyToMessageId?: boolean
   messageType?: boolean
   text?: boolean
@@ -1409,6 +1460,7 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   chatId?: boolean
   senderId?: boolean
   sessionId?: boolean
+  modelId?: boolean
   replyToMessageId?: boolean
   messageType?: boolean
   text?: boolean
@@ -1428,6 +1480,7 @@ export type MessageSelectScalar = {
   chatId?: boolean
   senderId?: boolean
   sessionId?: boolean
+  modelId?: boolean
   replyToMessageId?: boolean
   messageType?: boolean
   text?: boolean
@@ -1439,7 +1492,7 @@ export type MessageSelectScalar = {
   private?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatId" | "senderId" | "sessionId" | "replyToMessageId" | "messageType" | "text" | "media" | "summary" | "searchText" | "embeddingVersion" | "sentAt" | "private", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatId" | "senderId" | "sessionId" | "modelId" | "replyToMessageId" | "messageType" | "text" | "media" | "summary" | "searchText" | "embeddingVersion" | "sentAt" | "private", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chat?: boolean | Prisma.ChatDefaultArgs<ExtArgs>
   sender?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1473,6 +1526,7 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     chatId: bigint
     senderId: bigint
     sessionId: string | null
+    modelId: string | null
     replyToMessageId: bigint | null
     messageType: $Enums.MessageType
     text: string | null
@@ -1914,6 +1968,7 @@ export interface MessageFieldRefs {
   readonly chatId: Prisma.FieldRef<"Message", 'BigInt'>
   readonly senderId: Prisma.FieldRef<"Message", 'BigInt'>
   readonly sessionId: Prisma.FieldRef<"Message", 'String'>
+  readonly modelId: Prisma.FieldRef<"Message", 'String'>
   readonly replyToMessageId: Prisma.FieldRef<"Message", 'BigInt'>
   readonly messageType: Prisma.FieldRef<"Message", 'MessageType'>
   readonly text: Prisma.FieldRef<"Message", 'String'>

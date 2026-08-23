@@ -45,7 +45,8 @@ export function startScheduler() {
 
   const sendAnalyticsReport = async () => {
     try {
-      await sendDailyAnalyticsReport(bot.api);
+      const botUser = await bot.api.getMe();
+      await sendDailyAnalyticsReport(bot.api, botUser.id);
     } catch (error) {
       logger.error(
         { event: 'scheduler.daily_analytics_failed', err: error },

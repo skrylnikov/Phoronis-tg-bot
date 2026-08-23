@@ -2,6 +2,7 @@ import { Composer } from 'grammy';
 
 import type { BotContext } from '../bot';
 import { logger, telegramLogContext, withLogContext } from '../logger';
+import { analyticsController } from './analytics';
 import { askController } from './ask.js';
 import { featuresController } from './features';
 import { guestController } from './guest.js';
@@ -60,6 +61,7 @@ controllers.command('me', meController);
 controllers.command('private', privateController);
 
 controllers.command('ask', askController);
+controllers.command('analytics', analyticsController);
 
 controllers.command('subscribe', subscribeController);
 controllers.command('limits', limitsController);

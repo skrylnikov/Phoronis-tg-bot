@@ -67,6 +67,7 @@ export interface SaveMessageParams {
   media?: string | null;
   replyToMessageId?: bigint;
   messageType?: string;
+  modelId?: string | null;
 }
 
 export const saveMessage = async (
@@ -95,6 +96,7 @@ export const saveMessage = async (
         media: message.media ?? null,
         replyToMessageId: replyId,
         messageType: (message.messageType ?? 'TEXT') as MessageType,
+        modelId: message.modelId ?? null,
       },
     });
 

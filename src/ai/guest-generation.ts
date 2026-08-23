@@ -77,6 +77,7 @@ export async function generateGuestResponse(input: {
         content,
         ctx.from.id,
         ctx.chat.type === 'private',
+        false,
       );
       userContext = resolvedContext.userContext;
       chatContext = resolvedContext.chatContext;

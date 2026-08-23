@@ -6,6 +6,7 @@ import {
   searchAndIndexMessage,
 } from '../ai';
 import { describeTelegramPhoto } from '../ai/image-description';
+import { startTypingStatus } from '../ai/typing-status';
 import { scheduleUserMessageAnalysis } from '../application/user-message-analysis';
 import type { BotContext } from '../bot';
 import {
@@ -39,17 +40,6 @@ interface TelegramReactionsMessage {
 
 function isGroupChat(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
-}
-
-function sendTyping(ctx: BotContext): void {
-  void ctx
-    .replyWithChatAction('typing')
-    .catch((error) =>
-      logger.error(
-        { event: 'telegram.typing_failed', err: error },
-        'Failed to update Telegram typing status',
-      ),
-    );
 }
 
 function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
@@ -183,6 +173,7 @@ export async function findPhotoInReplyChain(
 export const processMessageController = new Composer<BotContext>();
 
 processMessageController.on(':text', async (ctx) => {
+  let typingStatus: ReturnType<typeof startTypingStatus> | undefined;
   try {
     if (!ctx.from || !ctx.chatId) return;
     logger.debug(
@@ -254,7 +245,7 @@ processMessageController.on(':text', async (ctx) => {
       return;
     }
 
-    sendTyping(ctx);
+    typingStatus = startTypingStatus(ctx);
     const { userContext, chatContext } = isPrivateMode
       ? { userContext: null, chatContext: null }
       : await searchAndIndexMessage(
@@ -313,14 +304,18 @@ processMessageController.on(':text', async (ctx) => {
     await aiController(ctx, imageDescription, userContext, chatContext, {
       includeRecentChatContext: !isPrivateMode,
       privateMode: isPrivateMode,
+      typingStatus,
     });
   } catch (error) {
     handleError(error, 'Processing text message');
     throw error;
+  } finally {
+    typingStatus?.stop();
   }
 });
 
 processMessageController.on(':photo', async (ctx) => {
+  let typingStatus: ReturnType<typeof startTypingStatus> | undefined;
   try {
     if (!ctx.from || !ctx.chatId) return;
     logger.debug(
@@ -378,7 +373,7 @@ processMessageController.on(':photo', async (ctx) => {
       return;
     }
 
-    sendTyping(ctx);
+    typingStatus = startTypingStatus(ctx);
     const reservation = await reserveQuota({
       userId: ctx.from.id,
       chatId: ctx.chatId,
@@ -409,9 +404,12 @@ processMessageController.on(':photo', async (ctx) => {
     await aiController(ctx, imageDescription, undefined, undefined, {
       includeRecentChatContext: !isPrivateMode,
       privateMode: isPrivateMode,
+      typingStatus,
     });
   } catch (error) {
     handleError(error, 'Processing media message');
     throw error;
+  } finally {
+    typingStatus?.stop();
   }
 });
