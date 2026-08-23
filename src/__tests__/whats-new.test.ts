@@ -97,6 +97,8 @@ describe('whats-new broadcast', () => {
     expect(markdown).toContain('Контекст и история');
     expect(markdown).toContain('только по явному запросу');
     expect(markdown).toContain('Личные лимиты раньше');
+    expect(markdown).toContain('<details><summary>Показать лимиты</summary>');
+    expect(markdown).toContain('<details><summary>Показать цены</summary>');
     expect(markdown).toContain('49 ⭐ | 39 ⭐');
     expect(markdown).toContain('31 августа 2026 года, 23:59 МСК');
     expect(markdown).toContain('123 сообщений');
