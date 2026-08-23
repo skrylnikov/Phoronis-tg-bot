@@ -41,10 +41,16 @@ featuresController.command('enable', async (ctx) => {
 
   try {
     if (feature === 'selfiesaturday') {
-      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'selfieSaturday', true);
+      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'selfieSaturday', true, {
+        title: ctx.chat.title,
+        chatType: 'GROUP',
+      });
       await ctx.reply("Функция 'Селфи Суббота' включена для этого чата! 🎉");
     } else if (feature === 'inktober') {
-      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'inktober', true);
+      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'inktober', true, {
+        title: ctx.chat.title,
+        chatType: 'GROUP',
+      });
       await ctx.reply("Функция 'Inktober' включена для этого чата! 🎨");
     } else {
       await ctx.reply(

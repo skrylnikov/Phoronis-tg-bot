@@ -83,6 +83,7 @@ export async function upsertChatFeatureRepo(
   chatId: bigint,
   feature: 'selfieSaturday' | 'inktober',
   enabled: boolean,
+  chatInfo?: { title: string; chatType: 'PRIVATE' | 'GROUP' },
 ) {
   const data =
     feature === 'selfieSaturday'
@@ -94,8 +95,8 @@ export async function upsertChatFeatureRepo(
     update: data,
     create: {
       id: chatId,
-      title: chatId.toString(),
-      chatType: 'GROUP',
+      title: chatInfo?.title ?? chatId.toString(),
+      chatType: chatInfo?.chatType ?? 'GROUP',
       ...data,
     },
   });
