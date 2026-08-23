@@ -12,7 +12,6 @@ import {
   findPaymentOrderByChargeId,
   findPendingPaymentOrder,
   findPurchaseSession,
-  findSubscriptionByOrderId,
   refundPaymentWithSubscription,
   updatePurchaseSessionTerms,
 } from '../repositories';
@@ -273,10 +272,8 @@ export async function activatePayment(input: {
 
   // Check for existing charge FIRST (idempotency)
   const existingOrder = await findPaymentOrderByChargeId(input.chargeId);
-  if (existingOrder) {
-    // Already processed - return existing subscription with activatedNow: false
-    const subscription = await findSubscriptionByOrderId(existingOrder.id);
-    return subscription ? { ...subscription, activatedNow: false } : null;
+  if (existingOrder?.subscription) {
+    return { ...existingOrder.subscription, activatedNow: false };
   }
 
   const pendingOrder = await findPendingPaymentOrder(

@@ -136,14 +136,6 @@ export async function expirePaymentOrder(orderId: string) {
   });
 }
 
-export async function findSubscriptionByOrderId(orderId: string) {
-  const order = await prisma.paymentOrder.findUnique({
-    where: { id: orderId },
-    include: { subscription: true },
-  });
-  return order?.subscription ?? null;
-}
-
 export async function findPaymentOrderByChargeId(chargeId: string) {
   return prisma.paymentOrder.findUnique({
     where: { telegramPaymentChargeId: chargeId },
