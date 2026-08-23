@@ -424,6 +424,7 @@ describe('searchChatHistory', () => {
     );
     messageCount.mockResolvedValue(11);
     messageFindMany.mockResolvedValue(candidates);
+    embedQuery.mockResolvedValue([0.1, 0.2]);
     searchChatMessagesLexical.mockResolvedValue(
       candidates.map((row, index) => ({
         ...row,
@@ -441,7 +442,17 @@ describe('searchChatHistory', () => {
       )
       .mockResolvedValueOnce(
         candidates.map((row) => ({
-          ...row,
+          id: row.id,
+          chatId: -100n,
+          senderId: row.senderId,
+          sessionId: null,
+          replyToMessageId: row.replyToMessageId,
+          messageType: row.messageType,
+          text: row.text,
+          summary: row.summary,
+          private: false,
+          media: null,
+          sentAt: row.sentAt,
           rootMessageId: row.id,
           depth: 0,
         })),
