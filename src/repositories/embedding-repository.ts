@@ -306,6 +306,12 @@ export interface ReplyRoot {
   rootId: bigint;
 }
 
+export interface ChatHistoryReplyRoot {
+  candidateId: bigint;
+  rootMessageId: bigint;
+  incomplete: boolean;
+}
+
 export async function findReplyRootsRepo(
   candidateIds: bigint[],
   chatId: bigint,
@@ -347,6 +353,24 @@ export interface ReplyGraphRow {
   senderId: bigint;
   sentAt: Date;
   searchText: string | null;
+}
+
+export interface ChatHistoryReplyGraphRow {
+  id: bigint;
+  replyToMessageId: bigint | null;
+  senderId: bigint;
+  messageType: string;
+  text: string | null;
+  summary: string | null;
+  searchText: string | null;
+  sentAt: Date;
+  rootMessageId: bigint;
+  depth: number;
+  sender: {
+    firstName: string | null;
+    lastName: string | null;
+    userName: string | null;
+  };
 }
 
 export async function fetchReplyGraphRepo(

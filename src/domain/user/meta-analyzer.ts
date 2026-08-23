@@ -5,7 +5,7 @@ import { langfuse } from '../../ai/langfuse';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import {
-  findUserByIdRepo,
+  findUserMetaByIdRepo,
   updateUserMetaInfoRepo,
 } from '../../repositories/user-meta-repository';
 
@@ -270,7 +270,7 @@ export async function updateUserMetaInfo(
   newInfo: Partial<UserMetaInfo>,
 ) {
   try {
-    const user = await findUserByIdRepo(userId);
+    const user = await findUserMetaByIdRepo(userId, { metaInfo: true });
 
     const currentMeta = userMetaInfoSchema.safeParse(user?.metaInfo || {});
 

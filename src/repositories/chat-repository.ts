@@ -55,11 +55,11 @@ export const saveChat = async (
 export async function findChatByIdRepo<T extends Prisma.ChatSelect>(
   chatId: bigint,
   select?: T,
-) {
+): Promise<Prisma.ChatGetPayload<{ select: T }> | null> {
   return prisma.chat.findUnique({
     where: { id: chatId },
     select: select as any,
-  });
+  }) as Promise<Prisma.ChatGetPayload<{ select: T }> | null>;
 }
 
 export async function findGroupChatsRepo() {
@@ -98,5 +98,18 @@ export async function upsertChatFeatureRepo(
       chatType: 'GROUP',
       ...data,
     },
+  });
+}
+
+export async function findManyChatsRepo(
+  where: Prisma.ChatWhereInput,
+  options?: {
+    select?: Prisma.ChatSelect;
+    include?: Prisma.ChatInclude;
+  },
+) {
+  return prisma.chat.findMany({
+    where,
+    ...options,
   });
 }

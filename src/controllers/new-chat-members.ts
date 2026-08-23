@@ -54,7 +54,7 @@ export const newChatMembersController = async (ctx: Context) => {
     return;
   }
 
-  const reply = await ctx.reply(chat.greeting, {
+  const reply = await ctx.reply(chat?.greeting ?? 'Привет!', {
     reply_to_message_id: messageId,
   });
   await saveMessage({

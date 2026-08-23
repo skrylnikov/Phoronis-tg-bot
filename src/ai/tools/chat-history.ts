@@ -1,9 +1,23 @@
 import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
-import { prisma } from '../../db';
-import { Prisma } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import { logger } from '../../logger';
+import { findChatByIdRepo } from '../../repositories/chat-repository';
+import {
+  findManyMessagesRepo,
+  findFirstMessageRepo,
+  countMessagesRepo,
+} from '../../repositories/message-repository';
+import {
+  findManyUsersRepo,
+} from '../../repositories/user-repository';
+import {
+  findReplyRootsRepo as findChatHistoryReplyRootsRepo,
+  fetchReplyGraphRepo as fetchChatHistoryReplyGraphRepo,
+  type ChatHistoryReplyRoot,
+  type ChatHistoryReplyGraphRow,
+} from '../../repositories/embedding-repository';
 import { embedQuery } from '../embedding/client';
 import {
   searchChatMessages,
@@ -88,11 +102,9 @@ type ReplyGraphRow = HistoryRow & {
   depth: number;
 };
 
-type ReplyRoot = {
-  candidateId: bigint;
-  rootMessageId: bigint;
-  incomplete: boolean;
-};
+type ReplyRoot = ChatHistoryReplyRoot;
+
+type ReplyGraphRow = ChatHistoryReplyGraphRow;
 
 type SearchCandidate = {
   row: HistoryRow;
@@ -205,29 +217,33 @@ async function resolveSearchQuery(
 
   if (ctx.chatId && repliedMessageId !== undefined) {
     try {
-      const botMessage = await prisma.message.findFirst({
-        where: {
+      const botMessage = await findFirstMessageRepo(
+        {
           chatId: BigInt(ctx.chatId),
           id: BigInt(repliedMessageId),
           private: false,
         },
-        select: {
-          replyToMessageId: true,
-          text: true,
-          summary: true,
-          searchText: true,
+        {
+          select: {
+            replyToMessageId: true,
+            text: true,
+            summary: true,
+            searchText: true,
+          },
         },
-      });
+      );
 
       if (botMessage?.replyToMessageId) {
-        const originalMessage = await prisma.message.findFirst({
-          where: {
+        const originalMessage = await findFirstMessageRepo(
+          {
             chatId: BigInt(ctx.chatId),
             id: botMessage.replyToMessageId,
             private: false,
           },
-          select: { text: true, summary: true, searchText: true },
-        });
+          {
+            select: { text: true, summary: true, searchText: true },
+          },
+        );
         const originalQuery = originalMessage
           ? getContent(originalMessage)
           : '';
@@ -283,95 +299,7 @@ async function resolveReplyRoots(
   candidateIds: bigint[],
 ): Promise<ReplyRoot[]> {
   if (candidateIds.length === 0) return [];
-
-  return prisma.$queryRaw<ReplyRoot[]>(Prisma.sql`
-    WITH RECURSIVE ancestors AS (
-      SELECT
-        m."chatId",
-        m."id" AS "candidateId",
-        m."id",
-        m."replyToMessageId",
-        ARRAY[m."id"]::bigint[] AS path
-      FROM "Message" m
-      WHERE m."chatId" = ${chatId}
-        AND m."private" = FALSE
-        AND m."id" < ${currentMessageId}
-        AND m."id" IN (${Prisma.join(candidateIds)})
-
-      UNION ALL
-
-      SELECT
-        a."chatId",
-        a."candidateId",
-        parent."id",
-        parent."replyToMessageId",
-        a.path || parent."id"
-      FROM ancestors a
-      JOIN "Message" parent
-        ON parent."chatId" = a."chatId"
-       AND parent."id" = a."replyToMessageId"
-      WHERE parent."private" = FALSE
-        AND parent."id" < ${currentMessageId}
-        AND NOT (parent."id" = ANY(a.path))
-    ),
-    root_candidates AS (
-      SELECT
-        a."candidateId",
-        a."id" AS "rootMessageId",
-        (
-          a."replyToMessageId" IS NOT NULL
-          AND NOT EXISTS (
-            SELECT 1
-            FROM "Message" parent
-            WHERE parent."chatId" = a."chatId"
-              AND parent."id" = a."replyToMessageId"
-              AND parent."private" = FALSE
-              AND parent."id" < ${currentMessageId}
-          )
-        ) AS incomplete,
-        cardinality(a.path) AS depth
-      FROM ancestors a
-      WHERE a."replyToMessageId" IS NULL
-         OR NOT EXISTS (
-              SELECT 1
-              FROM "Message" parent
-              WHERE parent."chatId" = a."chatId"
-                AND parent."id" = a."replyToMessageId"
-                AND parent."private" = FALSE
-                AND parent."id" < ${currentMessageId}
-            )
-    ),
-    ranked_roots AS (
-      SELECT
-        r."candidateId",
-        r."rootMessageId",
-        r.incomplete,
-        row_number() OVER (
-          PARTITION BY r."candidateId"
-          ORDER BY r.depth DESC
-        ) AS root_rank
-      FROM root_candidates r
-    ),
-    fallback_roots AS (
-      SELECT DISTINCT ON (a."candidateId")
-        a."candidateId",
-        a."id" AS "rootMessageId",
-        TRUE AS incomplete
-      FROM ancestors a
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM root_candidates r
-        WHERE r."candidateId" = a."candidateId"
-      )
-      ORDER BY a."candidateId", cardinality(a.path) DESC
-    )
-    SELECT "candidateId", "rootMessageId", incomplete
-    FROM ranked_roots
-    WHERE root_rank = 1
-    UNION ALL
-    SELECT "candidateId", "rootMessageId", incomplete
-    FROM fallback_roots
-  `);
+  return findChatHistoryReplyRootsRepo(chatId, currentMessageId, candidateIds);
 }
 
 async function loadReplyGraphRows(
@@ -380,71 +308,7 @@ async function loadReplyGraphRows(
   rootIds: bigint[],
 ): Promise<ReplyGraphRow[]> {
   if (rootIds.length === 0) return [];
-
-  return prisma.$queryRaw<ReplyGraphRow[]>(Prisma.sql`
-    WITH RECURSIVE reply_tree AS (
-      SELECT
-        m."id",
-        m."chatId",
-        m."replyToMessageId",
-        m."senderId",
-        m."messageType",
-        m."text",
-        m."summary",
-        m."searchText",
-        m."sentAt",
-        m."id" AS "rootMessageId",
-        0::int AS depth,
-        ARRAY[m."id"]::bigint[] AS path
-      FROM "Message" m
-      WHERE m."chatId" = ${chatId}
-        AND m."private" = FALSE
-        AND m."id" < ${currentMessageId}
-        AND m."id" IN (${Prisma.join(rootIds)})
-
-      UNION ALL
-
-      SELECT
-        child."id",
-        child."chatId",
-        child."replyToMessageId",
-        child."senderId",
-        child."messageType",
-        child."text",
-        child."summary",
-        child."searchText",
-        child."sentAt",
-        tree."rootMessageId",
-        tree.depth + 1,
-        tree.path || child."id"
-      FROM reply_tree tree
-      JOIN "Message" child
-        ON child."chatId" = tree."chatId"
-       AND child."replyToMessageId" = tree."id"
-      WHERE child."private" = FALSE
-        AND child."id" < ${currentMessageId}
-        AND NOT (child."id" = ANY(tree.path))
-    )
-    SELECT
-      tree."id",
-      tree."replyToMessageId",
-      tree."senderId",
-      tree."messageType",
-      tree."sentAt",
-      tree."text",
-      tree."summary",
-      tree."searchText",
-      tree."rootMessageId",
-      tree.depth,
-      json_build_object(
-        'firstName', u."firstName",
-        'lastName', u."lastName",
-        'userName', u."userName"
-      ) AS "sender"
-    FROM reply_tree tree
-    JOIN "User" u ON u."id" = tree."senderId"
-    ORDER BY tree."rootMessageId", tree."sentAt", tree."id"
-  `);
+  return fetchChatHistoryReplyGraphRepo(chatId, currentMessageId, rootIds);
 }
 
 function countReplyBranches(rows: HistoryRow[]): number {
@@ -516,9 +380,8 @@ async function ensureHistoryAccess(ctx: BotContext): Promise<string | null> {
     return 'Не удалось определить контекст чата';
   }
 
-  const chat = await prisma.chat.findUnique({
-    where: { id: BigInt(ctx.chatId) },
-    select: { privateModeEnabled: true },
+  const chat = await findChatByIdRepo(BigInt(ctx.chatId), {
+    privateModeEnabled: true,
   });
   if (chat?.privateModeEnabled) {
     return 'История недоступна в приватном режиме чата';
@@ -538,8 +401,8 @@ async function resolveSender(
     return { senderId: BigInt(normalized) };
   }
 
-  const candidates = await prisma.user.findMany({
-    where: {
+  const candidates = await findManyUsersRepo(
+    {
       Message: {
         some: { chatId, private: false },
       },
@@ -549,9 +412,10 @@ async function resolveSender(
         { lastName: { contains: normalized, mode: 'insensitive' } },
       ],
     },
-    select: { id: true, firstName: true, lastName: true, userName: true },
-    take: 10,
-  });
+    {
+      select: { id: true, firstName: true, lastName: true, userName: true },
+    },
+  ).then((users) => users.slice(0, 10));
 
   if (candidates.length !== 1) {
     return {
@@ -636,17 +500,19 @@ async function getRecentHistory(
 
   try {
     if (!usesExplicitRange && input.recentMode === 'missed') {
-      const lastUserMessage = await prisma.message.findFirst({
-        where: {
+      const lastUserMessage = await findFirstMessageRepo(
+        {
           chatId: BigInt(ctx.chatId ?? 0),
           senderId: BigInt(ctx.from?.id ?? 0),
           private: false,
           id: { lt: currentMessageId },
           sentAt: { gte: effectiveStartAt, lt: endAt },
         },
-        orderBy: { id: 'desc' },
-        select: { id: true, sentAt: true },
-      });
+        {
+          orderBy: { id: 'desc' },
+          select: { id: true, sentAt: true },
+        },
+      );
 
       if (lastUserMessage) {
         effectiveStartAt = lastUserMessage.sentAt;
@@ -654,8 +520,8 @@ async function getRecentHistory(
       }
     }
 
-    const rows = await prisma.message.findMany({
-      where: {
+    const rows = await findManyMessagesRepo(
+      {
         ...createBaseWhere(
           BigInt(ctx.chatId ?? 0),
           currentMessageId,
@@ -666,10 +532,12 @@ async function getRecentHistory(
           ? { id: { gt: afterMessageId, lt: currentMessageId } }
           : {}),
       },
-      select: messageSelect,
-      orderBy: { id: 'desc' },
-      take: limit + 1,
-    });
+      {
+        select: messageSelect,
+        orderBy: { id: 'desc' },
+        take: limit + 1,
+      },
+    );
     const result = getTruncatedMessages(
       rows as HistoryRow[],
       limit,
@@ -738,13 +606,15 @@ async function getUserStats(
       senderMatch.senderId,
     );
     const [totalCount, rows] = await Promise.all([
-      prisma.message.count({ where }),
-      prisma.message.findMany({
+      countMessagesRepo(where),
+      findManyMessagesRepo(
         where,
-        select: messageSelect,
-        orderBy: { id: 'desc' },
-        take: limit,
-      }),
+        {
+          select: messageSelect,
+          orderBy: { id: 'desc' },
+          take: limit,
+        },
+      ),
     ]);
 
     return {
@@ -881,13 +751,15 @@ async function searchHistory(
 
   try {
     const [exactCount, exactRows] = await Promise.all([
-      prisma.message.count({ where }),
-      prisma.message.findMany({
+      countMessagesRepo(where),
+      findManyMessagesRepo(
         where,
-        select: messageSelect,
-        orderBy: { id: 'desc' },
-        take: searchCandidateLimit,
-      }),
+        {
+          select: messageSelect,
+          orderBy: { id: 'desc' },
+          take: searchCandidateLimit,
+        },
+      ),
     ]);
 
     let lexicalRows: Awaited<ReturnType<typeof searchChatMessagesLexical>> = [];
@@ -1099,17 +971,19 @@ export async function getRecentPublicChatContext(
   currentMessageId: number,
 ): Promise<{ messages: HistoryMessage[]; truncated: boolean }> {
   try {
-    const rows = await prisma.message.findMany({
-      where: {
+    const rows = await findManyMessagesRepo(
+      {
         chatId: BigInt(chatId),
         private: false,
         id: { lt: BigInt(currentMessageId) },
         OR: [{ text: { not: null } }, { summary: { not: null } }],
       },
-      select: messageSelect,
-      orderBy: { id: 'desc' },
-      take: maxRecentMessages,
-    });
+      {
+        select: messageSelect,
+        orderBy: { id: 'desc' },
+        take: maxRecentMessages,
+      },
+    );
     return getTruncatedMessages(
       rows as HistoryRow[],
       maxRecentMessages,

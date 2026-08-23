@@ -3,8 +3,8 @@ import { dynamicTool, stepCountIs, streamText } from 'ai';
 import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
 import { logger } from '../logger';
+import { updateChatRepo } from '../repositories/chat-repository';
 import { chatModel } from './ai';
 import { isChatHistorySearchIntent } from './history-intent';
 import { splitSystemMessages } from './prompt';
@@ -64,10 +64,10 @@ export const chatGeneration = async (
           });
         }
 
-        await prisma.chat.update({
-          where: { id: BigInt(chatId) },
-          data: { greeting },
-        });
+        await updateChatRepo(
+          BigInt(chatId),
+          { greeting },
+        );
 
         return JSON.stringify({
           message: `Приветствие установлено: ${greeting}`,

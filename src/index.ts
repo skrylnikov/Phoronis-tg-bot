@@ -4,7 +4,7 @@ import { bot } from './bot';
 import { registerBotCommands } from './bot-commands';
 import { transportConfig } from './config';
 import { controllers } from './controllers';
-import { prisma } from './db';
+import { disconnectPrismaRepo } from './repositories';
 import { startHealthServer } from './health';
 import { logger, telegramLogContext } from './logger';
 import { startScheduler } from './scheduler';
@@ -66,7 +66,7 @@ const shutdown = async () => {
   healthServer.stop();
   await botTransport.stop();
   await stopEmbeddingBackfill();
-  await prisma.$disconnect();
+  await disconnectPrismaRepo();
   logger.info(
     { event: 'process.shutdown_completed' },
     'Bot shutdown completed',

@@ -1,6 +1,5 @@
 import type { ModelMessage } from 'ai';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
 import {
   getRecentGuestInteractions,
   releaseQuota,
@@ -10,6 +9,7 @@ import { extractMentionedUserIds } from '../domain/entities';
 import { getRecentMemoriesForUsers } from '../domain/memory';
 import { getTopUserFacts } from '../domain/user/fact-analyzer';
 import { logger } from '../logger';
+import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchAndIndexMessage } from './embedding';
@@ -96,7 +96,7 @@ export async function generateGuestResponse(input: {
     ];
 
     const [userList, prompt, allMemories] = await Promise.all([
-      prisma.user.findMany({ where: { id: { in: allUserIds.map(BigInt) } } }),
+      findManyUsersRepo({ id: { in: allUserIds.map(BigInt) } }),
       langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId, 10).catch(
         () => new Map<number, string[]>(),

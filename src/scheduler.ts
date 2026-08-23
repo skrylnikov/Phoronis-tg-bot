@@ -2,13 +2,13 @@ import cron, { type ScheduledTask } from 'node-cron';
 import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from './advisory-lock';
 import { sendDailyAnalyticsReport } from './analytics';
 import { bot } from './bot';
-import { prisma } from './db';
 import { recalculateFactImpactScores } from './domain/user/fact-impact-tracker';
 import { startMetaInfoMigration } from './domain/user/migrate-meta-info';
 import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
+import { findManyChatsRepo, updateUserFactsWeightRepo } from './repositories';
 
 let impactScoreTask: ScheduledTask | null = null;
 
@@ -74,10 +74,10 @@ export function startScheduler() {
           'Selfie Saturday task started',
         );
         try {
-          const chatsToSend = await prisma.chat.findMany({
-            where: { selfieSaturdayEnabled: true },
-            select: { id: true }, // Выбираем только ID для эффективности
-          });
+          const chatsToSend = await findManyChatsRepo(
+            { selfieSaturdayEnabled: true },
+            { select: { id: true } },
+          );
 
           if (chatsToSend.length === 0) {
             logger.info(
@@ -140,10 +140,10 @@ export function startScheduler() {
           'Inktober task started',
         );
         try {
-          const chatsToSend = await prisma.chat.findMany({
-            where: { inktoberEnabled: true },
-            select: { id: true }, // Выбираем только ID для эффективности
-          });
+          const chatsToSend = await findManyChatsRepo(
+            { inktoberEnabled: true },
+            { select: { id: true } },
+          );
 
           if (chatsToSend.length === 0) {
             logger.info(
@@ -211,23 +211,11 @@ export function startScheduler() {
           'Fact decay task started',
         );
         try {
-          const result = await prisma.userFact.updateMany({
-            where: {
-              updatedAt: {
-                lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-              },
-              weight: {
-                gte: 2,
-              },
-            },
-            data: {
-              weight: { decrement: 1 },
-            },
-          });
+          const result = await updateUserFactsWeightRepo();
           logger.info(
             {
               event: 'scheduler.fact_decay_completed',
-              updatedCount: result.count,
+              updatedCount: result,
             },
             'Fact decay task completed',
           );

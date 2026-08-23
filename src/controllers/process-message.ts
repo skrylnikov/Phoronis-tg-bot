@@ -198,7 +198,7 @@ processMessageController.on(':text', async (ctx) => {
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
-      private: isPrivateMode,
+      private: isPrivateMode ?? false,
     });
 
     if (!isPrivateMode) {
@@ -325,7 +325,7 @@ processMessageController.on(':photo', async (ctx) => {
       text: ctx.msg.caption,
       messageType: 'MEDIA',
       media: JSON.stringify({ fileId: photo.file_id, mimeType: 'image/jpeg' }),
-      private: isPrivateMode,
+      private: isPrivateMode ?? false,
     });
 
     const shouldRespond =
