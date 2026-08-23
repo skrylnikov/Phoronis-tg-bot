@@ -11,6 +11,7 @@ import { shutdownDrainMs, transportConfig } from './config';
 import { controllers } from './controllers';
 import { connectPrismaRepo } from './db';
 import { startHealthServer } from './health';
+import { shutdownTelemetry, startTelemetry } from './instrumentation';
 import { logger, telegramLogContext } from './logger';
 import { createPaymentBackgroundJobHandlers } from './payment-background-jobs';
 import { disconnectPrismaRepo } from './repositories';
@@ -21,6 +22,7 @@ import { startScheduler } from './scheduler';
 import { createBotTransport } from './transport';
 import { handleError } from './utils/error-handler';
 
+startTelemetry();
 bot.use(controllers);
 
 let shutdown: (() => Promise<void>) | undefined;
@@ -91,6 +93,7 @@ shutdown = createRuntimeShutdown({
   stopJobRunner: () => jobRunner.stop(),
   stopEmbeddings: () => stopEmbeddingBackfill(),
   disconnectDatabase: () => disconnectPrismaRepo(),
+  shutdownTelemetry,
 });
 
 // Stopping the bot when the Node.js process

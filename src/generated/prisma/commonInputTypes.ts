@@ -562,6 +562,23 @@ export type EnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel = never>
   _max?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
 }
 
+export type EnumAiThreadContextEventKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiThreadContextEventKind | Prisma.EnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel> | $Enums.AiThreadContextEventKind
+}
+
+export type EnumAiThreadContextEventKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiThreadContextEventKind | Prisma.EnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiThreadContextEventKindWithAggregatesFilter<$PrismaModel> | $Enums.AiThreadContextEventKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel>
+}
+
 export type BoolFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
@@ -1124,6 +1141,23 @@ export type NestedEnumGuestInteractionStatusWithAggregatesFilter<$PrismaModel = 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumGuestInteractionStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumAiThreadContextEventKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiThreadContextEventKind | Prisma.EnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel> | $Enums.AiThreadContextEventKind
+}
+
+export type NestedEnumAiThreadContextEventKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiThreadContextEventKind | Prisma.EnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiThreadContextEventKind[] | Prisma.ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiThreadContextEventKindWithAggregatesFilter<$PrismaModel> | $Enums.AiThreadContextEventKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiThreadContextEventKindFilter<$PrismaModel>
 }
 
 export type NestedBoolFilter<$PrismaModel = never> = {

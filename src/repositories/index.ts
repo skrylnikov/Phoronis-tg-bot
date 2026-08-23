@@ -1,4 +1,5 @@
 export { disconnectPrismaRepo } from '../db';
+export * from './ai-thread-context-repository';
 export * from './analytics-repository';
 export * from './background-job-repository';
 export * from './chat-repository';

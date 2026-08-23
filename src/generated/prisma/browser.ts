@@ -78,6 +78,16 @@ export type Message = Prisma.MessageModel
  */
 export type GuestInteraction = Prisma.GuestInteractionModel
 /**
+ * Model AiThreadContext
+ * 
+ */
+export type AiThreadContext = Prisma.AiThreadContextModel
+/**
+ * Model AiThreadContextEvent
+ * 
+ */
+export type AiThreadContextEvent = Prisma.AiThreadContextEventModel
+/**
  * Model Memory
  * 
  */

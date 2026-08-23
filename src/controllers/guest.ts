@@ -90,6 +90,7 @@ async function persistObservedMessage(
   message: Message,
   chatId: number,
   privateMode: boolean,
+  sessionId?: string,
 ): Promise<boolean> {
   if (!message.from || message.message_id <= 0) return false;
 
@@ -105,6 +106,7 @@ async function persistObservedMessage(
       id: BigInt(message.message_id),
       chatId: BigInt(chatId),
       senderId: BigInt(message.from.id),
+      sessionId,
       replyToMessageId: message.reply_to_message?.message_id
         ? BigInt(message.reply_to_message.message_id)
         : undefined,
@@ -197,6 +199,7 @@ export async function handleGuestMessage(ctx: BotContext): Promise<void> {
     message,
     ctx.chatId,
     privateMode,
+    message.guest_query_id,
   );
 
   const claim = await claimGuestInteraction({

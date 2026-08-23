@@ -1,6 +1,6 @@
+import type { LangfuseSpan } from '@langfuse/tracing';
 import type { ModelMessage } from 'ai';
 import { dynamicTool, stepCountIs, streamText } from 'ai';
-import type { LangfuseTraceClient } from 'langfuse';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
@@ -14,6 +14,7 @@ import {
   canUseChatHistoryTool,
   createChatHistoryTool,
   createUserInfoTool,
+  createWebTools,
   weatherTool,
   wikipediaTool,
 } from './tools';
@@ -21,7 +22,7 @@ import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,
-  trace: LangfuseTraceClient | undefined,
+  observation: LangfuseSpan | undefined,
   ctx?: BotContext,
   onTextUpdate?: (text: string) => Promise<void> | void,
   options: {
@@ -79,6 +80,7 @@ export const chatGeneration = async (
   const memoryTool = createMemoryTool(ctx);
   const clearMemoryTool = createClearMemoryTool(ctx);
   const userInfoTool = createUserInfoTool(ctx);
+  const webTools = createWebTools();
   const canReadChatHistory =
     Boolean(options.allowChatHistory) &&
     (canUseChatHistoryTool(ctx, Boolean(options.readOnlyTools)) ||
@@ -90,10 +92,6 @@ export const chatGeneration = async (
       ctx?.msg?.text ?? ctx?.msg?.caption,
       ctx?.msg?.reply_to_message?.text ?? ctx?.msg?.reply_to_message?.caption,
     );
-
-  trace?.update({
-    input: JSON.stringify(messages),
-  });
 
   const prompt = splitSystemMessages(messages);
 
@@ -111,6 +109,7 @@ export const chatGeneration = async (
     get_weather: weatherTool,
     wikipedia: wikipediaTool,
     get_user_info: userInfoTool,
+    ...(webTools ?? {}),
   };
   const writableToolSet = {
     get_weather: weatherTool,
@@ -119,6 +118,7 @@ export const chatGeneration = async (
     save_memory: memoryTool,
     clear_memory: clearMemoryTool,
     get_user_info: userInfoTool,
+    ...(webTools ?? {}),
     ...(canReadChatHistory
       ? { search_chat_history: createChatHistoryTool(ctx) }
       : {}),
@@ -170,8 +170,15 @@ export const chatGeneration = async (
     'Chat generation completed',
   );
 
-  trace?.update({
-    output: JSON.stringify(text),
+  observation?.update({
+    metadata: {
+      inputMessageCount: messages.length,
+      inputCharacters: JSON.stringify(messages).length,
+      outputCharacters: text.length,
+      latencyMs: Math.round(completedAt - generationStartedAt),
+      providerCacheRead: 'unavailable',
+      providerCacheWrite: 'unavailable',
+    },
   });
 
   return text;

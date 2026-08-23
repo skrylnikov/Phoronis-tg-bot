@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import { readLangfuseConfig } from './langfuse-config';
 import { readJobConfig, readQueueConfig } from './runtime-config';
 import { readTransportConfig } from './transport-config';
 
@@ -23,6 +24,8 @@ export const yandexS3Secret =
   process.env.YANDEX_S3_SECRET || showError('token not found in .env');
 export const routerAIToken =
   process.env.ROUTERAI_API_KEY || showError('token not found in .env');
+export const firecrawlApiKey =
+  process.env.FIRECRAWL_API_KEY?.trim() || undefined;
 export const paymentSupportContact =
   process.env.PAYMENT_SUPPORT_CONTACT ||
   showError('PAYMENT_SUPPORT_CONTACT not found in .env');
@@ -53,16 +56,7 @@ if (!Number.isSafeInteger(analyticsChatId)) {
   showError('ANALYTICS_CHAT_ID must be a Telegram chat ID');
 }
 
-export const langfuseConfig = {
-  secretKey:
-    process.env.LANGFUSE_SECRET_KEY ||
-    showError('LANGFUSE_SECRET_KEY not found in .env'),
-  publicKey:
-    process.env.LANGFUSE_PUBLIC_KEY ||
-    showError('LANGFUSE_PUBLIC_KEY not found in .env'),
-  baseUrl: process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com',
-  environment: process.env.LANGFUSE_ENVIRONMENT || 'development',
-};
+export const langfuseConfig = readLangfuseConfig(process.env);
 
 export const activateWordList = ['ио', 'форонида', 'io'];
 

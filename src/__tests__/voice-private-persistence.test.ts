@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   findFirstMessageRepo: vi.fn(),
   generateText: vi.fn(),
   getFile: vi.fn(),
-  getPrompt: vi.fn(),
   recognize: vi.fn(),
   reserveQuota: vi.fn(),
   saveMessage: vi.fn(),
@@ -14,7 +13,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../ai', () => ({
-  langfuse: { getPrompt: mocks.getPrompt },
   utilityModel: {},
 }));
 vi.mock('../ai/rich-message', () => ({
@@ -55,7 +53,6 @@ beforeEach(() => {
   mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: true });
   mocks.findFirstMessageRepo.mockResolvedValue(null);
   mocks.getFile.mockResolvedValue({ file_path: 'voice.ogg' });
-  mocks.getPrompt.mockResolvedValue({ compile: () => '' });
   mocks.generateText.mockResolvedValue({ text: 'Красивый текст' });
   mocks.recognize.mockResolvedValue('Распознанный текст');
   mocks.reserveQuota.mockResolvedValue({ allowed: true });

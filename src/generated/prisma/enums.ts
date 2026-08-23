@@ -120,6 +120,21 @@ export const GuestInteractionStatus = {
 export type GuestInteractionStatus = (typeof GuestInteractionStatus)[keyof typeof GuestInteractionStatus]
 
 
+export const AiThreadContextEventKind = {
+  INITIAL_CONTEXT: 'INITIAL_CONTEXT',
+  RETRIEVAL: 'RETRIEVAL',
+  USER_CONTEXT: 'USER_CONTEXT',
+  TURN_CONTEXT: 'TURN_CONTEXT',
+  CORRECTION: 'CORRECTION',
+  USER_MESSAGE: 'USER_MESSAGE',
+  ASSISTANT: 'ASSISTANT',
+  LEGACY_HISTORY: 'LEGACY_HISTORY',
+  CACHE_BOUNDARY: 'CACHE_BOUNDARY'
+} as const
+
+export type AiThreadContextEventKind = (typeof AiThreadContextEventKind)[keyof typeof AiThreadContextEventKind]
+
+
 export const FactType = {
   TEXT_STYLE: 'TEXT_STYLE',
   FACT: 'FACT',

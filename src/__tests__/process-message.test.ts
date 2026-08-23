@@ -24,6 +24,9 @@ vi.mock('../ai/image-description', () => ({
 vi.mock('../application/user-message-analysis', () => ({
   scheduleUserMessageAnalysis: vi.fn(),
 }));
+vi.mock('../config', () => ({
+  sessionIdGenerator: vi.fn(() => 'session'),
+}));
 vi.mock('../domain', () => ({
   releaseQuota: mocks.releaseQuota,
   reserveQuota: mocks.reserveQuota,

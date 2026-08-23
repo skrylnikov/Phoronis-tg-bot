@@ -309,6 +309,7 @@ export type MessageWhereInput = {
   replyToMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
   Replies?: Prisma.MessageListRelationFilter
   sourceFacts?: Prisma.UserFactListRelationFilter
+  aiThreadEvents?: Prisma.AiThreadContextEventListRelationFilter
 }
 
 export type MessageOrderByWithRelationInput = {
@@ -331,6 +332,7 @@ export type MessageOrderByWithRelationInput = {
   replyToMessage?: Prisma.MessageOrderByWithRelationInput
   Replies?: Prisma.MessageOrderByRelationAggregateInput
   sourceFacts?: Prisma.UserFactOrderByRelationAggregateInput
+  aiThreadEvents?: Prisma.AiThreadContextEventOrderByRelationAggregateInput
 }
 
 export type MessageWhereUniqueInput = Prisma.AtLeast<{
@@ -357,6 +359,7 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   replyToMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
   Replies?: Prisma.MessageListRelationFilter
   sourceFacts?: Prisma.UserFactListRelationFilter
+  aiThreadEvents?: Prisma.AiThreadContextEventListRelationFilter
 }, "chatId_id">
 
 export type MessageOrderByWithAggregationInput = {
@@ -418,6 +421,7 @@ export type MessageCreateInput = {
   replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
   Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateInput = {
@@ -437,6 +441,7 @@ export type MessageUncheckedCreateInput = {
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUpdateInput = {
@@ -456,6 +461,7 @@ export type MessageUpdateInput = {
   replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
   Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateInput = {
@@ -475,6 +481,7 @@ export type MessageUncheckedUpdateInput = {
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageCreateManyInput = {
@@ -774,6 +781,22 @@ export type MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput = {
   deleteMany?: Prisma.MessageScalarWhereInput | Prisma.MessageScalarWhereInput[]
 }
 
+export type MessageCreateNestedOneWithoutAiThreadEventsInput = {
+  create?: Prisma.XOR<Prisma.MessageCreateWithoutAiThreadEventsInput, Prisma.MessageUncheckedCreateWithoutAiThreadEventsInput>
+  connectOrCreate?: Prisma.MessageCreateOrConnectWithoutAiThreadEventsInput
+  connect?: Prisma.MessageWhereUniqueInput
+}
+
+export type MessageUpdateOneWithoutAiThreadEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.MessageCreateWithoutAiThreadEventsInput, Prisma.MessageUncheckedCreateWithoutAiThreadEventsInput>
+  connectOrCreate?: Prisma.MessageCreateOrConnectWithoutAiThreadEventsInput
+  upsert?: Prisma.MessageUpsertWithoutAiThreadEventsInput
+  disconnect?: Prisma.MessageWhereInput | boolean
+  delete?: Prisma.MessageWhereInput | boolean
+  connect?: Prisma.MessageWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MessageUpdateToOneWithWhereWithoutAiThreadEventsInput, Prisma.MessageUpdateWithoutAiThreadEventsInput>, Prisma.MessageUncheckedUpdateWithoutAiThreadEventsInput>
+}
+
 export type MessageCreateNestedOneWithoutSourceFactsInput = {
   create?: Prisma.XOR<Prisma.MessageCreateWithoutSourceFactsInput, Prisma.MessageUncheckedCreateWithoutSourceFactsInput>
   connectOrCreate?: Prisma.MessageCreateOrConnectWithoutSourceFactsInput
@@ -806,6 +829,7 @@ export type MessageCreateWithoutSenderInput = {
   replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
   Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutSenderInput = {
@@ -824,6 +848,7 @@ export type MessageUncheckedCreateWithoutSenderInput = {
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutSenderInput = {
@@ -888,6 +913,7 @@ export type MessageCreateWithoutChatInput = {
   replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
   Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutChatInput = {
@@ -906,6 +932,7 @@ export type MessageUncheckedCreateWithoutChatInput = {
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutChatInput = {
@@ -950,6 +977,7 @@ export type MessageCreateWithoutRepliesInput = {
   sender: Prisma.UserCreateNestedOneWithoutMessageInput
   replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
   sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutRepliesInput = {
@@ -968,6 +996,7 @@ export type MessageUncheckedCreateWithoutRepliesInput = {
   sentAt: Date | string
   private?: boolean | null
   sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutRepliesInput = {
@@ -991,6 +1020,7 @@ export type MessageCreateWithoutReplyToMessageInput = {
   sender: Prisma.UserCreateNestedOneWithoutMessageInput
   Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutReplyToMessageInput = {
@@ -1008,6 +1038,7 @@ export type MessageUncheckedCreateWithoutReplyToMessageInput = {
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
   sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutReplyToMessageInput = {
@@ -1047,6 +1078,7 @@ export type MessageUpdateWithoutRepliesInput = {
   sender?: Prisma.UserUpdateOneRequiredWithoutMessageNestedInput
   replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
   sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutRepliesInput = {
@@ -1065,6 +1097,7 @@ export type MessageUncheckedUpdateWithoutRepliesInput = {
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUpsertWithWhereUniqueWithoutReplyToMessageInput = {
@@ -1083,6 +1116,98 @@ export type MessageUpdateManyWithWhereWithoutReplyToMessageInput = {
   data: Prisma.XOR<Prisma.MessageUpdateManyMutationInput, Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageInput>
 }
 
+export type MessageCreateWithoutAiThreadEventsInput = {
+  id: bigint | number
+  sessionId?: string | null
+  modelId?: string | null
+  messageType: $Enums.MessageType
+  text?: string | null
+  media?: string | null
+  summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
+  sentAt: Date | string
+  private?: boolean | null
+  chat: Prisma.ChatCreateNestedOneWithoutMessageInput
+  sender: Prisma.UserCreateNestedOneWithoutMessageInput
+  replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
+  Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
+  sourceFacts?: Prisma.UserFactCreateNestedManyWithoutSourceMessageInput
+}
+
+export type MessageUncheckedCreateWithoutAiThreadEventsInput = {
+  id: bigint | number
+  chatId: bigint | number
+  senderId: bigint | number
+  sessionId?: string | null
+  modelId?: string | null
+  replyToMessageId?: bigint | number | null
+  messageType: $Enums.MessageType
+  text?: string | null
+  media?: string | null
+  summary?: string | null
+  searchText?: string | null
+  embeddingVersion?: number | null
+  sentAt: Date | string
+  private?: boolean | null
+  Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
+  sourceFacts?: Prisma.UserFactUncheckedCreateNestedManyWithoutSourceMessageInput
+}
+
+export type MessageCreateOrConnectWithoutAiThreadEventsInput = {
+  where: Prisma.MessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.MessageCreateWithoutAiThreadEventsInput, Prisma.MessageUncheckedCreateWithoutAiThreadEventsInput>
+}
+
+export type MessageUpsertWithoutAiThreadEventsInput = {
+  update: Prisma.XOR<Prisma.MessageUpdateWithoutAiThreadEventsInput, Prisma.MessageUncheckedUpdateWithoutAiThreadEventsInput>
+  create: Prisma.XOR<Prisma.MessageCreateWithoutAiThreadEventsInput, Prisma.MessageUncheckedCreateWithoutAiThreadEventsInput>
+  where?: Prisma.MessageWhereInput
+}
+
+export type MessageUpdateToOneWithWhereWithoutAiThreadEventsInput = {
+  where?: Prisma.MessageWhereInput
+  data: Prisma.XOR<Prisma.MessageUpdateWithoutAiThreadEventsInput, Prisma.MessageUncheckedUpdateWithoutAiThreadEventsInput>
+}
+
+export type MessageUpdateWithoutAiThreadEventsInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
+  text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  chat?: Prisma.ChatUpdateOneRequiredWithoutMessageNestedInput
+  sender?: Prisma.UserUpdateOneRequiredWithoutMessageNestedInput
+  replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
+  Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
+  sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+}
+
+export type MessageUncheckedUpdateWithoutAiThreadEventsInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  chatId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  senderId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  replyToMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  messageType?: Prisma.EnumMessageTypeFieldUpdateOperationsInput | $Enums.MessageType
+  text?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
+  sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+}
+
 export type MessageCreateWithoutSourceFactsInput = {
   id: bigint | number
   sessionId?: string | null
@@ -1099,6 +1224,7 @@ export type MessageCreateWithoutSourceFactsInput = {
   sender: Prisma.UserCreateNestedOneWithoutMessageInput
   replyToMessage?: Prisma.MessageCreateNestedOneWithoutRepliesInput
   Replies?: Prisma.MessageCreateNestedManyWithoutReplyToMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutSourceFactsInput = {
@@ -1117,6 +1243,7 @@ export type MessageUncheckedCreateWithoutSourceFactsInput = {
   sentAt: Date | string
   private?: boolean | null
   Replies?: Prisma.MessageUncheckedCreateNestedManyWithoutReplyToMessageInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutSourceFactsInput = {
@@ -1151,6 +1278,7 @@ export type MessageUpdateWithoutSourceFactsInput = {
   sender?: Prisma.UserUpdateOneRequiredWithoutMessageNestedInput
   replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
   Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutSourceFactsInput = {
@@ -1169,6 +1297,7 @@ export type MessageUncheckedUpdateWithoutSourceFactsInput = {
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageCreateManySenderInput = {
@@ -1203,6 +1332,7 @@ export type MessageUpdateWithoutSenderInput = {
   replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
   Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutSenderInput = {
@@ -1221,6 +1351,7 @@ export type MessageUncheckedUpdateWithoutSenderInput = {
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateManyWithoutSenderInput = {
@@ -1271,6 +1402,7 @@ export type MessageUpdateWithoutChatInput = {
   replyToMessage?: Prisma.MessageUpdateOneWithoutRepliesNestedInput
   Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutChatInput = {
@@ -1289,6 +1421,7 @@ export type MessageUncheckedUpdateWithoutChatInput = {
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateManyWithoutChatInput = {
@@ -1338,6 +1471,7 @@ export type MessageUpdateWithoutReplyToMessageInput = {
   sender?: Prisma.UserUpdateOneRequiredWithoutMessageNestedInput
   Replies?: Prisma.MessageUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutReplyToMessageInput = {
@@ -1355,6 +1489,7 @@ export type MessageUncheckedUpdateWithoutReplyToMessageInput = {
   private?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Replies?: Prisma.MessageUncheckedUpdateManyWithoutReplyToMessageNestedInput
   sourceFacts?: Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput
+  aiThreadEvents?: Prisma.AiThreadContextEventUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateManyWithoutReplyToMessageInput = {
@@ -1380,11 +1515,13 @@ export type MessageUncheckedUpdateManyWithoutReplyToMessageInput = {
 export type MessageCountOutputType = {
   Replies: number
   sourceFacts: number
+  aiThreadEvents: number
 }
 
 export type MessageCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Replies?: boolean | MessageCountOutputTypeCountRepliesArgs
   sourceFacts?: boolean | MessageCountOutputTypeCountSourceFactsArgs
+  aiThreadEvents?: boolean | MessageCountOutputTypeCountAiThreadEventsArgs
 }
 
 /**
@@ -1411,6 +1548,13 @@ export type MessageCountOutputTypeCountSourceFactsArgs<ExtArgs extends runtime.T
   where?: Prisma.UserFactWhereInput
 }
 
+/**
+ * MessageCountOutputType without action
+ */
+export type MessageCountOutputTypeCountAiThreadEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiThreadContextEventWhereInput
+}
+
 
 export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1432,6 +1576,7 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   replyToMessage?: boolean | Prisma.Message$replyToMessageArgs<ExtArgs>
   Replies?: boolean | Prisma.Message$RepliesArgs<ExtArgs>
   sourceFacts?: boolean | Prisma.Message$sourceFactsArgs<ExtArgs>
+  aiThreadEvents?: boolean | Prisma.Message$aiThreadEventsArgs<ExtArgs>
   _count?: boolean | Prisma.MessageCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["message"]>
 
@@ -1499,6 +1644,7 @@ export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   replyToMessage?: boolean | Prisma.Message$replyToMessageArgs<ExtArgs>
   Replies?: boolean | Prisma.Message$RepliesArgs<ExtArgs>
   sourceFacts?: boolean | Prisma.Message$sourceFactsArgs<ExtArgs>
+  aiThreadEvents?: boolean | Prisma.Message$aiThreadEventsArgs<ExtArgs>
   _count?: boolean | Prisma.MessageCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type MessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1520,6 +1666,7 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     replyToMessage: Prisma.$MessagePayload<ExtArgs> | null
     Replies: Prisma.$MessagePayload<ExtArgs>[]
     sourceFacts: Prisma.$UserFactPayload<ExtArgs>[]
+    aiThreadEvents: Prisma.$AiThreadContextEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -1935,6 +2082,7 @@ export interface Prisma__MessageClient<T, Null = never, ExtArgs extends runtime.
   replyToMessage<T extends Prisma.Message$replyToMessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$replyToMessageArgs<ExtArgs>>): Prisma.Prisma__MessageClient<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Replies<T extends Prisma.Message$RepliesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$RepliesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sourceFacts<T extends Prisma.Message$sourceFactsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$sourceFactsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserFactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aiThreadEvents<T extends Prisma.Message$aiThreadEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$aiThreadEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiThreadContextEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2443,6 +2591,30 @@ export type Message$sourceFactsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.UserFactScalarFieldEnum | Prisma.UserFactScalarFieldEnum[]
+}
+
+/**
+ * Message.aiThreadEvents
+ */
+export type Message$aiThreadEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiThreadContextEvent
+   */
+  select?: Prisma.AiThreadContextEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiThreadContextEvent
+   */
+  omit?: Prisma.AiThreadContextEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiThreadContextEventInclude<ExtArgs> | null
+  where?: Prisma.AiThreadContextEventWhereInput
+  orderBy?: Prisma.AiThreadContextEventOrderByWithRelationInput | Prisma.AiThreadContextEventOrderByWithRelationInput[]
+  cursor?: Prisma.AiThreadContextEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiThreadContextEventScalarFieldEnum | Prisma.AiThreadContextEventScalarFieldEnum[]
 }
 
 /**

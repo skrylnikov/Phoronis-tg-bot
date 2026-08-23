@@ -1,7 +1,8 @@
 import { fmt, italic } from '@grammyjs/parse-mode';
 import { generateText } from 'ai';
 import ffmpeg from 'ffmpeg.js';
-import { langfuse, utilityModel } from '../ai';
+import { utilityModel } from '../ai';
+import { renderLocalPrompt } from '../ai/local-prompts';
 import {
   createRichMessageIfNeeded,
   richMarkdownInstructions,
@@ -136,29 +137,37 @@ export const voiceController = async (ctx: BotContext) => {
 
     const result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
 
-    const [reply, beautifierPrompt, summarizePrompt, _savedVoiceMessage] =
-      await Promise.all([
-        ctx.reply(result.text, {
-          reply_to_message_id: ctx.message.message_id,
-          entities: result.entities,
-        }),
-        langfuse.getPrompt('text-beautifier'),
-        recognizedResult.length > 350
-          ? langfuse.getPrompt('voice-summarize')
-          : null,
-        saveMessage({
-          id: BigInt(ctx.msg?.message_id ?? 0),
-          chatId: BigInt(ctx.chatId),
-          senderId: BigInt(ctx.from.id),
-          sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
-          messageType: 'VOICE',
-          text: recognizedResult,
-          private: isPrivateMode,
-          replyToMessageId: ctx.msg?.reply_to_message?.message_id
-            ? BigInt(ctx.msg.reply_to_message.message_id)
-            : undefined,
-        }),
-      ]);
+    const beautifierPrompt = renderLocalPrompt('text-beautifier', {});
+    const summarizePrompt =
+      recognizedResult.length > 350
+        ? renderLocalPrompt('voice-summarize', {
+            author: [
+              ctx.from?.username ? `@${ctx.from?.username}` : null,
+              ctx.from?.first_name,
+              ctx.from?.last_name,
+            ]
+              .filter(Boolean)
+              .join(' '),
+          })
+        : null;
+    const [reply, _savedVoiceMessage] = await Promise.all([
+      ctx.reply(result.text, {
+        reply_to_message_id: ctx.message.message_id,
+        entities: result.entities,
+      }),
+      saveMessage({
+        id: BigInt(ctx.msg?.message_id ?? 0),
+        chatId: BigInt(ctx.chatId),
+        senderId: BigInt(ctx.from.id),
+        sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
+        messageType: 'VOICE',
+        text: recognizedResult,
+        private: isPrivateMode,
+        replyToMessageId: ctx.msg?.reply_to_message?.message_id
+          ? BigInt(ctx.msg.reply_to_message.message_id)
+          : undefined,
+      }),
+    ]);
 
     const voiceMessageId = ctx.msg?.message_id ?? 0;
     const [_savedBotMessage, beautifiedResult, summarizedResult] =
@@ -178,7 +187,7 @@ export const voiceController = async (ctx: BotContext) => {
         generateText({
           abortSignal: currentUpdateAbortSignal(),
           model: utilityModel,
-          instructions: `${beautifierPrompt.compile()}\n${richMarkdownInstructions}`,
+          instructions: `${beautifierPrompt}\n${richMarkdownInstructions}`,
           messages: [
             {
               role: 'user',
@@ -191,15 +200,7 @@ export const voiceController = async (ctx: BotContext) => {
           ? generateText({
               abortSignal: currentUpdateAbortSignal(),
               model: utilityModel,
-              instructions: `${summarizePrompt.compile({
-                author: [
-                  ctx.from?.username ? `@${ctx.from?.username}` : null,
-                  ctx.from?.first_name,
-                  ctx.from?.last_name,
-                ]
-                  .filter(Boolean)
-                  .join(' '),
-              })}\n${richMarkdownInstructions}`,
+              instructions: `${summarizePrompt}\n${richMarkdownInstructions}`,
               messages: [
                 {
                   role: 'user',

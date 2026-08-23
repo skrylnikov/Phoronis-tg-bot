@@ -1,3 +1,4 @@
+import type { LangfuseSpan } from '@langfuse/tracing';
 import type { ModelMessage } from 'ai';
 import type { BotContext } from '../bot';
 import {
@@ -13,8 +14,15 @@ import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchAndIndexMessage } from './embedding';
-import { langfuse } from './langfuse';
+import { withAiObservation } from './langfuse';
 import { richMarkdownInstructions } from './rich-message';
+import {
+  appendAiThreadAssistantEvent,
+  buildAiThreadContext,
+  buildChatGenerationInstructions,
+  formatAiContextTime,
+  renderChatGenerationRules,
+} from './thread-context';
 import { getRecentPublicChatContext } from './tools';
 
 function isGroupChat(ctx: BotContext): boolean {
@@ -49,7 +57,10 @@ export async function generateGuestResponse(input: {
 }): Promise<string | null> {
   const { ctx, text, referenceText, imageDescription, privateMode } = input;
   const message = ctx.guestMessage;
-  if (!message || !ctx.from || !ctx.chatId || !ctx.chat) return null;
+  if (!message?.guest_query_id || !ctx.from || !ctx.chatId || !ctx.chat) {
+    return null;
+  }
+  const guestQueryId = message.guest_query_id;
 
   const isGroup = isGroupChat(ctx);
   const reservation = await reserveQuota({
@@ -96,9 +107,8 @@ export async function generateGuestResponse(input: {
       ),
     ];
 
-    const [userList, prompt, allMemories] = await Promise.all([
+    const [userList, allMemories] = await Promise.all([
       findManyUsersRepo({ id: { in: allUserIds.map(BigInt) } }),
-      langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId, 10).catch(
         () => new Map<number, string[]>(),
       ),
@@ -112,18 +122,6 @@ export async function generateGuestResponse(input: {
       !privateMode && isGroup && !referenceText
         ? await getRecentPublicChatContext(ctx.chatId, currentMessageId)
         : null;
-    const recentChatContextText = recentChatContext?.messages.length
-      ? `\nСохранённый наблюдаемый контекст чата (это не полная история Telegram):\n${recentChatContext.messages
-          .map(
-            (item) =>
-              `[${item.sender}, ${item.sentAt}, #${item.id}] ${item.content}`,
-          )
-          .join('\n')}${
-          recentChatContext.truncated
-            ? '\nКонтекст усечён; не утверждай, что видишь всю историю.'
-            : ''
-        }`
-      : '';
     const memoriesByUser = userList
       .map((user) => {
         const memories = allMemories.get(Number(user.id)) || [];
@@ -131,97 +129,141 @@ export async function generateGuestResponse(input: {
         const identifier = user.userName
           ? `@${user.userName}`
           : user.firstName || '';
-        return `${identifier}:\n${memories.map((memory) => `- ${memory}`).join('\n')}`;
+        return { user: identifier, memories };
       })
-      .filter((value): value is string => value !== null);
-
-    const compiledPrompt = prompt.compile({
-      users: JSON.stringify(
-        userList.map((user, index) => ({
-          id: user.id.toString(),
-          firstName: user.firstName,
-          lastName: user.lastName,
-          userName: user.userName,
-          metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
-        })),
-      ),
-      rules: [
-        '- Используй tools когда это нужно',
+      .filter((value): value is { user: string; memories: string[] } =>
+        Boolean(value),
+      );
+    const previousMessages: ModelMessage[] = previousInteractions
+      .slice()
+      .reverse()
+      .flatMap((interaction) => [
+        {
+          role: 'user' as const,
+          content: JSON.stringify([
+            ...(interaction.referenceText
+              ? [{ type: 'reference', text: interaction.referenceText }]
+              : []),
+            { type: 'text', text: interaction.query },
+          ]),
+        },
+        { role: 'assistant' as const, content: interaction.answer || '' },
+      ]);
+    const currentUserMessage: ModelMessage = {
+      role: 'user',
+      content: JSON.stringify([
+        ...(referenceText ? [{ type: 'reference', text: referenceText }] : []),
+        ...(imageDescription
+          ? [
+              {
+                type: 'image',
+                image:
+                  'Пользователь прислал фотографию, описание которой: ' +
+                  imageDescription,
+              },
+            ]
+          : []),
+        { type: 'text', text: text || 'Ответь на сообщение из reference' },
+      ]),
+    };
+    const guestRules = renderChatGenerationRules(
+      {
+        short: false,
+        helpful: false,
+        interests: false,
+        username: false,
+        funny: false,
+      },
+      [
         '- Ты отвечаешь в guest mode и видишь только сохранённую ботом публичную историю; не выдавай её за полную историю чата',
         richMarkdownInstructions,
-        userContext && `\nUser context: "${userContext.join('", "')}"`,
-        chatContext && `\nChat context: "${chatContext.join('", "')}"`,
-        recentChatContextText,
-        memoriesByUser.length > 0
-          ? `\nИнформация из памяти:\n${memoriesByUser.join('\n\n')}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      time: new Date()
-        .toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        })
-        .replace(',', ''),
-    });
+      ],
+    );
+    let contextResult: Awaited<ReturnType<typeof buildAiThreadContext>>;
+    try {
+      contextResult = await buildAiThreadContext({
+        threadId: guestQueryId,
+        chatId: BigInt(ctx.chatId),
+        rootMessageId:
+          message.message_id > 0 ? BigInt(message.message_id) : undefined,
+        turnId: guestQueryId,
+        rules: guestRules,
+        userContext: {
+          users: userList.map((user, index) => ({
+            id: user.id.toString(),
+            firstName: user.firstName,
+            lastName: user.lastName,
+            userName: user.userName,
+            metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
+          })),
+          memories: memoriesByUser,
+        },
+        retrievalContext:
+          userContext || chatContext || recentChatContext
+            ? { userContext, chatContext, recentChatContext }
+            : undefined,
+        time: formatAiContextTime(),
+        currentUserMessage,
+        legacyHistory: previousMessages,
+        messageId:
+          message.message_id > 0 ? BigInt(message.message_id) : undefined,
+      });
+    } catch (error) {
+      logger.error(
+        { event: 'guest.context_build_failed', err: error },
+        'Failed to build durable guest AI context; using current history',
+      );
+      contextResult = {
+        instructions: buildChatGenerationInstructions(guestRules),
+        messages: [...previousMessages, currentUserMessage],
+        telemetry: {
+          promptVersion: 3,
+          promptHash: 'unavailable',
+          threadId: guestQueryId,
+          cacheBoundary: 0,
+          stablePrefixCharacters:
+            buildChatGenerationInstructions(guestRules).length,
+          dynamicCharacters: JSON.stringify([
+            ...previousMessages,
+            currentUserMessage,
+          ]).length,
+          providerCacheRead: 'unavailable',
+          providerCacheWrite: 'unavailable',
+        },
+      };
+    }
 
     const messages: ModelMessage[] = [
-      { role: 'system', content: compiledPrompt },
-      ...previousInteractions
-        .slice()
-        .reverse()
-        .flatMap((interaction) => [
-          {
-            role: 'user' as const,
-            content: JSON.stringify([
-              ...(interaction.referenceText
-                ? [{ type: 'reference', text: interaction.referenceText }]
-                : []),
-              { type: 'text', text: interaction.query },
-            ]),
-          },
-          { role: 'assistant' as const, content: interaction.answer || '' },
-        ]),
-      {
-        role: 'user',
-        content: JSON.stringify([
-          ...(referenceText
-            ? [{ type: 'reference', text: referenceText }]
-            : []),
-          ...(imageDescription
-            ? [
-                {
-                  type: 'image',
-                  image:
-                    'Пользователь прислал фотографию, описание которой: ' +
-                    imageDescription,
-                },
-              ]
-            : []),
-          { type: 'text', text: text || 'Ответь на сообщение из reference' },
-        ]),
-      },
+      { role: 'system', content: contextResult.instructions },
+      ...contextResult.messages,
     ];
-
-    const trace = langfuse.trace({
-      name: 'guest-generation',
-      sessionId: message.guest_query_id,
-      userId: message.from?.id.toString() ?? null,
-      metadata: { chatType: message.chat.type },
-    });
-    const result = await chatGeneration(messages, trace, ctx, undefined, {
-      readOnlyTools: true,
-      allowChatHistory: !privateMode && isGroup,
-      allowChatHistoryReadOnly: true,
-      model,
-    });
+    const result = await withAiObservation(
+      'guest-generation',
+      {
+        sessionId: guestQueryId,
+        userId: message.from?.id.toString(),
+        metadata: { chatType: message.chat.type, ...contextResult.telemetry },
+      },
+      (observation: LangfuseSpan) =>
+        chatGeneration(messages, observation, ctx, undefined, {
+          readOnlyTools: true,
+          allowChatHistory: !privateMode && isGroup,
+          allowChatHistoryReadOnly: true,
+          model,
+        }),
+    );
     if (!result) return null;
+
+    await appendAiThreadAssistantEvent(
+      guestQueryId,
+      guestQueryId,
+      result,
+    ).catch((error) =>
+      logger.error(
+        { event: 'guest.context_assistant_event_persist_failed', err: error },
+        'Failed to persist guest assistant context event',
+      ),
+    );
 
     completed = true;
     return result;

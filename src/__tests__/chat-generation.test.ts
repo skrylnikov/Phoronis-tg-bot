@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { streamText } = vi.hoisted(() => ({
+const { createWebTools, streamText } = vi.hoisted(() => ({
+  createWebTools: vi.fn(),
   streamText: vi.fn(),
 }));
 
@@ -24,6 +25,7 @@ vi.mock('../ai/tools', () => ({
   ),
   createChatHistoryTool: vi.fn(() => ({ execute: vi.fn() })),
   createUserInfoTool: vi.fn(() => ({})),
+  createWebTools,
   weatherTool: {},
   wikipediaTool: {},
 }));
@@ -55,6 +57,7 @@ function createContext(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  createWebTools.mockReturnValue(undefined);
   streamText.mockImplementation(() => ({
     textStream: (async function* () {})(),
     text: Promise.resolve('Готово'),
@@ -62,6 +65,28 @@ beforeEach(() => {
 });
 
 describe('chat history tool selection', () => {
+  it('records safe generation metrics without raw prompt telemetry', async () => {
+    const trace = { update: vi.fn() };
+
+    await chatGeneration(
+      [
+        { role: 'system', content: 'PRIVATE PROMPT' },
+        { role: 'user', content: 'PRIVATE CONTEXT' },
+      ],
+      trace as never,
+    );
+
+    expect(trace.update).toHaveBeenCalledWith({
+      metadata: expect.objectContaining({
+        inputMessageCount: 2,
+        providerCacheRead: 'unavailable',
+        providerCacheWrite: 'unavailable',
+      }),
+    });
+    expect(trace.update.mock.calls[0]?.[0]).not.toHaveProperty('input');
+    expect(trace.update.mock.calls[0]?.[0]).not.toHaveProperty('output');
+  });
+
   it('requires history search before answering a history question', async () => {
     await chatGeneration(
       [{ role: 'user', content: 'Ио, когда мы обсуждали фильмы?' }],
@@ -117,9 +142,42 @@ describe('chat history tool selection', () => {
     );
 
     const options = streamText.mock.calls[0]?.[0] as {
+      tools: Record<string, unknown>;
       prepareStep?: unknown;
     };
     expect(options.prepareStep).toBeUndefined();
+    expect(options.tools).not.toHaveProperty('read_web_page');
+  });
+
+  it('registers web tools in ordinary and read-only modes', async () => {
+    const webTools = { read_web_page: {}, search_web: {} };
+    createWebTools.mockReturnValue(webTools);
+
+    await chatGeneration(
+      [{ role: 'user', content: 'прочитай https://example.test' }],
+      undefined,
+      createContext('прочитай https://example.test'),
+    );
+    const writable = streamText.mock.calls[0]?.[0] as {
+      tools: Record<string, unknown>;
+    };
+    expect(writable.tools).toEqual(expect.objectContaining(webTools));
+    expect(writable.tools).toHaveProperty('set_greeting');
+
+    await chatGeneration(
+      [{ role: 'user', content: 'прочитай https://example.test' }],
+      undefined,
+      createContext('прочитай https://example.test'),
+      undefined,
+      { readOnlyTools: true },
+    );
+    const readOnly = streamText.mock.calls[1]?.[0] as {
+      tools: Record<string, unknown>;
+    };
+    expect(readOnly.tools).toEqual(expect.objectContaining(webTools));
+    expect(readOnly.tools).not.toHaveProperty('set_greeting');
+    expect(readOnly.tools).not.toHaveProperty('save_memory');
+    expect(readOnly.tools).not.toHaveProperty('clear_memory');
   });
 
   it('requires history search for an explicit chat-search follow-up', async () => {

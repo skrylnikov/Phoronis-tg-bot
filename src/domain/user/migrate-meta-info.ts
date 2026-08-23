@@ -60,7 +60,7 @@ interface FactItem {
   weight: number;
 }
 
-function convertMetaInfoToFacts(metaInfo: UserMetaInfo): FactItem[] {
+export function convertMetaInfoToFacts(metaInfo: UserMetaInfo): FactItem[] {
   const facts: FactItem[] = [];
 
   if (metaInfo.interests) {

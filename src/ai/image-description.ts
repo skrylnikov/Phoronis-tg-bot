@@ -4,7 +4,7 @@ import type { BotContext } from '../bot';
 import { token } from '../config';
 import { currentUpdateAbortSignal } from '../update-signal';
 import { utilityModel } from './ai';
-import { langfuse } from './langfuse';
+import { renderLocalPrompt } from './local-prompts';
 
 export async function describeTelegramPhoto(
   ctx: BotContext,
@@ -13,11 +13,10 @@ export async function describeTelegramPhoto(
   const fileLink = await ctx.api.getFile(photo.file_id);
   if (!fileLink.file_path)
     throw new Error('Telegram did not return photo path');
-  const prompt = await langfuse.getPrompt('image-description');
   const response = await generateText({
     abortSignal: currentUpdateAbortSignal(),
     model: utilityModel,
-    instructions: prompt.compile(),
+    instructions: renderLocalPrompt('image-description', {}),
     messages: [
       {
         role: 'user',

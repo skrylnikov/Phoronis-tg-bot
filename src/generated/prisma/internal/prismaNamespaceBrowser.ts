@@ -63,6 +63,8 @@ export const ModelName = {
   BackgroundJob: 'BackgroundJob',
   Message: 'Message',
   GuestInteraction: 'GuestInteraction',
+  AiThreadContext: 'AiThreadContext',
+  AiThreadContextEvent: 'AiThreadContextEvent',
   Memory: 'Memory',
   UserFact: 'UserFact',
   FactImpact: 'FactImpact',
@@ -269,6 +271,36 @@ export const GuestInteractionScalarFieldEnum = {
 } as const
 
 export type GuestInteractionScalarFieldEnum = (typeof GuestInteractionScalarFieldEnum)[keyof typeof GuestInteractionScalarFieldEnum]
+
+
+export const AiThreadContextScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  rootMessageId: 'rootMessageId',
+  promptVersion: 'promptVersion',
+  promptHash: 'promptHash',
+  rules: 'rules',
+  cacheBoundary: 'cacheBoundary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiThreadContextScalarFieldEnum = (typeof AiThreadContextScalarFieldEnum)[keyof typeof AiThreadContextScalarFieldEnum]
+
+
+export const AiThreadContextEventScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  sequence: 'sequence',
+  turnId: 'turnId',
+  eventKind: 'eventKind',
+  messageChatId: 'messageChatId',
+  messageId: 'messageId',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type AiThreadContextEventScalarFieldEnum = (typeof AiThreadContextEventScalarFieldEnum)[keyof typeof AiThreadContextEventScalarFieldEnum]
 
 
 export const MemoryScalarFieldEnum = {

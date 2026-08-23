@@ -1,3 +1,4 @@
+import type { LangfuseSpan } from '@langfuse/tracing';
 import type { ModelMessage } from 'ai';
 import { InlineKeyboard } from 'grammy';
 import {
@@ -30,9 +31,17 @@ import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
-import { langfuse } from './langfuse';
+import { withAiObservation } from './langfuse';
 import { richMarkdownInstructions } from './rich-message';
 import { TelegramStreamSink } from './telegram-stream';
+import {
+  appendAiThreadAssistantEvent,
+  buildAiThreadContext,
+  buildChatGenerationInstructions,
+  chooseChatGenerationRules,
+  formatAiContextTime,
+  renderChatGenerationRules,
+} from './thread-context';
 import { getRecentPublicChatContext } from './tools';
 import type { TypingStatus } from './typing-status';
 
@@ -295,11 +304,18 @@ export const aiController = async (
 
     if (msg.reply_to_message) {
       if (replyToMessage?.sessionId) {
-        list = await getThreadBySessionId(
+        const sessionThread = await getThreadBySessionId(
           ctx.chatId ?? 0,
           BigInt(msg.reply_to_message.message_id),
           replyToMessage.sessionId,
         );
+        list =
+          sessionThread.length > 0 && !sessionThread[0]?.replyToMessageId
+            ? sessionThread
+            : await getThread(
+                ctx.chatId ?? 0,
+                BigInt(msg.reply_to_message.message_id),
+              );
       } else {
         list = await getThread(
           ctx.chatId ?? 0,
@@ -390,11 +406,10 @@ export const aiController = async (
       ),
     ];
 
-    const [userList, prompt, allMemories] = await Promise.all([
+    const [userList, allMemories] = await Promise.all([
       findManyUsersRepo({
         id: { in: allUserIds.map(BigInt) },
       }),
-      langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId ?? 0, 10).catch(
         () => new Map(),
       ),
@@ -402,30 +417,6 @@ export const aiController = async (
 
     const userFactsPromises = userList.map((user) => getTopUserFacts(user.id));
     const userFactsResults = await Promise.all(userFactsPromises);
-
-    const trace =
-      options.persistResponse === false
-        ? undefined
-        : langfuse.trace({
-            name: 'chat-generation',
-            sessionId,
-            userId: ctx.from?.id?.toString() || null,
-            metadata: {
-              userName: [
-                ctx.from?.username ? `@${ctx.from?.username}` : null,
-                ctx.from?.first_name,
-                ctx.from?.last_name,
-              ]
-                .filter(Boolean)
-                .join(' '),
-            },
-          });
-
-    const isHelpful = Math.random() < 0.3;
-    const isUseUsername = Math.random() < 0.2;
-    const isInterests = Math.random() < 0.1;
-    const isShort = Math.random() < 0.5;
-    const isFunny = !isHelpful && Math.random() < 0.1;
 
     const recentChatContext =
       options.includeRecentChatContext &&
@@ -435,96 +426,125 @@ export const aiController = async (
       !msg.reply_to_message
         ? await getRecentPublicChatContext(ctx.chatId, msg.message_id)
         : null;
-    const recentChatContextText = recentChatContext?.messages.length
-      ? `\nСвежий контекст чата (сообщения непосредственно перед текущим запросом):\n${recentChatContext.messages
-          .map(
-            (message) =>
-              `[${message.sender}, ${message.sentAt}, #${message.id}] ${message.content}`,
-          )
-          .join('\n')}${
-          recentChatContext.truncated
-            ? '\nКонтекст усечён по размеру; не утверждай, что видишь всю историю.'
-            : ''
-        }`
-      : '';
-
-    const compiledPrompt = prompt.compile({
-      users: JSON.stringify(
-        userList.map((x, i) => ({
-          id: x.id.toString(),
-          firstName: x.firstName,
-          lastName: x.lastName,
-          userName: x.userName,
-          metaInfo: convertFactsToMetaInfo(userFactsResults[i]),
-        })),
-      ),
-      rules: [
-        '- Используй tools когда это нужно',
-        richMarkdownInstructions,
-        isShort && '- Отвечай кратко',
-        isHelpful && '- Будь полезной и старайся помочь',
-        isInterests &&
-          '- Иногда предлагай пообщаться на интересные пользователю темы',
-        isUseUsername &&
-          '- В ответах если это уместно, иногда используй имя собеседника',
-        isFunny && '- Отвечай с саркастическим юмором',
-        userContext && `\nUser context: "${userContext.join('", "')}"`,
-        chatContext && `\nChat context: "${chatContext.join('", "')}"`,
-        recentChatContextText,
-        (() => {
-          const memoriesByUser = userList
-            .map((user) => {
-              const userMemories = allMemories.get(Number(user.id)) || [];
-              if (userMemories.length === 0) return null;
-              const userIdentifier = user.userName
-                ? `@${user.userName}`
-                : user.firstName || '';
-              return `${userIdentifier}:\n${userMemories.map((m: string) => `- ${m}`).join('\n')}`;
-            })
-            .filter((m): m is string => m !== null);
-
-          return memoriesByUser.length > 0
-            ? `\nИнформация из памяти:\n${memoriesByUser.join('\n\n')}`
-            : '';
-        })(),
-      ]
-        .filter(Boolean)
-        .join('\n'),
-
-      time: new Date()
-        .toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        })
-        .replace(',', ''),
-    });
-
+    const memoriesByUser = userList
+      .map((user) => {
+        const userMemories = allMemories.get(Number(user.id)) || [];
+        if (userMemories.length === 0) return null;
+        const userIdentifier = user.userName
+          ? `@${user.userName}`
+          : user.firstName || '';
+        return {
+          user: userIdentifier,
+          memories: userMemories,
+        };
+      })
+      .filter((value): value is { user: string; memories: string[] } =>
+        Boolean(value),
+      );
+    const selectedRules = chooseChatGenerationRules();
+    const threadRules = renderChatGenerationRules(selectedRules, [
+      richMarkdownInstructions,
+    ]);
+    const currentUserMessage = rawMessages.at(-1) as ModelMessage;
+    let contextResult: Awaited<ReturnType<typeof buildAiThreadContext>>;
+    if (options.persistResponse === false) {
+      const instructions = buildChatGenerationInstructions(threadRules);
+      contextResult = {
+        instructions,
+        messages: rawMessages as ModelMessage[],
+        telemetry: {
+          promptVersion: 3,
+          promptHash: 'unavailable',
+          threadId: sessionId,
+          cacheBoundary: 0,
+          stablePrefixCharacters: instructions.length,
+          dynamicCharacters: JSON.stringify(rawMessages).length,
+          providerCacheRead: 'unavailable',
+          providerCacheWrite: 'unavailable',
+        },
+      };
+    } else {
+      try {
+        contextResult = await buildAiThreadContext({
+          threadId: sessionId,
+          chatId: BigInt(ctx.chatId),
+          rootMessageId: BigInt(
+            msg.reply_to_message?.message_id ?? msg.message_id,
+          ),
+          turnId: String(msg.message_id),
+          rules: threadRules,
+          userContext: {
+            users: userList.map((user, index) => ({
+              id: user.id.toString(),
+              firstName: user.firstName,
+              lastName: user.lastName,
+              userName: user.userName,
+              metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
+            })),
+            memories: memoriesByUser,
+          },
+          retrievalContext:
+            userContext || chatContext || recentChatContext
+              ? { userContext, chatContext, recentChatContext }
+              : undefined,
+          time: formatAiContextTime(),
+          currentUserMessage,
+          legacyHistory: rawMessages.slice(0, -1) as ModelMessage[],
+          messageId: BigInt(msg.message_id),
+        });
+      } catch (error) {
+        logger.error(
+          { event: 'ai.context_build_failed', err: error },
+          'Failed to build durable AI context; using current history',
+        );
+        const instructions = buildChatGenerationInstructions(threadRules);
+        contextResult = {
+          instructions,
+          messages: rawMessages as ModelMessage[],
+          telemetry: {
+            promptVersion: 3,
+            promptHash: 'unavailable',
+            threadId: sessionId,
+            cacheBoundary: 0,
+            stablePrefixCharacters: instructions.length,
+            dynamicCharacters: JSON.stringify(rawMessages).length,
+            providerCacheRead: 'unavailable',
+            providerCacheWrite: 'unavailable',
+          },
+        };
+      }
+    }
     const messages: ModelMessage[] = [
-      {
-        role: 'system',
-        content: compiledPrompt,
-      },
-      ...(rawMessages as ModelMessage[]),
+      { role: 'system', content: contextResult.instructions },
+      ...contextResult.messages,
     ];
 
-    const result = await chatGeneration(
-      messages,
-      trace,
-      ctx,
-      (streamedText) => streamSink?.update(streamedText),
-      {
-        readOnlyTools: options.readOnlyTools,
-        allowChatHistory:
-          options.includeRecentChatContext === true &&
-          options.persistResponse !== false,
-        model,
-      },
-    );
+    const generate = (observation?: LangfuseSpan) =>
+      chatGeneration(
+        messages,
+        observation,
+        ctx,
+        (streamedText) => streamSink?.update(streamedText),
+        {
+          readOnlyTools: options.readOnlyTools,
+          allowChatHistory:
+            options.includeRecentChatContext === true &&
+            options.persistResponse !== false,
+          model,
+        },
+      );
+    const result =
+      options.persistResponse === false
+        ? await generate()
+        : await withAiObservation(
+            'chat-generation',
+            {
+              sessionId,
+              userId: ctx.from?.id?.toString(),
+              metadata: contextResult.telemetry,
+            },
+            generate,
+          );
 
     // logger.debug(
     //   `AI request for user ${JSON.stringify({
@@ -562,6 +582,7 @@ export const aiController = async (
           id: BigInt(reply.message_id),
           chatId: BigInt(ctx.chatId ?? 0),
           senderId: BigInt(reply.from?.id ?? 0),
+          sessionId,
           replyToMessageId: ctx.msg?.message_id
             ? BigInt(ctx.msg.message_id)
             : undefined,
@@ -571,6 +592,18 @@ export const aiController = async (
           private: options.privateMode ?? false,
           modelId: model.modelId,
         });
+        try {
+          await appendAiThreadAssistantEvent(
+            sessionId,
+            String(msg.message_id),
+            result.toString(),
+          );
+        } catch (err) {
+          logger.error(
+            { event: 'ai.context_assistant_event_persist_failed', err },
+            'Failed to persist AI assistant context event',
+          );
+        }
       } catch (err) {
         logger.error(
           {

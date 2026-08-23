@@ -134,6 +134,23 @@ describe('saveMessage parent check', () => {
 
     expect(prismaMessageCreate.mock.calls[0][0].data.modelId).toBe(null);
   });
+
+  it('persists the AI thread session ID', async () => {
+    prismaMessageCreate.mockResolvedValueOnce({});
+
+    await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Thread message',
+      sessionId: 'thread-123',
+    });
+
+    expect(prismaMessageCreate.mock.calls[0][0].data.sessionId).toBe(
+      'thread-123',
+    );
+  });
 });
 
 describe('saveMessage idempotency', () => {

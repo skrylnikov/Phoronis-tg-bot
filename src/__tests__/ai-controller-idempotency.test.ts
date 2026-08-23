@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   findManyUsersRepo: vi.fn(),
   findMessageWithSelectRepo: vi.fn(),
   getRecentMemoriesForUsers: vi.fn(),
-  getPrompt: vi.fn(),
   getTopUserFacts: vi.fn(),
   loggerError: vi.fn(),
   reserveQuota: vi.fn(),
@@ -64,7 +63,9 @@ vi.mock('../ai/chat-generation', () => ({
 }));
 vi.mock('../ai/embedding', () => ({ searchContext: vi.fn() }));
 vi.mock('../ai/langfuse', () => ({
-  langfuse: { getPrompt: mocks.getPrompt, trace: vi.fn() },
+  withAiObservation: vi.fn((_name, _options, callback) =>
+    callback({ update: vi.fn() }),
+  ),
 }));
 vi.mock('../ai/rich-message', () => ({ richMarkdownInstructions: '' }));
 vi.mock('../ai/telegram-stream', () => ({
@@ -110,9 +111,6 @@ describe('AI response idempotency', () => {
     mocks.extractMentionedUserIds.mockResolvedValue([]);
     mocks.getRecentMemoriesForUsers.mockResolvedValue(new Map());
     mocks.findManyUsersRepo.mockResolvedValue([]);
-    mocks.getPrompt.mockResolvedValue({
-      compile: vi.fn().mockReturnValue('compiled prompt'),
-    });
     mocks.chatGeneration.mockResolvedValue('Ответ');
     const streamSink = {
       cancel: vi.fn(),
@@ -160,9 +158,6 @@ describe('AI response idempotency', () => {
     mocks.extractMentionedUserIds.mockResolvedValue([]);
     mocks.getRecentMemoriesForUsers.mockResolvedValue(new Map());
     mocks.findManyUsersRepo.mockResolvedValue([]);
-    mocks.getPrompt.mockResolvedValue({
-      compile: vi.fn().mockReturnValue('compiled prompt'),
-    });
     mocks.chatGeneration.mockResolvedValue('Ответ');
     mocks.streamSinkCreate.mockResolvedValue({
       cancel: vi.fn(),

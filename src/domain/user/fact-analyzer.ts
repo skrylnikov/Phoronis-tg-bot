@@ -6,7 +6,7 @@ import {
   searchSimilarFacts,
   updateFactEmbedding,
 } from '../../ai/embedding/store';
-import { langfuse } from '../../ai/langfuse';
+import { renderLocalPrompt } from '../../ai/local-prompts';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import {
@@ -381,8 +381,7 @@ export async function analyzeUserMetaInfo(
       .map((f) => `[${f.type}] ${f.content} (вес: ${f.weight})`)
       .join('\n');
 
-    const prompt = await langfuse.getPrompt('meta-analyzer');
-    const systemPrompt = prompt.compile();
+    const systemPrompt = renderLocalPrompt('meta-analyzer', {});
 
     const userPrompt = `Проанализируй сообщения пользователя и извлеки информацию о нём.
 

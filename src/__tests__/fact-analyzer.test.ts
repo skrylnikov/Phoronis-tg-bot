@@ -12,7 +12,6 @@ const mocks = vi.hoisted(() => ({
   },
   generateObject: vi.fn(),
   generateText: vi.fn(),
-  getPrompt: vi.fn(),
   embedQueryAndPassage: vi.fn(),
   searchSimilarFacts: vi.fn(),
   updateFactEmbedding: vi.fn(),
@@ -42,10 +41,6 @@ vi.mock('../ai/embedding/store', () => ({
   updateFactEmbedding: mocks.updateFactEmbedding,
 }));
 
-vi.mock('../ai/langfuse', () => ({
-  langfuse: { getPrompt: mocks.getPrompt },
-}));
-
 vi.mock('../db', () => ({ prisma: mocks.prisma }));
 vi.mock('../logger', () => ({ logger: mocks.logger }));
 
@@ -70,7 +65,6 @@ function createMessage(id: bigint, text: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPrompt.mockResolvedValue({ compile: () => 'system prompt' });
   mocks.embedQueryAndPassage.mockResolvedValue({
     queryEmbedding: [0.1],
     passageEmbedding: [0.2],

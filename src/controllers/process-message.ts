@@ -9,6 +9,7 @@ import { describeTelegramPhoto } from '../ai/image-description';
 import { startTypingStatus } from '../ai/typing-status';
 import { scheduleUserMessageAnalysis } from '../application/user-message-analysis';
 import type { BotContext } from '../bot';
+import { sessionIdGenerator } from '../config';
 import {
   releaseQuota,
   reserveQuota,
@@ -40,6 +41,19 @@ interface TelegramReactionsMessage {
 
 function isGroupChat(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+}
+
+async function resolveSessionId(
+  chatId: number,
+  replyToMessageId: number | undefined,
+): Promise<string> {
+  if (!replyToMessageId) return sessionIdGenerator();
+  const parent = await findMessageWithSelectRepo(
+    BigInt(chatId),
+    BigInt(replyToMessageId),
+    { sessionId: true },
+  );
+  return parent?.sessionId || sessionIdGenerator();
 }
 
 function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
@@ -190,13 +204,14 @@ processMessageController.on(':text', async (ctx) => {
       privateModeEnabled: true,
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
+    const replyToMessageId = ctx.msg.reply_to_message?.message_id;
+    const sessionId = await resolveSessionId(ctx.chatId, replyToMessageId);
     const saveResult = await saveMessage({
       id: BigInt(ctx.msg.message_id),
       chatId: BigInt(ctx.chatId),
       senderId: BigInt(ctx.from.id),
-      replyToMessageId: ctx.msg.reply_to_message?.message_id
-        ? BigInt(ctx.msg.reply_to_message.message_id)
-        : undefined,
+      sessionId,
+      replyToMessageId: replyToMessageId ? BigInt(replyToMessageId) : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
@@ -334,13 +349,14 @@ processMessageController.on(':photo', async (ctx) => {
     const isPrivateMode = chat?.privateModeEnabled ?? false;
     const photo = selectOptimalPhoto(ctx.msg.photo);
     if (!photo) return;
+    const replyToMessageId = ctx.msg.reply_to_message?.message_id;
+    const sessionId = await resolveSessionId(ctx.chatId, replyToMessageId);
     const saveResult = await saveMessage({
       id: BigInt(ctx.msg.message_id),
       chatId: BigInt(ctx.chatId),
       senderId: BigInt(ctx.from.id),
-      replyToMessageId: ctx.msg.reply_to_message?.message_id
-        ? BigInt(ctx.msg.reply_to_message.message_id)
-        : undefined,
+      sessionId,
+      replyToMessageId: replyToMessageId ? BigInt(replyToMessageId) : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.caption,
       messageType: 'MEDIA',

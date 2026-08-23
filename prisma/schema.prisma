@@ -56,6 +56,7 @@ model Chat {
   PaymentOrder             PaymentOrder[]
   PurchaseSession          PurchaseSession[]
   LimitNotice              LimitNotice[]
+  AiThreadContext          AiThreadContext[]
 }
 
 enum SubscriptionPlan {
@@ -279,6 +280,7 @@ model Message {
   private          Boolean?                    @default(false)
   Replies          Message[]                   @relation("replies")
   sourceFacts      UserFact[]                  @relation("UserFactSourceMessage")
+  aiThreadEvents   AiThreadContextEvent[]
 
   @@id([chatId, id])
   @@index([sessionId])
@@ -305,6 +307,55 @@ model GuestInteraction {
   @@index([chatId, createdAt])
   @@index([userId, createdAt])
   @@index([status, updatedAt])
+}
+
+model AiThreadContext {
+  id             String   @id
+  chatId         BigInt
+  chat           Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  rootMessageId  BigInt?
+  promptVersion  Int
+  promptHash     String
+  rules          Json
+  cacheBoundary  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  events AiThreadContextEvent[]
+
+  @@index([chatId, updatedAt])
+  @@index([chatId, rootMessageId])
+}
+
+enum AiThreadContextEventKind {
+  INITIAL_CONTEXT
+  RETRIEVAL
+  USER_CONTEXT
+  TURN_CONTEXT
+  CORRECTION
+  USER_MESSAGE
+  ASSISTANT
+  LEGACY_HISTORY
+  CACHE_BOUNDARY
+}
+
+model AiThreadContextEvent {
+  id             String                    @id @default(cuid())
+  threadId       String
+  thread         AiThreadContext           @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sequence       Int
+  turnId         String
+  eventKind      AiThreadContextEventKind
+  messageChatId  BigInt?
+  messageId      BigInt?
+  message        Message?                  @relation(fields: [messageChatId, messageId], references: [chatId, id], onDelete: SetNull)
+  payload        Json?
+  createdAt      DateTime                  @default(now())
+
+  @@unique([threadId, sequence])
+  @@unique([threadId, turnId, eventKind])
+  @@index([threadId, createdAt])
+  @@index([messageChatId, messageId])
 }
 
 model Memory {

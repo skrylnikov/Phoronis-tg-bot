@@ -64,6 +64,7 @@ export interface SaveMessageParams {
   summary?: string;
   sentAt: Date;
   senderId: bigint;
+  sessionId?: string | null;
   media?: string | null;
   replyToMessageId?: bigint;
   messageType?: string;
@@ -89,6 +90,7 @@ export const saveMessage = async (
         id: message.id,
         chatId: message.chatId,
         senderId: message.senderId,
+        sessionId: message.sessionId ?? null,
         sentAt: message.sentAt,
         text: message.text ?? message.caption ?? null,
         summary: message.summary ?? null,

@@ -409,6 +409,8 @@ export const ModelName = {
   BackgroundJob: 'BackgroundJob',
   Message: 'Message',
   GuestInteraction: 'GuestInteraction',
+  AiThreadContext: 'AiThreadContext',
+  AiThreadContextEvent: 'AiThreadContextEvent',
   Memory: 'Memory',
   UserFact: 'UserFact',
   FactImpact: 'FactImpact',
@@ -428,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "memory" | "userFact" | "factImpact" | "factHistory"
+    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "factImpact" | "factHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1320,6 +1322,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiThreadContext: {
+      payload: Prisma.$AiThreadContextPayload<ExtArgs>
+      fields: Prisma.AiThreadContextFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiThreadContextFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiThreadContextFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        findFirst: {
+          args: Prisma.AiThreadContextFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiThreadContextFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        findMany: {
+          args: Prisma.AiThreadContextFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>[]
+        }
+        create: {
+          args: Prisma.AiThreadContextCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        createMany: {
+          args: Prisma.AiThreadContextCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiThreadContextCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>[]
+        }
+        delete: {
+          args: Prisma.AiThreadContextDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        update: {
+          args: Prisma.AiThreadContextUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiThreadContextDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiThreadContextUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiThreadContextUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiThreadContextUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextPayload>
+        }
+        aggregate: {
+          args: Prisma.AiThreadContextAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiThreadContext>
+        }
+        groupBy: {
+          args: Prisma.AiThreadContextGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiThreadContextGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiThreadContextCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiThreadContextCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiThreadContextEvent: {
+      payload: Prisma.$AiThreadContextEventPayload<ExtArgs>
+      fields: Prisma.AiThreadContextEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiThreadContextEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiThreadContextEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        findFirst: {
+          args: Prisma.AiThreadContextEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiThreadContextEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        findMany: {
+          args: Prisma.AiThreadContextEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>[]
+        }
+        create: {
+          args: Prisma.AiThreadContextEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        createMany: {
+          args: Prisma.AiThreadContextEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiThreadContextEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>[]
+        }
+        delete: {
+          args: Prisma.AiThreadContextEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        update: {
+          args: Prisma.AiThreadContextEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiThreadContextEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiThreadContextEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiThreadContextEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiThreadContextEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiThreadContextEventPayload>
+        }
+        aggregate: {
+          args: Prisma.AiThreadContextEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiThreadContextEvent>
+        }
+        groupBy: {
+          args: Prisma.AiThreadContextEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiThreadContextEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiThreadContextEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiThreadContextEventCountAggregateOutputType> | number
+        }
+      }
+    }
     Memory: {
       payload: Prisma.$MemoryPayload<ExtArgs>
       fields: Prisma.MemoryFieldRefs
@@ -1841,6 +1991,36 @@ export const GuestInteractionScalarFieldEnum = {
 export type GuestInteractionScalarFieldEnum = (typeof GuestInteractionScalarFieldEnum)[keyof typeof GuestInteractionScalarFieldEnum]
 
 
+export const AiThreadContextScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  rootMessageId: 'rootMessageId',
+  promptVersion: 'promptVersion',
+  promptHash: 'promptHash',
+  rules: 'rules',
+  cacheBoundary: 'cacheBoundary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiThreadContextScalarFieldEnum = (typeof AiThreadContextScalarFieldEnum)[keyof typeof AiThreadContextScalarFieldEnum]
+
+
+export const AiThreadContextEventScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  sequence: 'sequence',
+  turnId: 'turnId',
+  eventKind: 'eventKind',
+  messageChatId: 'messageChatId',
+  messageId: 'messageId',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type AiThreadContextEventScalarFieldEnum = (typeof AiThreadContextEventScalarFieldEnum)[keyof typeof AiThreadContextEventScalarFieldEnum]
+
+
 export const MemoryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2201,6 +2381,20 @@ export type ListEnumGuestInteractionStatusFieldRefInput<$PrismaModel> = FieldRef
 
 
 /**
+ * Reference to a field of type 'AiThreadContextEventKind'
+ */
+export type EnumAiThreadContextEventKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiThreadContextEventKind'>
+    
+
+
+/**
+ * Reference to a field of type 'AiThreadContextEventKind[]'
+ */
+export type ListEnumAiThreadContextEventKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiThreadContextEventKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'FactType'
  */
 export type EnumFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FactType'>
@@ -2390,6 +2584,8 @@ export type GlobalOmitConfig = {
   backgroundJob?: Prisma.BackgroundJobOmit
   message?: Prisma.MessageOmit
   guestInteraction?: Prisma.GuestInteractionOmit
+  aiThreadContext?: Prisma.AiThreadContextOmit
+  aiThreadContextEvent?: Prisma.AiThreadContextEventOmit
   memory?: Prisma.MemoryOmit
   userFact?: Prisma.UserFactOmit
   factImpact?: Prisma.FactImpactOmit
