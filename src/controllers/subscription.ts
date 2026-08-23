@@ -2,8 +2,6 @@ import { InlineKeyboard } from 'grammy';
 import { sendPurchaseNotification } from '../analytics';
 import type { BotContext } from '../bot';
 import { paymentSupportContact } from '../config';
-import type { SubscriptionPlan } from '../generated/prisma/client';
-import { logger } from '../logger';
 import {
   acceptPurchaseTerms,
   activatePayment,
@@ -25,7 +23,9 @@ import {
   saveUser,
   subscriptionPlans,
   validatePaymentOrder,
-} from '../shared';
+} from '../domain';
+import type { SubscriptionPlan } from '../generated/prisma/client';
+import { logger } from '../logger';
 
 function isGroup(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';

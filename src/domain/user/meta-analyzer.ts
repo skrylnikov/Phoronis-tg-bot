@@ -2,9 +2,12 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { utilityModel } from '../../ai/ai';
 import { langfuse } from '../../ai/langfuse';
-import { prisma } from '../../db';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
+import {
+  findUserMetaByIdRepo,
+  updateUserMetaInfoRepo,
+} from '../../repositories/user-meta-repository';
 
 const userMetaInfoSchema = z.object({
   interests: z.array(
@@ -267,9 +270,7 @@ export async function updateUserMetaInfo(
   newInfo: Partial<UserMetaInfo>,
 ) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await findUserMetaByIdRepo(userId, { metaInfo: true });
 
     const currentMeta = userMetaInfoSchema.safeParse(user?.metaInfo || {});
 
@@ -277,12 +278,7 @@ export async function updateUserMetaInfo(
       ? mergeMetaInfo(currentMeta.data, newInfo)
       : newInfo;
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        metaInfo: updatedMeta,
-      },
-    });
+    await updateUserMetaInfoRepo(userId, updatedMeta);
 
     return updatedMeta;
   } catch (err) {

@@ -1,9 +1,16 @@
 import type { Update } from '@grammyjs/types';
 import type { Bot } from 'grammy';
 import type { BotContext } from './bot';
-import { prisma } from './db';
-import { Prisma } from './generated/prisma/client';
+import type { Prisma } from './generated/prisma/client';
 import { logger } from './logger';
+import {
+  claimNextTelegramUpdateRepo,
+  cleanupTelegramUpdatesRepo,
+  enqueueTelegramUpdateRepo,
+  isDuplicatePrismaErrorRepo,
+  markTelegramUpdateCompletedRepo,
+  markTelegramUpdateFailedRepo,
+} from './repositories';
 
 const normalWorkerCount = 3;
 const leaseDurationMs = 5 * 60 * 1000;
@@ -163,68 +170,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function isDuplicateError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
+  return isDuplicatePrismaErrorRepo(error);
 }
 
 async function claimNextUpdate(
   lane: QueueLane,
   workerId: string,
 ): Promise<QueuedUpdate | undefined> {
-  const rows = await prisma.$queryRaw<
-    Array<{
-      updateId: bigint;
-      payload: Update;
-      partitionKey: string;
-      lane: QueueLane;
-      attempts: number;
-      receivedAt: Date;
-    }>
-  >`
-    WITH candidate AS (
-      SELECT candidate_item."updateId"
-      FROM "TelegramUpdate" AS candidate_item
-      WHERE candidate_item."lane" = ${lane}::"TelegramUpdateLane"
-        AND (
-          (
-            candidate_item."status" = 'PENDING'::"TelegramUpdateStatus"
-            AND candidate_item."availableAt" <= NOW()
-          )
-          OR (
-            candidate_item."status" = 'PROCESSING'::"TelegramUpdateStatus"
-            AND candidate_item."leaseUntil" < NOW()
-          )
-        )
-        AND NOT EXISTS (
-          SELECT 1
-          FROM "TelegramUpdate" AS older
-          WHERE older."partitionKey" = candidate_item."partitionKey"
-            AND older."lane" = candidate_item."lane"
-            AND older."updateId" < candidate_item."updateId"
-            AND older."status" IN (
-              'PENDING'::"TelegramUpdateStatus",
-              'PROCESSING'::"TelegramUpdateStatus"
-            )
-        )
-      ORDER BY candidate_item."updateId"
-      FOR UPDATE SKIP LOCKED
-      LIMIT 1
-    )
-    UPDATE "TelegramUpdate" AS item
-    SET "status" = 'PROCESSING'::"TelegramUpdateStatus",
-        "attempts" = item."attempts" + 1,
-        "leaseUntil" = NOW() + ${leaseDurationMs} * INTERVAL '1 millisecond',
-        "workerId" = ${workerId},
-        "startedAt" = NOW(),
-        "lastError" = NULL
-    FROM candidate
-    WHERE item."updateId" = candidate."updateId"
-    RETURNING item."updateId", item."payload", item."partitionKey", item."lane", item."attempts", item."receivedAt"
-  `;
-
-  const row = rows[0];
+  const row = await claimNextTelegramUpdateRepo(
+    lane,
+    workerId,
+    leaseDurationMs,
+  );
   return row
     ? {
         updateId: row.updateId,
@@ -242,20 +199,11 @@ async function markCompleted(
   workerId: string,
   startedAt: number,
 ): Promise<boolean> {
-  const result = await prisma.telegramUpdate.updateMany({
-    where: {
-      updateId: update.updateId,
-      status: 'PROCESSING',
-      workerId,
-    },
-    data: {
-      status: 'COMPLETED',
-      completedAt: new Date(),
-      leaseUntil: null,
-      workerId: null,
-    },
-  });
-  if (result.count === 0) {
+  const result = await markTelegramUpdateCompletedRepo(
+    update.updateId,
+    workerId,
+  );
+  if (result === 0) {
     logger.warn(
       {
         event: 'update.lease_lost',
@@ -279,30 +227,14 @@ async function markFailed(
   error: unknown,
 ): Promise<void> {
   const message = getErrorMessage(error);
-  const data = {
-    leaseUntil: null,
-    workerId: null,
-    lastError: message,
-  };
-  const result = await prisma.telegramUpdate.updateMany({
-    where: {
-      updateId: update.updateId,
-      status: 'PROCESSING',
-      workerId,
-    },
-    data:
-      update.attempts >= maxAttempts
-        ? { ...data, status: 'FAILED' as const }
-        : {
-            ...data,
-            status: 'PENDING' as const,
-            availableAt: new Date(
-              Date.now() +
-                Math.min(30 * 60 * 1000, 5000 * 2 ** (update.attempts - 1)),
-            ),
-          },
-  });
-  if (result.count === 0) {
+  const result = await markTelegramUpdateFailedRepo(
+    update.updateId,
+    workerId,
+    update.attempts,
+    maxAttempts,
+    message,
+  );
+  if (result === 0) {
     logger.warn(
       {
         event: 'update.lease_lost',
@@ -355,28 +287,17 @@ async function markFailed(
 }
 
 async function cleanupUpdates(): Promise<void> {
-  const now = Date.now();
-  const [completed, failed] = await Promise.all([
-    prisma.telegramUpdate.deleteMany({
-      where: {
-        status: 'COMPLETED',
-        completedAt: { lt: new Date(now - completedRetentionMs) },
-      },
-    }),
-    prisma.telegramUpdate.deleteMany({
-      where: {
-        status: 'FAILED',
-        receivedAt: { lt: new Date(now - failedRetentionMs) },
-      },
-    }),
-  ]);
+  const [completed, failed] = await cleanupTelegramUpdatesRepo(
+    completedRetentionMs,
+    failedRetentionMs,
+  );
 
-  if (completed.count > 0 || failed.count > 0) {
+  if (completed > 0 || failed > 0) {
     logger.info(
       {
         event: 'update.cleanup_completed',
-        completedDeleted: completed.count,
-        failedDeleted: failed.count,
+        completedDeleted: completed,
+        failedDeleted: failed,
       },
       'Telegram update inbox cleanup completed',
     );
@@ -497,14 +418,12 @@ export function createTelegramUpdateQueue(
     async enqueue(update) {
       const { lane, partitionKey } = classifyTelegramUpdate(update);
       try {
-        await prisma.telegramUpdate.create({
-          data: {
-            updateId: BigInt(update.update_id),
-            payload: update as unknown as Prisma.InputJsonValue,
-            partitionKey,
-            lane,
-          },
-        });
+        await enqueueTelegramUpdateRepo(
+          BigInt(update.update_id),
+          update as unknown as Prisma.InputJsonValue,
+          partitionKey,
+          lane,
+        );
         logger.info(
           {
             event: 'update.enqueued',

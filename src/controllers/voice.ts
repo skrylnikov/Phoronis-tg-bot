@@ -1,6 +1,5 @@
 import { fmt, italic } from '@grammyjs/parse-mode';
 import { generateText } from 'ai';
-import axios from 'axios';
 import ffmpeg from 'ffmpeg.js';
 import { langfuse, utilityModel } from '../ai';
 import {
@@ -11,15 +10,15 @@ import {
 import type { BotContext } from '../bot';
 import { token } from '../config.js';
 
-import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   releaseQuota,
   reserveQuota,
   saveChat,
   saveMessage,
   saveUser,
-} from '../shared';
+} from '../domain';
+import { logger } from '../logger';
+import { findFirstMessageRepo, updateMessageFieldsRepo } from '../repositories';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -37,15 +36,15 @@ export const voiceController = async (ctx: BotContext) => {
     const chatId = ctx.chatId;
 
     await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
-    const existingVoiceMessage = await prisma.message.findUnique({
-      where: {
-        chatId_id: {
-          chatId,
-          id: ctx.message.message_id,
-        },
+    const existingVoiceMessage = await findFirstMessageRepo(
+      {
+        chatId,
+        id: BigInt(ctx.message.message_id),
       },
-      select: { id: true },
-    });
+      {
+        select: { id: true },
+      },
+    );
     if (existingVoiceMessage) {
       logger.info(
         { event: 'message.duplicate_skipped', messageType: 'VOICE' },
@@ -73,10 +72,13 @@ export const voiceController = async (ctx: BotContext) => {
       return;
     }
 
-    const rawFile = await axios.get(
+    const response = await fetch(
       `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`,
-      { responseType: 'arraybuffer' },
     );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+    const rawFile = await response.arrayBuffer();
 
     logger.debug(
       {
@@ -87,10 +89,11 @@ export const voiceController = async (ctx: BotContext) => {
       },
       'Voice recognition started',
     );
-    let file = rawFile.data;
+
+    let file: Buffer;
     if (ctx.message.video_note) {
       const result = ffmpeg({
-        MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile.data) }],
+        MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile) }],
         arguments: [
           '-i',
           'test.mp4',
@@ -103,6 +106,8 @@ export const voiceController = async (ctx: BotContext) => {
         ],
       });
       file = Buffer.from(result.MEMFS[0].data);
+    } else {
+      file = Buffer.from(rawFile);
     }
 
     const recognizedResult = await yandex.speechkit.recognize({
@@ -122,7 +127,7 @@ export const voiceController = async (ctx: BotContext) => {
 
     const result = fmt`${recognizedResult}\n\n${italic}Крашу текст...${italic}`;
 
-    const [reply, beautifierPrompt, summarizePrompt, savedVoiceMessage] =
+    const [reply, beautifierPrompt, summarizePrompt, _savedVoiceMessage] =
       await Promise.all([
         ctx.reply(result.text, {
           reply_to_message_id: ctx.message.message_id,
@@ -133,26 +138,31 @@ export const voiceController = async (ctx: BotContext) => {
           ? langfuse.getPrompt('voice-summarize')
           : null,
         saveMessage({
-          id: ctx.msg?.message_id ?? 0,
-          chatId: ctx.chatId,
-          senderId: ctx.from.id,
+          id: BigInt(ctx.msg?.message_id ?? 0),
+          chatId: BigInt(ctx.chatId),
+          senderId: BigInt(ctx.from.id),
           sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
           messageType: 'VOICE',
           text: recognizedResult,
-          replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+          replyToMessageId: ctx.msg?.reply_to_message?.message_id
+            ? BigInt(ctx.msg.reply_to_message.message_id)
+            : undefined,
         }),
       ]);
 
-    const [savedBotMessage, beautifiedResult, summarizedResult] =
+    const voiceMessageId = ctx.msg?.message_id ?? 0;
+    const [_savedBotMessage, beautifiedResult, summarizedResult] =
       await Promise.all([
         saveMessage({
-          id: reply.message_id,
-          chatId: ctx.chatId,
-          senderId: reply.from?.id ?? 0,
+          id: BigInt(reply.message_id),
+          chatId: BigInt(ctx.chatId),
+          senderId: BigInt(reply.from?.id ?? 0),
           sentAt: new Date(reply.date * 1000),
           messageType: 'VOICE',
           text: reply.text,
-          replyToMessageId: ctx.message?.message_id,
+          replyToMessageId: ctx.message?.message_id
+            ? BigInt(ctx.message.message_id)
+            : undefined,
         }),
         generateText({
           model: utilityModel,
@@ -223,29 +233,13 @@ export const voiceController = async (ctx: BotContext) => {
 
     await Promise.all([
       updateVoiceMessage(),
-      prisma.message.update({
-        where: {
-          chatId_id: {
-            chatId: savedVoiceMessage.chatId,
-            id: savedVoiceMessage.id,
-          },
-        },
-        data: {
-          summary: summarizedResult?.text,
-          text: beautifiedResult.text,
-        },
+      updateMessageFieldsRepo(BigInt(ctx.chatId), BigInt(voiceMessageId), {
+        summary: summarizedResult?.text,
+        text: beautifiedResult.text,
       }),
-      prisma.message.update({
-        where: {
-          chatId_id: {
-            chatId: savedBotMessage.chatId,
-            id: savedBotMessage.id,
-          },
-        },
-        data: {
-          summary: summarizedResult?.text,
-          text: beautifiedResult.text,
-        },
+      updateMessageFieldsRepo(BigInt(ctx.chatId), BigInt(reply.message_id), {
+        summary: summarizedResult?.text,
+        text: beautifiedResult.text,
       }),
     ]);
     completed = true;

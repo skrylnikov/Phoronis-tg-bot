@@ -28,8 +28,15 @@ const {
 }));
 
 vi.mock('../ai/guest-generation', () => ({ generateGuestResponse }));
+vi.mock('../config', () => ({
+  langfuseConfig: { secretKey: 'sk-test', publicKey: 'pk-test' },
+}));
+vi.mock('../logger', () => ({
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+vi.mock('../ai/ai', () => ({}));
 vi.mock('../db', () => ({ prisma }));
-vi.mock('../shared', () => ({
+vi.mock('../domain', () => ({
   claimGuestInteraction,
   markGuestInteractionAnswered,
   markGuestInteractionFailed: vi.fn().mockResolvedValue(undefined),
@@ -39,14 +46,18 @@ vi.mock('../shared', () => ({
   saveMessage: vi.fn().mockResolvedValue(undefined),
   saveUser: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('../ai/rich-message', () => ({
+  createRichMessageIfNeeded: vi.fn().mockReturnValue({ markdown: '## Готово' }),
+  toMarkdownV2: vi.fn().mockReturnValue('## Готово'),
+}));
 vi.mock('../ai/image-description', () => ({
   describeTelegramPhoto: vi.fn(),
 }));
-vi.mock('../tools/user/message-analyzer', () => ({
+vi.mock('../domain/user/message-analyzer', () => ({
   analyzeUserMessages: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../logger', () => ({
-  logger: { warn: vi.fn() },
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
 import { extractGuestQuery, handleGuestMessage } from '../controllers/guest';

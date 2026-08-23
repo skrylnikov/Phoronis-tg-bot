@@ -1,8 +1,13 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
 import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from '../../advisory-lock';
-import { prisma } from '../../db';
 import { logger } from '../../logger';
+import { findUserFactsRepo } from '../../repositories/user-fact-repository';
+import {
+  createUserFactForMigrationRepo,
+  findUsersForMigrationRepo,
+  updateUserMetaInfoRepo,
+} from '../../repositories/user-meta-repository';
 
 const userMetaInfoSchema = z.object({
   interests: z
@@ -118,9 +123,7 @@ async function migrateUserMetaInfo(
   const facts = convertMetaInfoToFacts(metaInfo);
   const totalCount = facts.length;
 
-  const existingFacts = await prisma.userFact.findMany({
-    where: { userId },
-  });
+  const existingFacts = await findUserFactsRepo(userId);
 
   const existingContents = new Set(existingFacts.map((f) => f.content));
 
@@ -134,15 +137,13 @@ async function migrateUserMetaInfo(
     }
 
     try {
-      await prisma.userFact.create({
-        data: {
-          userId,
-          content: fact.content,
-          type: fact.type,
-          weight: fact.weight,
-          createdAt: MIGRATION_DATE,
-          updatedAt: MIGRATION_DATE,
-        },
+      await createUserFactForMigrationRepo({
+        userId,
+        content: fact.content,
+        type: fact.type,
+        weight: fact.weight,
+        createdAt: MIGRATION_DATE,
+        updatedAt: MIGRATION_DATE,
       });
 
       migratedCount++;
@@ -185,7 +186,7 @@ export async function migrateNextBatchOfUsers() {
   let totalMigrated = 0;
 
   while (true) {
-    const allUsers = await prisma.user.findMany({
+    const allUsers = await findUsersForMigrationRepo({
       take: MIGRATION_BATCH_SIZE * 3,
       orderBy: { id: 'asc' },
       ...(lastProcessedUserId != null && {
@@ -231,12 +232,7 @@ export async function migrateNextBatchOfUsers() {
       totalMigrated += result.migratedCount;
 
       if (!result.hadErrors && result.migratedCount === result.totalCount) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            metaInfo: {},
-          },
-        });
+        await updateUserMetaInfoRepo(user.id, {});
       } else if (result.hadErrors) {
         logger.error(
           {

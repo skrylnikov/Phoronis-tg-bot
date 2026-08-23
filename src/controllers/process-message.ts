@@ -7,17 +7,21 @@ import {
 } from '../ai';
 import { describeTelegramPhoto } from '../ai/image-description';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   releaseQuota,
   reserveQuota,
   saveChat,
-  saveMessageIfAbsent,
+  saveMessage,
   saveUser,
-} from '../shared';
-import { recordUserReaction } from '../tools/user/fact-impact-tracker';
-import { analyzeUserMessages } from '../tools/user/message-analyzer';
+} from '../domain';
+import { recordUserReaction } from '../domain/user/fact-impact-tracker';
+import { analyzeUserMessages } from '../domain/user/message-analyzer';
+import { logger } from '../logger';
+import {
+  findChatByIdRepo,
+  findMessageWithSelectRepo,
+  updateMessageSummaryRepo,
+} from '../repositories';
 import { handleError } from '../utils/error-handler';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -123,12 +127,11 @@ async function findPhotoInReplyChain(
       const dbMessage: {
         media: string | null;
         replyToMessageId: bigint | null;
-      } | null = await prisma.message.findUnique({
-        where: {
-          chatId_id: { chatId: ctx.chatId, id: currentMessage.message_id },
-        },
-        select: { media: true, replyToMessageId: true },
-      });
+      } | null = await findMessageWithSelectRepo(
+        BigInt(ctx.chatId),
+        BigInt(currentMessage.message_id),
+        { media: true, replyToMessageId: true },
+      );
 
       if (!dbMessage?.replyToMessageId) break;
 
@@ -181,28 +184,35 @@ processMessageController.on(':text', async (ctx) => {
       saveUser(ctx.me),
     ]);
 
-    const chat = await prisma.chat.findUnique({
-      where: { id: ctx.chatId },
-      select: { privateModeEnabled: true },
+    const chat = await findChatByIdRepo(BigInt(ctx.chatId), {
+      privateModeEnabled: true,
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
-    const savedMessage = await saveMessageIfAbsent({
-      id: ctx.msg.message_id,
-      chatId: ctx.chatId,
-      senderId: ctx.from.id,
-      replyToMessageId: ctx.msg.reply_to_message?.message_id,
+    const saveResult = await saveMessage({
+      id: BigInt(ctx.msg.message_id),
+      chatId: BigInt(ctx.chatId),
+      senderId: BigInt(ctx.from.id),
+      replyToMessageId: ctx.msg.reply_to_message?.message_id
+        ? BigInt(ctx.msg.reply_to_message.message_id)
+        : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
-      private: isPrivateMode,
+      private: isPrivateMode ?? false,
     });
-    if (!savedMessage.created) {
-      logger.info(
-        { event: 'message.duplicate_skipped', messageType: 'TEXT' },
-        'Duplicate text message skipped before AI processing',
+
+    if (!saveResult.created) {
+      logger.debug(
+        {
+          event: 'message.duplicate_skipped',
+          messageId: ctx.msg.message_id,
+          chatId: ctx.chatId,
+        },
+        'Duplicate message skipped',
       );
       return;
     }
+
     if (!isPrivateMode) {
       void analyzeUserMessages(ctx).catch((error) =>
         logger.error(
@@ -253,12 +263,11 @@ processMessageController.on(':text', async (ctx) => {
       ctx.msg.reply_to_message,
     );
     if (photoInChain) {
-      const savedReply = await prisma.message.findUnique({
-        where: {
-          chatId_id: { chatId: ctx.chatId, id: photoInChain.messageId },
-        },
-        select: { summary: true },
-      });
+      const savedReply = await findMessageWithSelectRepo(
+        BigInt(ctx.chatId),
+        BigInt(photoInChain.messageId),
+        { summary: true },
+      );
       imageDescription = savedReply?.summary ?? undefined;
       if (!imageDescription) {
         const reservation = await reserveQuota({
@@ -277,12 +286,11 @@ processMessageController.on(':text', async (ctx) => {
             photoInChain.photo,
           );
           if (savedReply) {
-            await prisma.message.update({
-              where: {
-                chatId_id: { chatId: ctx.chatId, id: photoInChain.messageId },
-              },
-              data: { summary: imageDescription },
-            });
+            await updateMessageSummaryRepo(
+              BigInt(ctx.chatId),
+              BigInt(photoInChain.messageId),
+              imageDescription,
+            );
           }
         } catch (error) {
           await releaseQuota(reservation);
@@ -312,28 +320,35 @@ processMessageController.on(':photo', async (ctx) => {
       saveUser(ctx.me),
     ]);
 
-    const chat = await prisma.chat.findUnique({
-      where: { id: ctx.chatId },
-      select: { privateModeEnabled: true },
+    const chat = await findChatByIdRepo(BigInt(ctx.chatId), {
+      privateModeEnabled: true,
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
     const photo = selectOptimalPhoto(ctx.msg.photo);
     if (!photo) return;
-    const savedMessage = await saveMessageIfAbsent({
-      id: ctx.msg.message_id,
-      chatId: ctx.chatId,
-      senderId: ctx.from.id,
-      replyToMessageId: ctx.msg.reply_to_message?.message_id,
+    const saveResult = await saveMessage({
+      id: BigInt(ctx.msg.message_id),
+      chatId: BigInt(ctx.chatId),
+      senderId: BigInt(ctx.from.id),
+      replyToMessageId: ctx.msg.reply_to_message?.message_id
+        ? BigInt(ctx.msg.reply_to_message.message_id)
+        : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.caption,
       messageType: 'MEDIA',
       media: JSON.stringify({ fileId: photo.file_id, mimeType: 'image/jpeg' }),
-      private: isPrivateMode,
+      private: isPrivateMode ?? false,
     });
-    if (!savedMessage.created) {
-      logger.info(
-        { event: 'message.duplicate_skipped', messageType: 'MEDIA' },
-        'Duplicate media message skipped before AI processing',
+
+    if (!saveResult.created) {
+      logger.debug(
+        {
+          event: 'message.duplicate_skipped',
+          messageId: ctx.msg.message_id,
+          chatId: ctx.chatId,
+          messageType: 'MEDIA',
+        },
+        'Duplicate photo message skipped',
       );
       return;
     }
@@ -364,15 +379,11 @@ processMessageController.on(':photo', async (ctx) => {
     let imageDescription: string;
     try {
       imageDescription = await describeTelegramPhoto(ctx, photo);
-      await prisma.message.update({
-        where: {
-          chatId_id: {
-            chatId: savedMessage.message.chatId,
-            id: savedMessage.message.id,
-          },
-        },
-        data: { summary: imageDescription },
-      });
+      await updateMessageSummaryRepo(
+        BigInt(ctx.chatId),
+        BigInt(ctx.msg.message_id),
+        imageDescription,
+      );
     } catch (error) {
       await releaseQuota(reservation);
       throw error;

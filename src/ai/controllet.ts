@@ -1,12 +1,7 @@
 import type { ModelMessage } from 'ai';
-import { format } from 'date-fns';
 import { InlineKeyboard } from 'grammy';
-import { unique } from 'remeda';
 import type { BotContext } from '../bot';
 import { sessionIdGenerator } from '../config';
-import { prisma } from '../db';
-import type { Message, User } from '../generated/prisma/client';
-import { logger } from '../logger';
 import {
   createPurchaseSession,
   releaseQuota,
@@ -15,10 +10,17 @@ import {
   saveMessage,
   saveUser,
   shouldSendLimitNotice,
-} from '../shared';
-import { getRecentMemoriesForUsers } from '../tools/memory';
-import { extractMentionedUserIds } from '../tools/shared/entities';
-import { getTopUserFacts } from '../tools/user/fact-analyzer';
+} from '../domain';
+import { extractMentionedUserIds } from '../domain/entities';
+import { getRecentMemoriesForUsers } from '../domain/memory';
+import { getTopUserFacts } from '../domain/user/fact-analyzer';
+import type { Message, User } from '../generated/prisma/client';
+import { logger } from '../logger';
+import {
+  findManyMessagesRepo,
+  findMessageWithSelectRepo,
+} from '../repositories/message-repository';
+import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchContext } from './embedding';
@@ -48,18 +50,20 @@ function convertFactsToMetaInfo(
 const getThread = async (chatId: number, messageId: bigint | null) => {
   const result: Array<Message & { sender: User }> = [];
   while (messageId) {
-    const messages = await prisma.message.findMany({
-      where: {
+    const messages = (await findManyMessagesRepo(
+      {
         chatId,
         id: {
           gte: messageId,
         },
       },
-      include: {
-        sender: true,
+      {
+        include: {
+          sender: true,
+        },
+        take: 10,
       },
-      take: 10,
-    });
+    )) as unknown as Array<Message & { sender: User }>;
 
     if (messages.length === 0) {
       break;
@@ -90,16 +94,18 @@ const getThreadBySessionId = async (
   sessionId: string,
 ) => {
   const result: Array<Message & { sender: User }> = [];
-  const messages = await prisma.message.findMany({
-    where: {
+  const messages = (await findManyMessagesRepo(
+    {
       chatId,
       sessionId,
     },
-    include: {
-      sender: true,
+    {
+      include: {
+        sender: true,
+      },
+      take: 10,
     },
-    take: 10,
-  });
+  )) as unknown as Array<Message & { sender: User }>;
 
   let lastId: bigint | null = messageId;
   while (lastId) {
@@ -245,18 +251,14 @@ export const aiController = async (
 
     const replyToMessage = options.ephemeralReceiverUserId
       ? null
-      : await prisma.message.findUnique({
-          where: {
-            chatId_id: {
-              chatId: ctx.chatId ?? 0,
-              id: msg.message_id,
-            },
-          },
-          select: {
+      : await findMessageWithSelectRepo(
+          BigInt(ctx.chatId ?? 0),
+          BigInt(msg.message_id),
+          {
             id: true,
             sessionId: true,
           },
-        });
+        );
 
     const sessionId = replyToMessage?.sessionId || sessionIdGenerator();
 
@@ -347,19 +349,19 @@ export const aiController = async (
 
     const mentionedIds = await extractMentionedUserIds(ctx);
 
-    const allUserIds = unique(
-      [
-        ctx.from?.id,
-        ...list.map((x) => Number(x.sender.id)),
-        ...mentionedIds,
-      ].filter((x): x is number => x !== undefined),
-    );
+    const allUserIds = [
+      ...new Set(
+        [
+          ctx.from?.id,
+          ...list.map((x) => Number(x.sender.id)),
+          ...mentionedIds,
+        ].filter((x): x is number => x !== undefined),
+      ),
+    ];
 
     const [userList, prompt, allMemories] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          id: { in: allUserIds.map(BigInt) },
-        },
+      findManyUsersRepo({
+        id: { in: allUserIds.map(BigInt) },
       }),
       langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId ?? 0, 10).catch(
@@ -458,7 +460,17 @@ export const aiController = async (
         .filter(Boolean)
         .join('\n'),
 
-      time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
+      time: new Date()
+        .toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        })
+        .replace(',', ''),
     });
 
     const messages: ModelMessage[] = [
@@ -513,10 +525,12 @@ export const aiController = async (
 
       try {
         await saveMessage({
-          id: reply.message_id,
-          chatId: ctx.chatId ?? 0,
-          senderId: reply.from?.id ?? 0,
-          replyToMessageId: ctx.msg?.message_id,
+          id: BigInt(reply.message_id),
+          chatId: BigInt(ctx.chatId ?? 0),
+          senderId: BigInt(reply.from?.id ?? 0),
+          replyToMessageId: ctx.msg?.message_id
+            ? BigInt(ctx.msg.message_id)
+            : undefined,
           sentAt: new Date(reply.date * 1000),
           messageType: 'TEXT',
           text: result.toString(),

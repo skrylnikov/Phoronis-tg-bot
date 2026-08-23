@@ -1,6 +1,6 @@
 import { Composer } from 'grammy';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
+import { findChatByIdRepo, updateChatRepo } from '../repositories';
 
 export const privateController = new Composer<BotContext>();
 
@@ -12,9 +12,8 @@ privateController.command('private', async (ctx) => {
     return;
   }
 
-  const chat = await prisma.chat.findUnique({
-    where: { id: ctx.chatId },
-    select: { privateModeEnabled: true },
+  const chat = await findChatByIdRepo(BigInt(ctx.chatId), {
+    privateModeEnabled: true,
   });
 
   if (!chat) {
@@ -24,9 +23,8 @@ privateController.command('private', async (ctx) => {
 
   const newValue = !chat.privateModeEnabled;
 
-  await prisma.chat.update({
-    where: { id: ctx.chatId },
-    data: { privateModeEnabled: newValue },
+  await updateChatRepo(BigInt(ctx.chatId), {
+    privateModeEnabled: newValue,
   });
 
   const status = newValue ? '✅ Включён' : '❌ Выключен';

@@ -1,7 +1,6 @@
 import type { Context } from 'grammy';
-
+import { saveMessage } from '../domain';
 import { logger } from '../logger';
-import { saveMessage } from '../shared';
 
 export const meController = async (ctx: Context) => {
   try {
@@ -15,9 +14,9 @@ export const meController = async (ctx: Context) => {
       await ctx.api.deleteMessage(ctx.message.chat.id, ctx.message.message_id);
 
       await saveMessage({
-        id: reply.message_id,
-        chatId: ctx.message.chat.id,
-        senderId: reply.from?.id ?? 0,
+        id: BigInt(reply.message_id),
+        chatId: BigInt(ctx.message.chat.id),
+        senderId: BigInt(reply.from?.id ?? 0),
         sentAt: new Date(reply.date * 1000),
         messageType: 'TEXT',
         text: result,

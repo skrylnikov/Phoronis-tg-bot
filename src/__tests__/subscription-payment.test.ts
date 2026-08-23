@@ -11,7 +11,7 @@ vi.mock('../analytics', () => ({
   sendPurchaseNotification: mocks.sendPurchaseNotification,
 }));
 vi.mock('../config', () => ({ paymentSupportContact: '@support' }));
-vi.mock('../shared', () => ({
+vi.mock('../domain', () => ({
   activatePayment: mocks.activatePayment,
   getPlanTitle: mocks.getPlanTitle,
   paymentTermsVersion: '2026-07-28',

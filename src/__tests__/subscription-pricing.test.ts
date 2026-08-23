@@ -4,8 +4,8 @@ import {
   getMoscowDay,
   getPersonalDailyLimits,
   planDetails,
-} from '../shared/quota-service';
-import { getDiscountedPrice } from '../shared/subscriptions';
+} from '../domain/quota-service';
+import { getDiscountedPrice } from '../domain/subscriptions';
 
 describe('subscription pricing', () => {
   it('applies 20% August promotion discount on all plans while active', () => {

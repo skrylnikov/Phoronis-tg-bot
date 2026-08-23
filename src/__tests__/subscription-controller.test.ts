@@ -17,7 +17,7 @@ const {
 
 vi.mock('../config', () => ({ paymentSupportContact: '@support' }));
 vi.mock('../analytics', () => ({ sendPurchaseNotification: vi.fn() }));
-vi.mock('../shared', () => ({
+vi.mock('../domain', () => ({
   acceptPurchaseTerms,
   formatSubscriptionCatalog,
   getMinimumPurchasablePlan,

@@ -11,8 +11,8 @@ const { prisma, getAllUserFacts, getUserPersonalMemories } = vi.hoisted(() => ({
 }));
 
 vi.mock('../db', () => ({ prisma }));
-vi.mock('../tools/memory', () => ({ getUserPersonalMemories }));
-vi.mock('../tools/user/fact-analyzer', () => ({ getAllUserFacts }));
+vi.mock('../domain/memory', () => ({ getUserPersonalMemories }));
+vi.mock('../domain/user/fact-analyzer', () => ({ getAllUserFacts }));
 
 import { createUserInfoTool } from '../ai/tools/user-info';
 

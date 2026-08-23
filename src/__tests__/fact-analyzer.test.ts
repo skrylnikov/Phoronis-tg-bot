@@ -49,7 +49,7 @@ vi.mock('../ai/langfuse', () => ({
 vi.mock('../db', () => ({ prisma: mocks.prisma }));
 vi.mock('../logger', () => ({ logger: mocks.logger }));
 
-import { analyzeUserMetaInfo } from '../tools/user/fact-analyzer';
+import { analyzeUserMetaInfo } from '../domain/user/fact-analyzer';
 
 function createMessage(id: bigint, text: string) {
   return {

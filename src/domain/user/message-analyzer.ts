@@ -1,7 +1,10 @@
 import type { BotContext } from '../../bot';
-import { prisma } from '../../db';
 import { logger } from '../../logger';
-import { releaseQuota, reserveQuota } from '../../shared/quota-service';
+import {
+  countMessagesRepo,
+  findMessagesRepo,
+} from '../../repositories/message-repository';
+import { releaseQuota, reserveQuota } from '../quota-service';
 import { analyzeUserMetaInfo } from './fact-analyzer';
 
 function isGroupChat(ctx: BotContext): boolean {
@@ -11,8 +14,10 @@ function isGroupChat(ctx: BotContext): boolean {
 export async function analyzeUserMessages(ctx: BotContext): Promise<void> {
   if (!ctx.from || !ctx.chatId) return;
 
-  const messageCount = await prisma.message.count({
-    where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
+  const messageCount = await countMessagesRepo({
+    chatId: BigInt(ctx.chatId),
+    senderId: BigInt(ctx.from.id),
+    private: false,
   });
   if (messageCount % 30 !== 0) return;
 
@@ -31,11 +36,10 @@ export async function analyzeUserMessages(ctx: BotContext): Promise<void> {
   }
 
   try {
-    const lastMessages = await prisma.message.findMany({
-      where: { chatId: ctx.chatId, senderId: ctx.from.id, private: false },
-      include: { replyToMessage: true },
-      orderBy: { sentAt: 'desc' },
-      take: 30,
+    const lastMessages = await findMessagesRepo({
+      chatId: BigInt(ctx.chatId),
+      senderId: BigInt(ctx.from.id),
+      private: false,
     });
     await analyzeUserMetaInfo(BigInt(ctx.from.id), lastMessages.reverse());
   } catch (error) {

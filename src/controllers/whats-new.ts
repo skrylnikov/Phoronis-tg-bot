@@ -2,8 +2,11 @@ import { type Api, InlineKeyboard } from 'grammy';
 import { sendWithRichFallback } from '../ai/rich-message';
 import type { BotContext } from '../bot';
 import { analyticsChatId } from '../config';
-import { prisma } from '../db';
 import { logger } from '../logger';
+import {
+  countMessagesWithWhereRepo,
+  findGroupChatsRepo,
+} from '../repositories';
 
 const confirmationLifetimeMs = 10 * 60 * 1000;
 export const broadcastDelayMs = 2_000;
@@ -85,18 +88,14 @@ async function getBroadcastData(botUserId: number): Promise<{
   stats: WhatsNewStats;
 }> {
   const [groups, botReplies, recognizedVoices] = await Promise.all([
-    prisma.chat.findMany({
-      where: { chatType: 'GROUP' },
-      select: { id: true, title: true },
+    findGroupChatsRepo(),
+    countMessagesWithWhereRepo({
+      senderId: BigInt(botUserId),
+      replyToMessageId: { not: null },
     }),
-    prisma.message.count({
-      where: { senderId: BigInt(botUserId), replyToMessageId: { not: null } },
-    }),
-    prisma.message.count({
-      where: {
-        messageType: 'VOICE',
-        senderId: { not: BigInt(botUserId) },
-      },
+    countMessagesWithWhereRepo({
+      messageType: 'VOICE',
+      senderId: { not: BigInt(botUserId) },
     }),
   ]);
 

@@ -27,6 +27,49 @@ const {
   warn: vi.fn(),
 }));
 
+vi.mock('../repositories/embedding-repository', () => ({
+  findChatHistoryReplyRootsRepo: () => messageQueryRaw(),
+  fetchChatHistoryReplyGraphRepo: () => messageQueryRaw(),
+  updateMessageEmbeddingRepo: vi.fn(),
+  searchSimilarChatMessagesRepo: vi.fn(),
+  searchSimilarChatMessagesAdvancedRepo: vi.fn(),
+  searchLexicalChatMessagesRepo: vi.fn(),
+  searchSimilarMemoriesRepo: vi.fn(),
+  searchSimilarFactsRepo: vi.fn(),
+  findReplyRootsRepo: vi.fn(),
+  fetchReplyGraphRepo: vi.fn(),
+  healthCheckRepo: vi.fn(),
+}));
+
+vi.mock('../repositories/chat-repository', () => ({
+  findChatByIdRepo: chatFindUnique,
+  saveChatRepo: vi.fn(),
+  updateChatRepo: vi.fn(),
+  upsertChatFeatureRepo: vi.fn(),
+  findManyChatsRepo: vi.fn(),
+  findGroupChatsRepo: vi.fn(),
+}));
+
+vi.mock('../repositories/message-repository', () => ({
+  countMessagesRepo: (where: unknown) => messageCount(where),
+  findFirstMessageRepo: (where: unknown, options?: unknown) =>
+    messageFindFirst(options || { where }),
+  findManyMessagesRepo: (where: unknown, options?: Record<string, unknown>) =>
+    messageFindMany({ where, ...(options || {}) }),
+  findMessageWithSelectRepo: vi.fn(),
+  saveMessage: vi.fn(),
+  updateMessageSummaryRepo: vi.fn(),
+  countMessagesWithWhereRepo: vi.fn(),
+  deleteOldPrivateMessagesRepo: vi.fn(),
+}));
+
+vi.mock('../repositories/user-repository', () => ({
+  findManyUsersRepo: userFindMany,
+  findUserByIdRepo: vi.fn(),
+  saveUserRepo: vi.fn(),
+  findFirstUserRepo: vi.fn(),
+}));
+
 vi.mock('../db', () => ({
   prisma: {
     message: {
@@ -106,6 +149,7 @@ beforeEach(() => {
   chatFindUnique.mockResolvedValue({ privateModeEnabled: false });
   userFindMany.mockResolvedValue([]);
   messageFindMany.mockResolvedValue([]);
+  messageFindFirst.mockResolvedValue(null);
   messageCount.mockResolvedValue(0);
   messageQueryRaw.mockResolvedValue([]);
   searchChatMessagesLexical.mockResolvedValue([]);
@@ -204,16 +248,22 @@ describe('searchChatHistory', () => {
         ...message(101, 'Обсуждали релиз'),
         lexicalRank: 1,
         exactMatch: true,
+        searchText: null,
       },
       {
         ...message(103, 'Другой релевантный тред'),
         lexicalRank: 2,
         exactMatch: false,
+        searchText: null,
       },
     ]);
     searchChatMessages.mockResolvedValue([
-      { ...message(101, 'Обсуждали релиз'), similarity: 0.89 },
-      { ...message(102, 'Похожая тема'), similarity: 0.91 },
+      {
+        ...message(101, 'Обсуждали релиз'),
+        similarity: 0.89,
+        searchText: null,
+      },
+      { ...message(102, 'Похожая тема'), similarity: 0.91, searchText: null },
     ]);
     messageQueryRaw
       .mockResolvedValueOnce([
@@ -222,19 +272,63 @@ describe('searchChatHistory', () => {
         { candidateId: 103n, rootMessageId: 103n, incomplete: false },
       ])
       .mockResolvedValueOnce([
-        { ...message(100, 'Начало треда'), rootMessageId: 100n, depth: 0 },
         {
-          ...message(101, 'Обсуждали релиз', { replyToMessageId: 100 }),
+          id: 100n,
+          chatId: -100n,
+          senderId: 456n,
+          sessionId: null,
+          replyToMessageId: null,
+          messageType: 'TEXT',
+          text: 'Начало треда',
+          summary: null,
+          private: false,
+          media: null,
+          sentAt: new Date(Date.UTC(2026, 6, 26, 9, 40)),
+          rootMessageId: 100n,
+          depth: 0,
+        },
+        {
+          id: 101n,
+          chatId: -100n,
+          senderId: 456n,
+          sessionId: null,
+          replyToMessageId: 100n,
+          messageType: 'TEXT',
+          text: 'Обсуждали релиз',
+          summary: null,
+          private: false,
+          media: null,
+          sentAt: new Date(Date.UTC(2026, 6, 26, 9, 41)),
           rootMessageId: 100n,
           depth: 1,
         },
         {
-          ...message(102, 'Похожая тема', { replyToMessageId: 100 }),
+          id: 102n,
+          chatId: -100n,
+          senderId: 456n,
+          sessionId: null,
+          replyToMessageId: 100n,
+          messageType: 'TEXT',
+          text: 'Похожая тема',
+          summary: null,
+          private: false,
+          media: null,
+          sentAt: new Date(Date.UTC(2026, 6, 26, 9, 42)),
           rootMessageId: 100n,
           depth: 1,
         },
         {
-          ...message(103, 'Другой релевантный тред'),
+          id: 103n,
+          chatId: -100n,
+          senderId: 456n,
+          sessionId: null,
+          replyToMessageId: null,
+          messageType: 'TEXT',
+          text: 'Другой релевантный тред',
+          summary: null,
+          private: false,
+          media: null,
+          sentAt: new Date(Date.UTC(2026, 6, 26, 9, 43)),
           rootMessageId: 103n,
           depth: 0,
         },
@@ -282,6 +376,7 @@ describe('searchChatHistory', () => {
   it('marks a thread incomplete when its parent is unavailable', async () => {
     messageCount.mockResolvedValue(1);
     messageFindMany.mockResolvedValue([message(101, 'Найдено')]);
+    embedQuery.mockResolvedValue([0.1, 0.2]);
     searchChatMessagesLexical.mockResolvedValue([
       {
         ...message(101, 'Найдено'),
@@ -289,13 +384,27 @@ describe('searchChatHistory', () => {
         exactMatch: true,
       },
     ]);
+    searchChatMessages.mockResolvedValue([]);
+
+    // First call to findChatHistoryReplyRootsRepo returns incomplete=true
+    // Second call to fetchChatHistoryReplyGraphRepo returns the graph
     messageQueryRaw
       .mockResolvedValueOnce([
         { candidateId: 101n, rootMessageId: 101n, incomplete: true },
       ])
       .mockResolvedValueOnce([
         {
-          ...message(101, 'Найдено', { replyToMessageId: 99 }),
+          id: 101n,
+          chatId: -100n,
+          senderId: 456n,
+          sessionId: null,
+          replyToMessageId: 99n,
+          messageType: 'TEXT',
+          text: 'Найдено',
+          summary: null,
+          private: false,
+          media: null,
+          sentAt: new Date(Date.UTC(2026, 6, 26, 9, 41)),
           rootMessageId: 101n,
           depth: 0,
         },
@@ -308,6 +417,8 @@ describe('searchChatHistory', () => {
       }),
     );
 
+    expect(messageQueryRaw).toHaveBeenCalledTimes(2);
+    expect(result.threads).toHaveLength(1);
     expect(result.threads[0]).toMatchObject({
       rootMessageId: '101',
       incomplete: true,
@@ -320,6 +431,7 @@ describe('searchChatHistory', () => {
     );
     messageCount.mockResolvedValue(11);
     messageFindMany.mockResolvedValue(candidates);
+    embedQuery.mockResolvedValue([0.1, 0.2]);
     searchChatMessagesLexical.mockResolvedValue(
       candidates.map((row, index) => ({
         ...row,
@@ -337,7 +449,17 @@ describe('searchChatHistory', () => {
       )
       .mockResolvedValueOnce(
         candidates.map((row) => ({
-          ...row,
+          id: row.id,
+          chatId: -100n,
+          senderId: row.senderId,
+          sessionId: null,
+          replyToMessageId: row.replyToMessageId,
+          messageType: row.messageType,
+          text: row.text,
+          summary: row.summary,
+          private: false,
+          media: null,
+          sentAt: row.sentAt,
           rootMessageId: row.id,
           depth: 0,
         })),

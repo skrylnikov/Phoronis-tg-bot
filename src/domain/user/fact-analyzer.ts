@@ -7,9 +7,16 @@ import {
   updateFactEmbedding,
 } from '../../ai/embedding/store';
 import { langfuse } from '../../ai/langfuse';
-import { prisma } from '../../db';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
+import {
+  createFactHistoryRepo,
+  createUserFactRepo,
+  findAllUserFactsRepo,
+  findUserFactRepo,
+  findUserFactsRepo,
+  updateUserFactRepo,
+} from '../../repositories/user-fact-repository';
 
 type FactType = 'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST';
 
@@ -174,14 +181,12 @@ async function createFactHistory(
   weightChange: number,
   reason: string,
 ) {
-  await prisma.factHistory.create({
-    data: {
-      factId,
-      previousContent,
-      newContent,
-      weightChange,
-      reason,
-    },
+  await createFactHistoryRepo({
+    factId,
+    previousContent,
+    newContent,
+    weightChange,
+    reason,
   });
 }
 
@@ -195,9 +200,7 @@ async function saveUserFact(
   const checkResult = await checkForSimilarFacts(userId, content);
 
   if (checkResult.isDuplicate && checkResult.similarFactId) {
-    const existingFact = await prisma.userFact.findUnique({
-      where: { id: checkResult.similarFactId },
-    });
+    const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
       const sourceData =
@@ -209,13 +212,10 @@ async function saveUserFact(
             }
           : {};
 
-      await prisma.userFact.update({
-        where: { id: checkResult.similarFactId },
-        data: {
-          weight: existingFact.weight + 1,
-          updatedAt: new Date(),
-          ...sourceData,
-        },
+      await updateUserFactRepo(checkResult.similarFactId, {
+        weight: existingFact.weight + 1,
+        updatedAt: new Date(),
+        ...sourceData,
       });
 
       await createFactHistory(
@@ -238,20 +238,15 @@ async function saveUserFact(
   }
 
   if (checkResult.isContradiction && checkResult.similarFactId) {
-    const existingFact = await prisma.userFact.findUnique({
-      where: { id: checkResult.similarFactId },
-    });
+    const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
-      await prisma.userFact.update({
-        where: { id: checkResult.similarFactId },
-        data: {
-          content,
-          weight: Math.max(existingFact.weight - 1, 1),
-          sourceChatId: source.chatId,
-          sourceMessageId: source.messageId,
-          updatedAt: new Date(),
-        },
+      await updateUserFactRepo(checkResult.similarFactId, {
+        content,
+        weight: Math.max(existingFact.weight - 1, 1),
+        sourceChatId: source.chatId,
+        sourceMessageId: source.messageId,
+        updatedAt: new Date(),
       });
 
       await createFactHistory(
@@ -273,15 +268,13 @@ async function saveUserFact(
     return checkResult.similarFactId;
   }
 
-  const fact = await prisma.userFact.create({
-    data: {
-      userId,
-      content,
-      type,
-      weight,
-      sourceChatId: source.chatId,
-      sourceMessageId: source.messageId,
-    },
+  const fact = await createUserFactRepo({
+    userId,
+    content,
+    type,
+    weight,
+    sourceChatId: source.chatId,
+    sourceMessageId: source.messageId,
   });
 
   if (checkResult.embedding) {
@@ -366,8 +359,7 @@ export async function analyzeUserMetaInfo(
   try {
     const formattedMessages = await formatMessagesWithReplies(messages);
 
-    const existingFacts = await prisma.userFact.findMany({
-      where: { userId },
+    const existingFacts = await findUserFactsRepo(userId, {
       orderBy: { updatedAt: 'desc' },
       take: 20,
     });
@@ -453,12 +445,9 @@ export async function getTopUserFacts(
 ): Promise<Array<Fact & { weight: number; confidence: number }>> {
   const { limit = 10, types } = options;
 
-  const facts = await prisma.userFact.findMany({
-    where: {
-      userId,
-      ...(types && { type: { in: types } }),
-    },
+  const facts = await findUserFactsRepo(userId, {
     orderBy: { updatedAt: 'desc' },
+    where: types ? { type: { in: types } } : undefined,
   });
 
   const now = new Date();
@@ -489,16 +478,5 @@ export async function getTopUserFacts(
 }
 
 export async function getAllUserFacts(userId: bigint) {
-  return prisma.userFact.findMany({
-    where: { userId },
-    select: {
-      content: true,
-      type: true,
-      weight: true,
-      confidence: true,
-      updatedAt: true,
-      expiresAt: true,
-    },
-    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-  });
+  return findAllUserFactsRepo(userId);
 }

@@ -1,17 +1,15 @@
 import type { ModelMessage } from 'ai';
-import { format } from 'date-fns';
-import { unique } from 'remeda';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
-import { logger } from '../logger';
 import {
   getRecentGuestInteractions,
   releaseQuota,
   reserveQuota,
-} from '../shared';
-import { getRecentMemoriesForUsers } from '../tools/memory';
-import { extractMentionedUserIds } from '../tools/shared/entities';
-import { getTopUserFacts } from '../tools/user/fact-analyzer';
+} from '../domain';
+import { extractMentionedUserIds } from '../domain/entities';
+import { getRecentMemoriesForUsers } from '../domain/memory';
+import { getTopUserFacts } from '../domain/user/fact-analyzer';
+import { logger } from '../logger';
+import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
 import { chatGeneration } from './chat-generation';
 import { searchAndIndexMessage } from './embedding';
@@ -89,14 +87,16 @@ export async function generateGuestResponse(input: {
       : await getRecentGuestInteractions(BigInt(ctx.chatId), 10);
     const mentionedIds = await extractMentionedUserIds(ctx).catch(() => []);
     const referenceUserId = message.reply_to_message?.from?.id;
-    const allUserIds = unique(
-      [ctx.from.id, referenceUserId, ...mentionedIds].filter(
-        (id): id is number => id !== undefined,
+    const allUserIds = [
+      ...new Set(
+        [ctx.from.id, referenceUserId, ...mentionedIds].filter(
+          (id): id is number => id !== undefined,
+        ),
       ),
-    );
+    ];
 
     const [userList, prompt, allMemories] = await Promise.all([
-      prisma.user.findMany({ where: { id: { in: allUserIds.map(BigInt) } } }),
+      findManyUsersRepo({ id: { in: allUserIds.map(BigInt) } }),
       langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId, 10).catch(
         () => new Map<number, string[]>(),
@@ -157,7 +157,17 @@ export async function generateGuestResponse(input: {
       ]
         .filter(Boolean)
         .join('\n'),
-      time: format(new Date(), 'dd.MM.yyyy HH:mm:ss'),
+      time: new Date()
+        .toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        })
+        .replace(',', ''),
     });
 
     const messages: ModelMessage[] = [

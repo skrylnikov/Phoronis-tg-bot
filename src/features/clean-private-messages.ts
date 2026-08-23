@@ -1,19 +1,12 @@
-import { prisma } from '../db';
 import { logger } from '../logger';
+import { deleteOldPrivateMessagesRepo } from '../repositories/message-repository';
 
 export async function cleanOldPrivateMessages(): Promise<number> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-  const result = await prisma.message.deleteMany({
-    where: {
-      private: true,
-      sentAt: { lt: sevenDaysAgo },
-    },
-  });
+  const count = await deleteOldPrivateMessagesRepo();
 
   logger.info(
-    { event: 'message.private_cleanup_completed', deletedCount: result.count },
+    { event: 'message.private_cleanup_completed', deletedCount: count },
     'Private message cleanup completed',
   );
-  return result.count;
+  return count;
 }

@@ -1,5 +1,13 @@
-import { prisma } from '../db';
-import { Prisma, type SubscriptionPlan } from '../generated/prisma/client';
+import type { SubscriptionPlan } from '../generated/prisma/client';
+import {
+  createLimitNotice,
+  findActiveChatSubscriptions,
+  findActiveUserSubscriptions,
+  findQuotaUsages,
+  releaseQuotaUsage,
+  reserveQuotaUsage,
+  updateLimitNotice,
+} from '../repositories';
 
 export const MOSCOW_TIME_ZONE = 'Europe/Moscow';
 
@@ -128,30 +136,6 @@ export function getPlanDetails(
   return plan ? planDetails[plan] : null;
 }
 
-async function getActiveUserSubscriptions(userId: bigint, now: Date) {
-  return prisma.subscription.findMany({
-    where: {
-      userId,
-      startsAt: { lte: now },
-      endsAt: { gt: now },
-      revokedAt: null,
-    },
-    select: { id: true, plan: true, beneficiaryChatId: true, endsAt: true },
-  });
-}
-
-async function getActiveChatSubscriptions(chatId: bigint, now: Date) {
-  return prisma.subscription.findMany({
-    where: {
-      beneficiaryChatId: chatId,
-      startsAt: { lte: now },
-      endsAt: { gt: now },
-      revokedAt: null,
-    },
-    select: { id: true, plan: true, userId: true, endsAt: true },
-  });
-}
-
 function sumLimits(
   subscriptions: Array<{ plan: SubscriptionPlan }>,
   scope: 'personal' | 'chat',
@@ -192,29 +176,6 @@ function summarizeSubscriptions<
   return { ...highestPlanSubscription, endsAt };
 }
 
-async function reserve(
-  scope: QuotaScope,
-  ownerId: bigint,
-  chatId: bigint,
-  kind: QuotaKind,
-  day: Date,
-  limit: number,
-): Promise<boolean> {
-  if (limit === Infinity) return true;
-  if (limit <= 0) return false;
-
-  const result = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
-    INSERT INTO "QuotaUsage" ("id", "scope", "ownerId", "chatId", "kind", "date", "count")
-    VALUES (${crypto.randomUUID()}, ${scope}::"QuotaScope", ${ownerId}, ${chatId}, ${kind}::"QuotaKind", ${day}, 1)
-    ON CONFLICT ("scope", "ownerId", "chatId", "kind", "date") DO UPDATE
-    SET "count" = "QuotaUsage"."count" + 1
-    WHERE "QuotaUsage"."count" < ${limit}
-    RETURNING "count"
-  `);
-
-  return result.length === 1;
-}
-
 export async function releaseQuota(
   reservation: QuotaReservation,
 ): Promise<void> {
@@ -226,17 +187,13 @@ export async function releaseQuota(
   )
     return;
 
-  await prisma.quotaUsage.updateMany({
-    where: {
-      scope: reservation.source,
-      ownerId: reservation.ownerId,
-      chatId: reservation.chatId,
-      kind: reservation.kind,
-      date: reservation.day,
-      count: { gt: 0 },
-    },
-    data: { count: { decrement: 1 } },
-  });
+  await releaseQuotaUsage(
+    reservation.source,
+    reservation.ownerId,
+    reservation.chatId,
+    reservation.kind,
+    reservation.day,
+  );
 }
 
 export async function reserveQuota(input: {
@@ -252,11 +209,18 @@ export async function reserveQuota(input: {
   const day = getMoscowDay(now);
 
   if (input.isGroup) {
-    const chatSubscriptions = await getActiveChatSubscriptions(chatId, now);
+    const chatSubscriptions = await findActiveChatSubscriptions(chatId, now);
     const chatLimit = sumLimits(chatSubscriptions, 'chat')[input.kind];
     if (
       chatSubscriptions.length > 0 &&
-      (await reserve('CHAT', userId, chatId, input.kind, day, chatLimit))
+      (await reserveQuotaUsage(
+        'CHAT',
+        userId,
+        chatId,
+        input.kind,
+        day,
+        chatLimit,
+      ))
     ) {
       return {
         allowed: true,
@@ -269,9 +233,16 @@ export async function reserveQuota(input: {
     }
   }
 
-  const userSubscriptions = await getActiveUserSubscriptions(userId, now);
+  const userSubscriptions = await findActiveUserSubscriptions(userId, now);
   const userLimit = getPersonalDailyLimits(userSubscriptions)[input.kind];
-  const allowed = await reserve('USER', userId, 0n, input.kind, day, userLimit);
+  const allowed = await reserveQuotaUsage(
+    'USER',
+    userId,
+    0n,
+    input.kind,
+    day,
+    userLimit,
+  );
 
   return {
     allowed,
@@ -294,20 +265,10 @@ export async function getQuotaOverview(input: {
   const chatId = input.chatId === undefined ? undefined : BigInt(input.chatId);
   const day = getMoscowDay(now);
   const [userSubscriptions, chatSubscriptions] = await Promise.all([
-    getActiveUserSubscriptions(userId, now),
-    input.isGroup && chatId ? getActiveChatSubscriptions(chatId, now) : [],
+    findActiveUserSubscriptions(userId, now),
+    input.isGroup && chatId ? findActiveChatSubscriptions(chatId, now) : [],
   ]);
-  const usages = await prisma.quotaUsage.findMany({
-    where: {
-      date: day,
-      OR: [
-        { scope: 'USER', ownerId: userId, chatId: 0n },
-        ...(chatId
-          ? [{ scope: 'CHAT' as const, ownerId: userId, chatId }]
-          : []),
-      ],
-    },
-  });
+  const usages = await findQuotaUsages(userId, chatId, day);
   const used = (
     scope: QuotaScope,
     ownerId: bigint,
@@ -363,16 +324,17 @@ export async function shouldSendLimitNotice(input: {
   const userId = BigInt(input.userId);
   const chatId = BigInt(input.chatId);
 
-  const updated = await prisma.limitNotice.updateMany({
-    where: { userId, chatId, kind: input.kind, sentAt: { lte: cutoff } },
-    data: { sentAt: now },
-  });
+  const updated = await updateLimitNotice(
+    userId,
+    chatId,
+    input.kind,
+    cutoff,
+    now,
+  );
   if (updated.count > 0) return true;
 
   try {
-    await prisma.limitNotice.create({
-      data: { userId, chatId, kind: input.kind, sentAt: now },
-    });
+    await createLimitNotice(userId, chatId, input.kind, now);
     return true;
   } catch {
     return false;
@@ -383,7 +345,7 @@ export async function getActiveSubscription(
   userId: number | bigint,
   now = new Date(),
 ) {
-  const subscriptions = await getActiveUserSubscriptions(BigInt(userId), now);
+  const subscriptions = await findActiveUserSubscriptions(BigInt(userId), now);
   return summarizeSubscriptions(subscriptions);
 }
 
@@ -391,6 +353,6 @@ export async function getMinimumPurchasablePlan(
   userId: number | bigint,
   now = new Date(),
 ): Promise<SubscriptionPlan | null> {
-  const subscriptions = await getActiveUserSubscriptions(BigInt(userId), now);
+  const subscriptions = await findActiveUserSubscriptions(BigInt(userId), now);
   return summarizeSubscriptions(subscriptions)?.plan ?? null;
 }

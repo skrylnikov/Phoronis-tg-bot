@@ -1,11 +1,14 @@
-// Features Controller - объединенный контроллер для всех фич
-
 import { Composer } from 'grammy';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
 import { sendInktoberMessage } from '../features/inktober';
 import { sendSelfieSaturdayMessage } from '../features/selfie-saturday';
 import { logger } from '../logger';
+import {
+  countMessagesWithWhereRepo,
+  findChatByIdRepo,
+  updateChatRepo,
+  upsertChatFeatureRepo,
+} from '../repositories';
 
 export const featuresController = new Composer<BotContext>();
 
@@ -38,27 +41,15 @@ featuresController.command('enable', async (ctx) => {
 
   try {
     if (feature === 'selfiesaturday') {
-      await prisma.chat.upsert({
-        where: { id: BigInt(ctx.chat.id) },
-        update: { selfieSaturdayEnabled: true },
-        create: {
-          id: BigInt(ctx.chat.id),
-          title: ctx.chat.title || 'Unknown Group',
-          chatType: ctx.chat.type === 'supergroup' ? 'GROUP' : 'GROUP',
-          selfieSaturdayEnabled: true,
-        },
+      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'selfieSaturday', true, {
+        title: ctx.chat.title,
+        chatType: 'GROUP',
       });
       await ctx.reply("Функция 'Селфи Суббота' включена для этого чата! 🎉");
     } else if (feature === 'inktober') {
-      await prisma.chat.upsert({
-        where: { id: BigInt(ctx.chat.id) },
-        update: { inktoberEnabled: true },
-        create: {
-          id: BigInt(ctx.chat.id),
-          title: ctx.chat.title || 'Unknown Group',
-          chatType: ctx.chat.type === 'supergroup' ? 'GROUP' : 'GROUP',
-          inktoberEnabled: true,
-        },
+      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'inktober', true, {
+        title: ctx.chat.title,
+        chatType: 'GROUP',
       });
       await ctx.reply("Функция 'Inktober' включена для этого чата! 🎨");
     } else {
@@ -91,16 +82,12 @@ featuresController.command('disable', async (ctx) => {
 
   try {
     if (feature === 'selfiesaturday') {
-      await prisma.chat.update({
-        where: { id: BigInt(ctx.chat.id) },
-        data: { selfieSaturdayEnabled: false },
+      await updateChatRepo(BigInt(ctx.chat.id), {
+        selfieSaturdayEnabled: false,
       });
       await ctx.reply("Функция 'Селфи Суббота' выключена для этого чата.");
     } else if (feature === 'inktober') {
-      await prisma.chat.update({
-        where: { id: BigInt(ctx.chat.id) },
-        data: { inktoberEnabled: false },
-      });
+      await updateChatRepo(BigInt(ctx.chat.id), { inktoberEnabled: false });
       await ctx.reply("Функция 'Inktober' выключена для этого чата.");
     } else {
       await ctx.reply(
@@ -177,12 +164,12 @@ featuresController.command('status', async (ctx) => {
   }
 
   try {
-    const chat = await prisma.chat.findUnique({
-      where: { id: BigInt(ctx.chat.id) },
-      select: {
-        selfieSaturdayEnabled: true,
-        inktoberEnabled: true,
-      },
+    const chat = await findChatByIdRepo(BigInt(ctx.chat.id), {
+      id: true,
+      title: true,
+      selfieSaturdayEnabled: true,
+      inktoberEnabled: true,
+      greeting: true,
     });
 
     if (!chat) {
@@ -216,7 +203,7 @@ featuresController.command('status', async (ctx) => {
 
 featuresController.command('index', async (_ctx) => {
   try {
-    const _count = await prisma.message.count();
+    const _count = await countMessagesWithWhereRepo({});
     // // const count = 1000;
     // for (let i = 138800; i < count; i += 100) {
     //   logger.info({ event: 'feature.index_progress', offset: i, count });
