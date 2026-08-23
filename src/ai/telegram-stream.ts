@@ -4,6 +4,7 @@ import {
   createRichMessageIfNeeded,
   maxRichMessageLength,
   requiresRichMarkdown,
+  sendWithRichFallback,
   toMarkdownV2,
 } from './rich-message';
 
@@ -53,7 +54,7 @@ export class TelegramStreamSink {
 
   private constructor(
     private readonly ctx: BotContext,
-    private readonly groupMessage: StreamedReply | undefined,
+    private groupMessage: StreamedReply | undefined,
     private readonly intervalMs: number,
     private readonly ephemeralReceiverUserId: number | undefined,
   ) {}
@@ -63,28 +64,12 @@ export class TelegramStreamSink {
     options: TelegramStreamOptions = {},
   ): Promise<TelegramStreamSink> {
     const intervalMs = options.intervalMs ?? 1000;
+    const ephemeralReceiverUserId = options.ephemeralReceiverUserId;
 
-    if (ctx.chat?.type === 'private') {
-      const sink = new TelegramStreamSink(
-        ctx,
-        undefined,
-        intervalMs,
-        undefined,
-      );
-      try {
-        await ctx.replyWithDraft(thinkingText, sink.draftOptions());
-        sink.lastPublishedAt = Date.now();
-      } catch (error) {
-        sink.active = false;
-        logger.error(
-          { event: 'telegram.draft_create_failed', err: error },
-          'Failed to create Telegram message draft',
-        );
-      }
-      return sink;
+    if (ctx.chat?.type === 'private' || !ephemeralReceiverUserId) {
+      return new TelegramStreamSink(ctx, undefined, intervalMs, undefined);
     }
 
-    const ephemeralReceiverUserId = options.ephemeralReceiverUserId;
     const sink = new TelegramStreamSink(
       ctx,
       undefined,
@@ -154,7 +139,11 @@ export class TelegramStreamSink {
       return;
     }
 
-    this.schedulePending();
+    if (!this.lastPublishedText && !this.groupMessage) {
+      void this.flushPending();
+    } else {
+      this.schedulePending();
+    }
   }
 
   async finish(rawText: string): Promise<StreamedReply> {
@@ -278,32 +267,36 @@ export class TelegramStreamSink {
               parse_mode: 'MarkdownV2',
             });
           }
-        } else if (this.ctx.chatId && this.groupMessage) {
-          if (
-            this.ephemeralReceiverUserId &&
-            this.groupMessage.ephemeral_message_id
-          ) {
-            await this.ctx.api.editEphemeralMessageText(
-              this.ctx.chatId,
-              this.ephemeralReceiverUserId,
-              this.groupMessage.ephemeral_message_id,
-              text,
-            );
+        } else if (this.ctx.chatId) {
+          if (!this.groupMessage) {
+            this.groupMessage = await this.sendInitialGroupReply(text);
           } else {
-            const richMessage = createRichMessageIfNeeded(text);
-            if (richMessage) {
-              await this.ctx.api.editMessageText(
+            if (
+              this.ephemeralReceiverUserId &&
+              this.groupMessage.ephemeral_message_id
+            ) {
+              await this.ctx.api.editEphemeralMessageText(
                 this.ctx.chatId,
-                this.groupMessage.message_id,
-                richMessage,
+                this.ephemeralReceiverUserId,
+                this.groupMessage.ephemeral_message_id,
+                text,
               );
             } else {
-              await this.ctx.api.editMessageText(
-                this.ctx.chatId,
-                this.groupMessage.message_id,
-                toMarkdownV2(text),
-                { parse_mode: 'MarkdownV2' },
-              );
+              const richMessage = createRichMessageIfNeeded(text);
+              if (richMessage) {
+                await this.ctx.api.editMessageText(
+                  this.ctx.chatId,
+                  this.groupMessage.message_id,
+                  richMessage,
+                );
+              } else {
+                await this.ctx.api.editMessageText(
+                  this.ctx.chatId,
+                  this.groupMessage.message_id,
+                  toMarkdownV2(text),
+                  { parse_mode: 'MarkdownV2' },
+                );
+              }
             }
           }
         }
@@ -326,6 +319,26 @@ export class TelegramStreamSink {
     if (this.pendingText && !this.finalizing) {
       this.schedulePending();
     }
+  }
+
+  private sendInitialGroupReply(text: string): Promise<StreamedReply> {
+    const options = {
+      reply_parameters: {
+        message_id: this.ctx.msg?.message_id,
+      },
+      ...this.threadOptions(),
+    };
+
+    return sendWithRichFallback(
+      text,
+      (richMessage) => this.ctx.replyWithRichMessage(richMessage, options),
+      (markdown) =>
+        this.ctx.reply(markdown, {
+          ...options,
+          parse_mode: 'MarkdownV2',
+        }),
+      (plainText) => this.ctx.reply(plainText, options),
+    );
   }
 
   private clearPending(): void {
@@ -374,7 +387,8 @@ export class TelegramStreamSink {
 
   private async finishEphemeral(rawText: string): Promise<StreamedReply> {
     const chatId = this.ctx.chatId;
-    const ephemeralMessageId = this.groupMessage?.ephemeral_message_id;
+    const groupMessage = this.groupMessage;
+    const ephemeralMessageId = groupMessage?.ephemeral_message_id;
     if (!chatId || !this.ephemeralReceiverUserId || !ephemeralMessageId) {
       throw new Error('Missing ephemeral message target');
     }
@@ -389,7 +403,7 @@ export class TelegramStreamSink {
       );
     } catch (formattedError) {
       if (isMessageNotModified(formattedError)) {
-        return this.groupMessage;
+        return groupMessage;
       }
       logger.error(
         {
@@ -412,7 +426,7 @@ export class TelegramStreamSink {
       }
     }
 
-    return this.groupMessage;
+    return groupMessage;
   }
 
   private async finishGroupWithLegacyFallback(

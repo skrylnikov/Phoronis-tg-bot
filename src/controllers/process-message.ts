@@ -41,6 +41,17 @@ function isGroupChat(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
 }
 
+function sendTyping(ctx: BotContext): void {
+  void ctx
+    .replyWithChatAction('typing')
+    .catch((error) =>
+      logger.error(
+        { event: 'telegram.typing_failed', err: error },
+        'Failed to update Telegram typing status',
+      ),
+    );
+}
+
 function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
   if (!msg || typeof msg !== 'object') return false;
   return Array.isArray((msg as TelegramReactionsMessage).reactions?.results);
@@ -243,6 +254,7 @@ processMessageController.on(':text', async (ctx) => {
       return;
     }
 
+    sendTyping(ctx);
     const { userContext, chatContext } = isPrivateMode
       ? { userContext: null, chatContext: null }
       : await searchAndIndexMessage(
@@ -366,6 +378,7 @@ processMessageController.on(':photo', async (ctx) => {
       return;
     }
 
+    sendTyping(ctx);
     const reservation = await reserveQuota({
       userId: ctx.from.id,
       chatId: ctx.chatId,

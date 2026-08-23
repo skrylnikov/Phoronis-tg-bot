@@ -189,16 +189,17 @@ export const aiController = async (
 
   let streamSink: TelegramStreamSink | undefined;
   let streamFinalized = false;
+  const sendTyping = () => {
+    void ctx.replyWithChatAction('typing').catch((error) => {
+      logger.error(
+        { event: 'telegram.typing_failed', err: error },
+        'Failed to update Telegram typing status',
+      );
+    });
+  };
   const typingInterval = options.ephemeralReceiverUserId
     ? undefined
-    : setInterval(() => {
-        void ctx.replyWithChatAction('typing').catch((error) => {
-          logger.error(
-            { event: 'telegram.typing_failed', err: error },
-            'Failed to update Telegram typing status',
-          );
-        });
-      }, 5000);
+    : setInterval(sendTyping, 5000);
 
   try {
     if (
@@ -240,7 +241,7 @@ export const aiController = async (
     }
 
     if (!options.ephemeralReceiverUserId) {
-      await ctx.replyWithChatAction('typing');
+      sendTyping();
     }
     streamSink = await TelegramStreamSink.create(ctx, {
       ephemeralReceiverUserId: options.ephemeralReceiverUserId,

@@ -86,25 +86,26 @@ afterEach(() => {
 });
 
 describe('TelegramStreamSink', () => {
-  it('streams legacy drafts in private chats and sends a rich reply when needed', async () => {
+  it('starts private drafts with the first fragment and sends a rich reply when needed', async () => {
     const testContext = createContext('private', true);
     const sink = await TelegramStreamSink.create(testContext.context);
 
+    expect(testContext.replyWithDraft).not.toHaveBeenCalled();
     sink.update('Первая часть ответа');
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(0);
 
-    expect(testContext.replyWithDraft).toHaveBeenNthCalledWith(1, 'Думаю…', {
-      draft_id: 7,
-      message_thread_id: 77,
-    });
-    expect(testContext.replyWithDraft).toHaveBeenNthCalledWith(
-      2,
+    expect(testContext.replyWithDraft).toHaveBeenCalledOnce();
+    expect(testContext.replyWithDraft).toHaveBeenCalledWith(
       expect.any(String),
       {
         draft_id: 7,
         message_thread_id: 77,
         parse_mode: 'MarkdownV2',
       },
+    );
+    expect(testContext.replyWithDraft).not.toHaveBeenCalledWith(
+      'Думаю…',
+      expect.anything(),
     );
 
     await sink.finish('## Готово');
@@ -117,16 +118,20 @@ describe('TelegramStreamSink', () => {
     );
   });
 
-  it('edits a rich group message at most once per second', async () => {
+  it('sends the first group fragment immediately and throttles later edits', async () => {
     const testContext = createContext('group');
     const sink = await TelegramStreamSink.create(testContext.context);
 
-    expect(testContext.reply).toHaveBeenCalledWith('Думаю…', {
-      reply_parameters: { message_id: 42 },
-    });
+    expect(testContext.reply).not.toHaveBeenCalled();
 
     sink.update('A');
     sink.update('## AB');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(testContext.reply).toHaveBeenCalledWith(expect.any(String), {
+      parse_mode: 'MarkdownV2',
+      reply_parameters: { message_id: 42 },
+    });
     await vi.advanceTimersByTimeAsync(999);
     expect(testContext.editMessageText).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
@@ -137,11 +142,13 @@ describe('TelegramStreamSink', () => {
 
   it('retries a group update after incomplete legacy Markdown is rejected', async () => {
     const testContext = createContext('group');
+    const sink = await TelegramStreamSink.create(testContext.context);
+
+    sink.update('Начало');
+    await vi.advanceTimersByTimeAsync(0);
     testContext.editMessageText
       .mockRejectedValueOnce(new Error("can't parse entities"))
       .mockResolvedValue(true);
-    const sink = await TelegramStreamSink.create(testContext.context);
-
     sink.update('```ts');
     await vi.advanceTimersByTimeAsync(1000);
     sink.update('```ts\nconst answer = 42;\n```');
@@ -151,7 +158,9 @@ describe('TelegramStreamSink', () => {
       -100,
       100,
       expect.any(String),
-      { parse_mode: 'MarkdownV2' },
+      {
+        parse_mode: 'MarkdownV2',
+      },
     );
   });
 
@@ -180,12 +189,31 @@ describe('TelegramStreamSink', () => {
     const sink = await TelegramStreamSink.create(testContext.context);
     await sink.finish('![](https://example.com/photo.jpg)');
 
-    expect(testContext.editMessageText).toHaveBeenLastCalledWith(
-      -100,
-      100,
-      expect.any(String),
-      { parse_mode: 'MarkdownV2' },
+    expect(testContext.reply).toHaveBeenLastCalledWith(expect.any(String), {
+      parse_mode: 'MarkdownV2',
+      reply_to_message_id: 42,
+    });
+  });
+
+  it('falls back to the final reply when the first group publication fails', async () => {
+    const testContext = createContext('group');
+    testContext.reply
+      .mockRejectedValueOnce(new Error('send failed'))
+      .mockRejectedValueOnce(new Error('plain send failed'));
+    const sink = await TelegramStreamSink.create(testContext.context);
+
+    sink.update('Первый фрагмент');
+    await vi.advanceTimersByTimeAsync(0);
+    await sink.finish('Финал');
+
+    expect(testContext.reply).not.toHaveBeenCalledWith(
+      'Думаю…',
+      expect.anything(),
     );
+    expect(testContext.reply).toHaveBeenLastCalledWith(expect.any(String), {
+      parse_mode: 'MarkdownV2',
+      reply_to_message_id: 42,
+    });
   });
 
   it('caps rich drafts at 32768 characters', async () => {
@@ -215,21 +243,23 @@ describe('TelegramStreamSink', () => {
 
   it('falls back to a new rich reply when group edits fail', async () => {
     const testContext = createContext('group');
-    testContext.editMessageText.mockRejectedValue(new Error('edit failed'));
     const sink = await TelegramStreamSink.create(testContext.context);
 
+    sink.update('Черновик');
+    await vi.advanceTimersByTimeAsync(0);
+    testContext.editMessageText.mockRejectedValue(new Error('edit failed'));
     await sink.finish('Финал');
 
     expect(testContext.editMessageText).toHaveBeenCalledTimes(2);
     expect(testContext.replyWithRichMessage).not.toHaveBeenCalled();
   });
 
-  it('cancels an unfinished group placeholder', async () => {
+  it('does not delete a message when an ordinary stream is cancelled before publication', async () => {
     const testContext = createContext('group');
     const sink = await TelegramStreamSink.create(testContext.context);
     await sink.cancel();
 
-    expect(testContext.deleteMessage).toHaveBeenCalledWith(-100, 100);
+    expect(testContext.deleteMessage).not.toHaveBeenCalled();
   });
 });
 

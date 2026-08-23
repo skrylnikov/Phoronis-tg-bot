@@ -8,13 +8,14 @@ const mocks = vi.hoisted(() => ({
   getFile: vi.fn(),
   reserveQuota: vi.fn(),
   saveMessage: vi.fn(),
+  searchAndIndexMessage: vi.fn(),
   updateMessageSummaryRepo: vi.fn(),
 }));
 
 vi.mock('../ai', () => ({
   aiController: mocks.aiController,
   queueMessageEmbedding: vi.fn(),
-  searchAndIndexMessage: vi.fn(),
+  searchAndIndexMessage: mocks.searchAndIndexMessage,
 }));
 vi.mock('../ai/image-description', () => ({
   describeTelegramPhoto: mocks.describeTelegramPhoto,
@@ -180,6 +181,7 @@ describe('private message persistence', () => {
         me: { id: 999, is_bot: true, first_name: 'Bot' },
         msg: message,
         update: { message },
+        replyWithChatAction: vi.fn().mockResolvedValue(true),
       } as never;
 
       await processMessageController.middleware()(ctx, async () => {});
@@ -192,4 +194,98 @@ describe('private message persistence', () => {
       });
     },
   );
+});
+
+describe('early typing status', () => {
+  it('starts typing before text context search', async () => {
+    const events: string[] = [];
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    mocks.searchAndIndexMessage.mockImplementation(async () => {
+      events.push('search');
+      return { userContext: null, chatContext: null };
+    });
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: { message_id: 41, date: 1_750_000_000, text: 'Ио, привет' },
+      update: { message: { message_id: 41, text: 'Ио, привет' } },
+      replyWithChatAction: vi.fn().mockImplementation(async () => {
+        events.push('typing');
+      }),
+    } as never;
+
+    await processMessageController.middleware()(ctx, async () => {});
+
+    expect(events).toEqual(['typing', 'search']);
+  });
+
+  it('starts typing before photo recognition', async () => {
+    const events: string[] = [];
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    mocks.describeTelegramPhoto.mockImplementation(async () => {
+      events.push('describe');
+      return 'Описание фото';
+    });
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: {
+        message_id: 41,
+        date: 1_750_000_000,
+        caption: 'Ио, опиши фото',
+        photo: [{ file_id: 'photo-41', width: 100, height: 100, file_size: 1 }],
+      },
+      update: {
+        message: {
+          message_id: 41,
+          caption: 'Ио, опиши фото',
+          photo: [{ file_id: 'photo-41', width: 100, height: 100 }],
+        },
+      },
+      replyWithChatAction: vi.fn().mockImplementation(async () => {
+        events.push('typing');
+      }),
+    } as never;
+
+    await processMessageController.middleware()(ctx, async () => {});
+
+    expect(events).toEqual(['typing', 'describe']);
+  });
+
+  it('does not start typing for a skipped group message', async () => {
+    mocks.findChatByIdRepo.mockResolvedValue({ privateModeEnabled: false });
+    const replyWithChatAction = vi.fn().mockResolvedValue(true);
+    const ctx = {
+      api: { getFile: mocks.getFile },
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: {
+        message_id: 41,
+        date: 1_750_000_000,
+        caption: 'Фото без обращения',
+        photo: [{ file_id: 'photo-41', width: 100, height: 100, file_size: 1 }],
+      },
+      update: {
+        message: {
+          message_id: 41,
+          caption: 'Фото без обращения',
+          photo: [{ file_id: 'photo-41', width: 100, height: 100 }],
+        },
+      },
+      replyWithChatAction,
+    } as never;
+
+    await processMessageController.middleware()(ctx, async () => {});
+
+    expect(replyWithChatAction).not.toHaveBeenCalled();
+    expect(mocks.aiController).not.toHaveBeenCalled();
+  });
 });
