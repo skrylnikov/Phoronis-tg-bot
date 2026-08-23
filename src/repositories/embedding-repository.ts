@@ -309,6 +309,7 @@ export interface ReplyRoot {
 export type ChatHistoryReplyRoot = {
   candidateId: bigint;
   rootMessageId: bigint;
+  incomplete: boolean;
 };
 
 export async function findReplyRootsRepo(
@@ -360,7 +361,8 @@ export async function findChatHistoryReplyRootsRepo(
         m."id" AS "candidateId",
         m."id",
         m."replyToMessageId",
-        ARRAY[m."id"]::bigint[] AS path
+        ARRAY[m."id"]::bigint[] AS path,
+        FALSE AS incomplete
       FROM "Message" m
       WHERE m."chatId" = ${chatId}
         AND m."private" = FALSE
@@ -374,18 +376,21 @@ export async function findChatHistoryReplyRootsRepo(
         a."candidateId",
         parent."id",
         parent."replyToMessageId",
-        a.path || parent."id"
+        a.path || parent."id",
+        a.incomplete OR (parent."id" IS NULL)
       FROM ancestors a
-      JOIN "Message" parent
+      LEFT JOIN "Message" parent
         ON parent."chatId" = a."chatId"
         AND parent."id" = a."replyToMessageId"
         AND parent."id" < ${currentMessageId}
+      WHERE a."replyToMessageId" IS NOT NULL
         AND NOT (parent."id" = ANY(a.path))
         AND array_length(a.path, 1) < 50
     )
     SELECT DISTINCT ON ("candidateId")
       "candidateId",
-      COALESCE("replyToMessageId", "id") AS "rootMessageId"
+      COALESCE("id", "candidateId") AS "rootMessageId",
+      incomplete
     FROM ancestors
     WHERE "replyToMessageId" IS NULL
     ORDER BY "candidateId"
