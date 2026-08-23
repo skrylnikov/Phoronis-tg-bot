@@ -31,8 +31,10 @@ vi.mock('../repositories/embedding-repository', async () => {
   const actual = await vi.importActual('../repositories/embedding-repository');
   return {
     ...actual,
-    findChatHistoryReplyRootsRepo: messageQueryRaw,
-    fetchChatHistoryReplyGraphRepo: messageQueryRaw,
+    findChatHistoryReplyRootsRepo: (chatId: bigint, currentMessageId: bigint, candidateIds: bigint[]) =>
+      messageQueryRaw(candidateIds, chatId),
+    fetchChatHistoryReplyGraphRepo: (chatId: bigint, rootIds: bigint[]) =>
+      messageQueryRaw(rootIds, chatId),
   };
 });
 
