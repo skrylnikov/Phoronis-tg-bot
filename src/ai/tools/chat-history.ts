@@ -295,16 +295,7 @@ async function resolveReplyRoots(
   Array<{ candidateId: bigint; rootMessageId: bigint; incomplete: boolean }>
 > {
   if (candidateIds.length === 0) return [];
-  const rows = await findChatHistoryReplyRootsRepo(
-    chatId,
-    currentMessageId,
-    candidateIds,
-  );
-  return rows.map((r) => ({
-    candidateId: r.candidateId,
-    rootMessageId: r.rootMessageId,
-    incomplete: false,
-  }));
+  return findChatHistoryReplyRootsRepo(chatId, currentMessageId, candidateIds);
 }
 
 async function loadReplyGraphRows(
