@@ -2,7 +2,7 @@ import type { Chat } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import type { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({
@@ -64,9 +64,39 @@ export async function findChatByIdRepo<T extends Prisma.ChatSelect>(
 
 export async function findGroupChatsRepo() {
   return prisma.chat.findMany({
-    where: { chatType: 'GROUP' },
+    where: { chatType: 'GROUP', active: true },
     select: { id: true, title: true },
   });
+}
+
+export const findActiveGroupChatsRepo = findGroupChatsRepo;
+
+export async function deactivateChatRepo(
+  chatId: bigint,
+  inactiveSince = new Date(),
+) {
+  return prisma.chat.update({
+    where: { id: chatId },
+    data: { active: false, inactiveSince },
+  });
+}
+
+export async function reactivateInactiveGroupChatsRepo(): Promise<number> {
+  return prisma.$executeRaw(
+    Prisma.sql`
+    UPDATE "Chat" AS chat
+    SET "active" = true, "inactiveSince" = NULL
+    WHERE chat."chatType" = 'GROUP'
+      AND chat."active" = false
+      AND chat."inactiveSince" IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM "Message" AS message
+        WHERE message."chatId" = chat."id"
+          AND message."sentAt" > chat."inactiveSince"
+      )
+  `,
+  );
 }
 
 export async function updateChatRepo(

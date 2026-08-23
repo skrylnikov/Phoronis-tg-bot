@@ -3,8 +3,9 @@ import type { BotContext } from '../bot';
 
 const { prisma } = vi.hoisted(() => ({
   prisma: {
-    chat: { findMany: vi.fn() },
-    message: { count: vi.fn() },
+    chat: { findMany: vi.fn(), update: vi.fn() },
+    message: { groupBy: vi.fn() },
+    $executeRaw: vi.fn(),
   },
 }));
 
@@ -66,7 +67,16 @@ beforeEach(() => {
     { id: -1001n, title: 'Первый чат' },
     { id: -1002n, title: 'Второй чат' },
   ]);
-  prisma.message.count.mockResolvedValueOnce(123).mockResolvedValueOnce(45);
+  prisma.message.groupBy
+    .mockResolvedValueOnce([
+      { chatId: -1001n, _count: { _all: 123 } },
+      { chatId: -1002n, _count: { _all: 7 } },
+    ])
+    .mockResolvedValueOnce([
+      { chatId: -1001n, _count: { _all: 45 } },
+      { chatId: -1002n, _count: { _all: 9 } },
+    ]);
+  prisma.chat.update.mockResolvedValue({});
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-07-28T12:00:00.000Z'));
 });
@@ -83,12 +93,18 @@ describe('whats-new broadcast', () => {
     });
 
     expect(markdown).toContain('## Ио: большое обновление');
-    expect(markdown).toContain('<details>');
+    expect(markdown).toContain('Web-доступ с источниками');
+    expect(markdown).toContain('Контекст и история');
+    expect(markdown).toContain('только по явному запросу');
+    expect(markdown).toContain('Личные лимиты раньше');
+    expect(markdown).toContain('49 ⭐ | 39 ⭐');
+    expect(markdown).toContain('31 августа 2026 года, 23:59 МСК');
     expect(markdown).toContain('123 сообщений');
     expect(markdown).toContain('45 голосовых сообщений и кружков');
-    expect(markdown).toContain('3 бесплатных + 10 по тарифу = 13 ответов');
-    expect(markdown).toContain('участники не тратят лимиты друг друга');
-    expect(markdown).not.toContain('При обновлении лимитов');
+    expect(markdown).not.toContain('29 ⭐');
+    expect(markdown).not.toContain('3 бесплатных + 10 по тарифу');
+    expect(markdown).not.toContain('/terms');
+    expect(markdown).not.toContain('/paysupport');
   });
 
   it('only shows the preview to the owner in a private chat', async () => {
@@ -97,11 +113,13 @@ describe('whats-new broadcast', () => {
     await whatsNewController(context);
 
     expect(prisma.chat.findMany).toHaveBeenCalledWith({
-      where: { chatType: 'GROUP' },
+      where: { chatType: 'GROUP', active: true },
       select: { id: true, title: true },
     });
     expect(replyWithRichMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ markdown: expect.stringContaining('Ио') }),
+      expect.objectContaining({
+        markdown: expect.stringContaining('Статистика в рассылке'),
+      }),
       expect.objectContaining({
         reply_markup: expect.objectContaining({
           inline_keyboard: [
@@ -148,6 +166,16 @@ describe('whats-new broadcast', () => {
     await vi.advanceTimersByTimeAsync(broadcastDelayMs);
 
     expect(broadcast.sendRichMessage).toHaveBeenCalledTimes(2);
+    expect(broadcast.sendRichMessage.mock.calls[0]?.[1].markdown).toContain(
+      '123 сообщений',
+    );
+    expect(broadcast.sendRichMessage.mock.calls[1]?.[1].markdown).toContain(
+      '7 сообщений',
+    );
+    expect(prisma.chat.update).toHaveBeenCalledWith({
+      where: { id: -1002n },
+      data: { active: false, inactiveSince: expect.any(Date) },
+    });
     expect(broadcast.sendMessage).toHaveBeenCalledWith(
       777,
       [

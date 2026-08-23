@@ -192,6 +192,53 @@ export async function countMessagesWithWhereRepo(
   return prisma.message.count({ where });
 }
 
+export interface MessageStatsByChat {
+  botReplies: number;
+  recognizedVoices: number;
+}
+
+export async function countMessageStatsByChatRepo(
+  chatIds: readonly bigint[],
+  botUserId: bigint,
+): Promise<Map<bigint, MessageStatsByChat>> {
+  const stats = new Map<bigint, MessageStatsByChat>(
+    chatIds.map((chatId) => [chatId, { botReplies: 0, recognizedVoices: 0 }]),
+  );
+  if (chatIds.length === 0) return stats;
+
+  const [botReplies, recognizedVoices] = await Promise.all([
+    prisma.message.groupBy({
+      by: ['chatId'],
+      where: {
+        chatId: { in: [...chatIds] },
+        senderId: botUserId,
+        replyToMessageId: { not: null },
+      },
+      _count: { _all: true },
+    }),
+    prisma.message.groupBy({
+      by: ['chatId'],
+      where: {
+        chatId: { in: [...chatIds] },
+        messageType: 'VOICE',
+        senderId: { not: botUserId },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  for (const row of botReplies) {
+    const chatStats = stats.get(row.chatId);
+    if (chatStats) chatStats.botReplies = row._count._all;
+  }
+  for (const row of recognizedVoices) {
+    const chatStats = stats.get(row.chatId);
+    if (chatStats) chatStats.recognizedVoices = row._count._all;
+  }
+
+  return stats;
+}
+
 export async function findManyMessagesRepo(
   where: Prisma.MessageWhereInput,
   options?: {

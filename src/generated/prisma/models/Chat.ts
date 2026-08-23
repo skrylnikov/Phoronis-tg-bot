@@ -40,6 +40,8 @@ export type ChatMinAggregateOutputType = {
   chatType: $Enums.ChatType | null
   name: string | null
   greeting: string | null
+  active: boolean | null
+  inactiveSince: Date | null
   selfieSaturdayEnabled: boolean | null
   inktoberEnabled: boolean | null
   privateModeEnabled: boolean | null
@@ -51,6 +53,8 @@ export type ChatMaxAggregateOutputType = {
   chatType: $Enums.ChatType | null
   name: string | null
   greeting: string | null
+  active: boolean | null
+  inactiveSince: Date | null
   selfieSaturdayEnabled: boolean | null
   inktoberEnabled: boolean | null
   privateModeEnabled: boolean | null
@@ -62,6 +66,8 @@ export type ChatCountAggregateOutputType = {
   chatType: number
   name: number
   greeting: number
+  active: number
+  inactiveSince: number
   selfieSaturdayEnabled: number
   inktoberEnabled: number
   privateModeEnabled: number
@@ -83,6 +89,8 @@ export type ChatMinAggregateInputType = {
   chatType?: true
   name?: true
   greeting?: true
+  active?: true
+  inactiveSince?: true
   selfieSaturdayEnabled?: true
   inktoberEnabled?: true
   privateModeEnabled?: true
@@ -94,6 +102,8 @@ export type ChatMaxAggregateInputType = {
   chatType?: true
   name?: true
   greeting?: true
+  active?: true
+  inactiveSince?: true
   selfieSaturdayEnabled?: true
   inktoberEnabled?: true
   privateModeEnabled?: true
@@ -105,6 +115,8 @@ export type ChatCountAggregateInputType = {
   chatType?: true
   name?: true
   greeting?: true
+  active?: true
+  inactiveSince?: true
   selfieSaturdayEnabled?: true
   inktoberEnabled?: true
   privateModeEnabled?: true
@@ -203,6 +215,8 @@ export type ChatGroupByOutputType = {
   chatType: $Enums.ChatType
   name: string | null
   greeting: string | null
+  active: boolean
+  inactiveSince: Date | null
   selfieSaturdayEnabled: boolean | null
   inktoberEnabled: boolean | null
   privateModeEnabled: boolean | null
@@ -237,6 +251,8 @@ export type ChatWhereInput = {
   chatType?: Prisma.EnumChatTypeFilter<"Chat"> | $Enums.ChatType
   name?: Prisma.StringNullableFilter<"Chat"> | string | null
   greeting?: Prisma.StringNullableFilter<"Chat"> | string | null
+  active?: Prisma.BoolFilter<"Chat"> | boolean
+  inactiveSince?: Prisma.DateTimeNullableFilter<"Chat"> | Date | string | null
   selfieSaturdayEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   privateModeEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
@@ -256,6 +272,8 @@ export type ChatOrderByWithRelationInput = {
   chatType?: Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   greeting?: Prisma.SortOrderInput | Prisma.SortOrder
+  active?: Prisma.SortOrder
+  inactiveSince?: Prisma.SortOrderInput | Prisma.SortOrder
   selfieSaturdayEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -278,6 +296,8 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   chatType?: Prisma.EnumChatTypeFilter<"Chat"> | $Enums.ChatType
   name?: Prisma.StringNullableFilter<"Chat"> | string | null
   greeting?: Prisma.StringNullableFilter<"Chat"> | string | null
+  active?: Prisma.BoolFilter<"Chat"> | boolean
+  inactiveSince?: Prisma.DateTimeNullableFilter<"Chat"> | Date | string | null
   selfieSaturdayEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   inktoberEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
   privateModeEnabled?: Prisma.BoolNullableFilter<"Chat"> | boolean | null
@@ -297,6 +317,8 @@ export type ChatOrderByWithAggregationInput = {
   chatType?: Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   greeting?: Prisma.SortOrderInput | Prisma.SortOrder
+  active?: Prisma.SortOrder
+  inactiveSince?: Prisma.SortOrderInput | Prisma.SortOrder
   selfieSaturdayEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -316,6 +338,8 @@ export type ChatScalarWhereWithAggregatesInput = {
   chatType?: Prisma.EnumChatTypeWithAggregatesFilter<"Chat"> | $Enums.ChatType
   name?: Prisma.StringNullableWithAggregatesFilter<"Chat"> | string | null
   greeting?: Prisma.StringNullableWithAggregatesFilter<"Chat"> | string | null
+  active?: Prisma.BoolWithAggregatesFilter<"Chat"> | boolean
+  inactiveSince?: Prisma.DateTimeNullableWithAggregatesFilter<"Chat"> | Date | string | null
   selfieSaturdayEnabled?: Prisma.BoolNullableWithAggregatesFilter<"Chat"> | boolean | null
   inktoberEnabled?: Prisma.BoolNullableWithAggregatesFilter<"Chat"> | boolean | null
   privateModeEnabled?: Prisma.BoolNullableWithAggregatesFilter<"Chat"> | boolean | null
@@ -327,6 +351,8 @@ export type ChatCreateInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -346,6 +372,8 @@ export type ChatUncheckedCreateInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -365,6 +393,8 @@ export type ChatUpdateInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -384,6 +414,8 @@ export type ChatUncheckedUpdateInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -403,6 +435,8 @@ export type ChatCreateManyInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -414,6 +448,8 @@ export type ChatUpdateManyMutationInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -425,6 +461,8 @@ export type ChatUncheckedUpdateManyInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -436,6 +474,8 @@ export type ChatCountOrderByAggregateInput = {
   chatType?: Prisma.SortOrder
   name?: Prisma.SortOrder
   greeting?: Prisma.SortOrder
+  active?: Prisma.SortOrder
+  inactiveSince?: Prisma.SortOrder
   selfieSaturdayEnabled?: Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrder
@@ -451,6 +491,8 @@ export type ChatMaxOrderByAggregateInput = {
   chatType?: Prisma.SortOrder
   name?: Prisma.SortOrder
   greeting?: Prisma.SortOrder
+  active?: Prisma.SortOrder
+  inactiveSince?: Prisma.SortOrder
   selfieSaturdayEnabled?: Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrder
@@ -462,6 +504,8 @@ export type ChatMinOrderByAggregateInput = {
   chatType?: Prisma.SortOrder
   name?: Prisma.SortOrder
   greeting?: Prisma.SortOrder
+  active?: Prisma.SortOrder
+  inactiveSince?: Prisma.SortOrder
   selfieSaturdayEnabled?: Prisma.SortOrder
   inktoberEnabled?: Prisma.SortOrder
   privateModeEnabled?: Prisma.SortOrder
@@ -482,6 +526,14 @@ export type StringFieldUpdateOperationsInput = {
 
 export type EnumChatTypeFieldUpdateOperationsInput = {
   set?: $Enums.ChatType
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type NullableBoolFieldUpdateOperationsInput = {
@@ -606,6 +658,8 @@ export type ChatCreateWithoutBeneficiarySubscriptionsInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -624,6 +678,8 @@ export type ChatUncheckedCreateWithoutBeneficiarySubscriptionsInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -658,6 +714,8 @@ export type ChatUpdateWithoutBeneficiarySubscriptionsInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -676,6 +734,8 @@ export type ChatUncheckedUpdateWithoutBeneficiarySubscriptionsInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -694,6 +754,8 @@ export type ChatCreateWithoutPaymentOrderInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -712,6 +774,8 @@ export type ChatUncheckedCreateWithoutPaymentOrderInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -746,6 +810,8 @@ export type ChatUpdateWithoutPaymentOrderInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -764,6 +830,8 @@ export type ChatUncheckedUpdateWithoutPaymentOrderInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -782,6 +850,8 @@ export type ChatCreateWithoutPurchaseSessionInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -800,6 +870,8 @@ export type ChatUncheckedCreateWithoutPurchaseSessionInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -834,6 +906,8 @@ export type ChatUpdateWithoutPurchaseSessionInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -852,6 +926,8 @@ export type ChatUncheckedUpdateWithoutPurchaseSessionInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -870,6 +946,8 @@ export type ChatCreateWithoutLimitNoticeInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -888,6 +966,8 @@ export type ChatUncheckedCreateWithoutLimitNoticeInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -922,6 +1002,8 @@ export type ChatUpdateWithoutLimitNoticeInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -940,6 +1022,8 @@ export type ChatUncheckedUpdateWithoutLimitNoticeInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -958,6 +1042,8 @@ export type ChatCreateWithoutMessageInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -976,6 +1062,8 @@ export type ChatUncheckedCreateWithoutMessageInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1010,6 +1098,8 @@ export type ChatUpdateWithoutMessageInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1028,6 +1118,8 @@ export type ChatUncheckedUpdateWithoutMessageInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1046,6 +1138,8 @@ export type ChatCreateWithoutGuestInteractionInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1064,6 +1158,8 @@ export type ChatUncheckedCreateWithoutGuestInteractionInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1098,6 +1194,8 @@ export type ChatUpdateWithoutGuestInteractionInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1116,6 +1214,8 @@ export type ChatUncheckedUpdateWithoutGuestInteractionInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1134,6 +1234,8 @@ export type ChatCreateWithoutAiThreadContextInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1152,6 +1254,8 @@ export type ChatUncheckedCreateWithoutAiThreadContextInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1186,6 +1290,8 @@ export type ChatUpdateWithoutAiThreadContextInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1204,6 +1310,8 @@ export type ChatUncheckedUpdateWithoutAiThreadContextInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1222,6 +1330,8 @@ export type ChatCreateWithoutMemoryInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1240,6 +1350,8 @@ export type ChatUncheckedCreateWithoutMemoryInput = {
   chatType: $Enums.ChatType
   name?: string | null
   greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
   selfieSaturdayEnabled?: boolean | null
   inktoberEnabled?: boolean | null
   privateModeEnabled?: boolean | null
@@ -1274,6 +1386,8 @@ export type ChatUpdateWithoutMemoryInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1292,6 +1406,8 @@ export type ChatUncheckedUpdateWithoutMemoryInput = {
   chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -1404,6 +1520,8 @@ export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   chatType?: boolean
   name?: boolean
   greeting?: boolean
+  active?: boolean
+  inactiveSince?: boolean
   selfieSaturdayEnabled?: boolean
   inktoberEnabled?: boolean
   privateModeEnabled?: boolean
@@ -1424,6 +1542,8 @@ export type ChatSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   chatType?: boolean
   name?: boolean
   greeting?: boolean
+  active?: boolean
+  inactiveSince?: boolean
   selfieSaturdayEnabled?: boolean
   inktoberEnabled?: boolean
   privateModeEnabled?: boolean
@@ -1435,6 +1555,8 @@ export type ChatSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   chatType?: boolean
   name?: boolean
   greeting?: boolean
+  active?: boolean
+  inactiveSince?: boolean
   selfieSaturdayEnabled?: boolean
   inktoberEnabled?: boolean
   privateModeEnabled?: boolean
@@ -1446,12 +1568,14 @@ export type ChatSelectScalar = {
   chatType?: boolean
   name?: boolean
   greeting?: boolean
+  active?: boolean
+  inactiveSince?: boolean
   selfieSaturdayEnabled?: boolean
   inktoberEnabled?: boolean
   privateModeEnabled?: boolean
 }
 
-export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "chatType" | "name" | "greeting" | "selfieSaturdayEnabled" | "inktoberEnabled" | "privateModeEnabled", ExtArgs["result"]["chat"]>
+export type ChatOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "chatType" | "name" | "greeting" | "active" | "inactiveSince" | "selfieSaturdayEnabled" | "inktoberEnabled" | "privateModeEnabled", ExtArgs["result"]["chat"]>
 export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.Chat$MessageArgs<ExtArgs>
   GuestInteraction?: boolean | Prisma.Chat$GuestInteractionArgs<ExtArgs>
@@ -1484,6 +1608,8 @@ export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     chatType: $Enums.ChatType
     name: string | null
     greeting: string | null
+    active: boolean
+    inactiveSince: Date | null
     selfieSaturdayEnabled: boolean | null
     inktoberEnabled: boolean | null
     privateModeEnabled: boolean | null
@@ -1923,6 +2049,8 @@ export interface ChatFieldRefs {
   readonly chatType: Prisma.FieldRef<"Chat", 'ChatType'>
   readonly name: Prisma.FieldRef<"Chat", 'String'>
   readonly greeting: Prisma.FieldRef<"Chat", 'String'>
+  readonly active: Prisma.FieldRef<"Chat", 'Boolean'>
+  readonly inactiveSince: Prisma.FieldRef<"Chat", 'DateTime'>
   readonly selfieSaturdayEnabled: Prisma.FieldRef<"Chat", 'Boolean'>
   readonly inktoberEnabled: Prisma.FieldRef<"Chat", 'Boolean'>
   readonly privateModeEnabled: Prisma.FieldRef<"Chat", 'Boolean'>

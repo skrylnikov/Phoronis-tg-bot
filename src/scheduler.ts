@@ -8,7 +8,11 @@ import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
 import { logger } from './logger';
-import { findManyChatsRepo, updateUserFactsWeightRepo } from './repositories';
+import {
+  findManyChatsRepo,
+  reactivateInactiveGroupChatsRepo,
+  updateUserFactsWeightRepo,
+} from './repositories';
 
 let impactScoreTask: ScheduledTask | null = null;
 
@@ -62,6 +66,30 @@ export function startScheduler() {
     {
       timezone: 'Europe/Moscow',
     },
+  );
+
+  const reactivateInactiveChats = async () => {
+    try {
+      const reactivatedCount = await reactivateInactiveGroupChatsRepo();
+      logger.info(
+        {
+          event: 'scheduler.chat_activity_recovery_completed',
+          reactivatedCount,
+        },
+        'Inactive chat recovery completed',
+      );
+    } catch (error) {
+      logger.error(
+        { event: 'scheduler.chat_activity_recovery_failed', err: error },
+        'Inactive chat recovery failed',
+      );
+    }
+  };
+
+  cron.schedule(
+    '0 1 * * *',
+    () => runSchedulerTask('chat activity recovery', reactivateInactiveChats),
+    { timezone: 'Europe/Moscow' },
   );
 
   // Запускать каждую субботу в 12:00 по МСК (UTC+3), т.е. в 9:00 UTC

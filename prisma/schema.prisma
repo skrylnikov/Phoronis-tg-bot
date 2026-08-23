@@ -45,6 +45,8 @@ model Chat {
 
   name                  String?
   greeting              String?
+  active                Boolean  @default(true)
+  inactiveSince         DateTime?
   selfieSaturdayEnabled Boolean? @default(false)
   inktoberEnabled       Boolean? @default(false)
   privateModeEnabled    Boolean? @default(false)
@@ -283,6 +285,7 @@ model Message {
   aiThreadEvents   AiThreadContextEvent[]
 
   @@id([chatId, id])
+  @@index([chatId, sentAt])
   @@index([sessionId])
   @@index([senderId])
 }

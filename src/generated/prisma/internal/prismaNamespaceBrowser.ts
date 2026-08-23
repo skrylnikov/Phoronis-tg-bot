@@ -104,6 +104,8 @@ export const ChatScalarFieldEnum = {
   chatType: 'chatType',
   name: 'name',
   greeting: 'greeting',
+  active: 'active',
+  inactiveSince: 'inactiveSince',
   selfieSaturdayEnabled: 'selfieSaturdayEnabled',
   inktoberEnabled: 'inktoberEnabled',
   privateModeEnabled: 'privateModeEnabled'

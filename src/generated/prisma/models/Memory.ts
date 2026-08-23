@@ -531,10 +531,6 @@ export type MemoryUncheckedUpdateManyWithoutChatNestedInput = {
   deleteMany?: Prisma.MemoryScalarWhereInput | Prisma.MemoryScalarWhereInput[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type MemoryCreateWithoutUserInput = {
   id?: bigint | number
   content: string

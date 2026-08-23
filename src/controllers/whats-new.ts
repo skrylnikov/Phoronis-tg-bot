@@ -4,8 +4,9 @@ import type { BotContext } from '../bot';
 import { analyticsChatId } from '../config';
 import { logger } from '../logger';
 import {
-  countMessagesWithWhereRepo,
-  findGroupChatsRepo,
+  countMessageStatsByChatRepo,
+  deactivateChatRepo,
+  findActiveGroupChatsRepo,
 } from '../repositories';
 
 const confirmationLifetimeMs = 10 * 60 * 1000;
@@ -14,11 +15,12 @@ export const broadcastDelayMs = 2_000;
 interface GroupChatTarget {
   id: bigint;
   title: string;
+  markdown: string;
 }
 
 interface BroadcastConfirmation {
   groups: GroupChatTarget[];
-  markdown: string;
+  previewMarkdown: string;
   expiresAt: Date;
 }
 
@@ -44,62 +46,63 @@ function removeExpiredConfirmations(now = new Date()): void {
   }
 }
 
-export function buildWhatsNewPost(stats: WhatsNewStats): string {
+export function buildWhatsNewPost(stats?: WhatsNewStats): string {
   return `## Ио: большое обновление
 
-Я переехала на новую инфраструктуру — теперь работаю быстрее и стабильнее. Спасибо, что доверяете мне ваши разговоры, вопросы и идеи 💜
+Я продолжаю становиться полезнее для ваших чатов. Спасибо, что доверяете мне ваши разговоры, вопросы и идеи 💜
 
-<details>
-<summary>✨ Что нового</summary>
+### ✨ Что нового
 
-- **Rich Markdown** — ответы стали аккуратнее: с заголовками, списками, цитатами и удобной структурой.
-- **Приватный /ask** — задайте вопрос в группе, и Ио ответит только вам; такой диалог не попадает в обычную историю группы.
-- **Guest Mode** — Ио можно позвать в чат, где её ещё нет.
-- **«Что я пропустил?»** — в группе можно попросить Ио разобрать сообщения после вашего последнего появления и кратко рассказать важное.
-- **Улучшенный контекст** — Ио лучше находит полезные детали из истории диалога.
+- **Web-доступ с источниками** — Ио может искать актуальную информацию в интернете и показывать источники.
+- **Контекст и история** — Ио лучше учитывает предыдущий разговор и умеет находить полезные сообщения в истории чата.
+- **Изображения по запросу** — фотографии сами по себе не запускают распознавание и не расходуют лимит; Ио анализирует изображение только по явному запросу.
+- **Более аккуратные ответы** — заголовки, списки, цитаты и другая структура отображаются понятнее.
 
-</details>
+### 📊 Лимиты: было → стало
 
-<details>
-<summary>⭐ Подписка и лимиты</summary>
+| Тариф | Личные лимиты раньше | Личные лимиты сейчас | Лимиты группы раньше | Лимиты группы сейчас |
+| --- | --- | --- | --- | --- |
+| Без подписки | 3 ответа, 3 изображения, 3 войса, 1 анализ | 10 ответов, 5 изображений, 10 войсов, 1 анализ | — | — |
+| 1 неделя | 13 ответов, 8 изображений, 8 войсов | 30 ответов, 15 изображений, 30 войсов | 1 ответ, 1 изображение, 1 войс, 1 анализ | 3 ответа, 3 изображения, 6 войсов, 1 анализ |
+| 1 месяц | 28 ответов, 18 изображений, 18 войсов | 50 ответов, 30 изображений, 60 войсов | 3 ответа, 3 изображения, 3 войса, 3 анализа | 5 ответов, 5 изображений, 10 войсов, 3 анализа |
+| 3 месяца | 53 ответа, 33 изображения, 33 войса | 100 ответов, 50 изображений, 100 войсов | 5 ответов, 5 изображений, 5 войсов, 5 анализов | 10 ответов, 10 изображений, 20 войсов, 5 анализов |
+| 1 год | 103 ответа, 103 изображения, 103 войса | 500 ответов, 200 изображений, 400 войсов | 10 ответов, 10 изображений, 10 войсов, 10 анализов | 20 ответов, 20 изображений, 40 войсов, 10 анализов |
 
-Подписка оформляется командой **/subscribe** в нужной группе: выбор и оплата проходят в личном чате с Ио через Telegram Stars, без автоматического продления. Она прибавляет тариф к бесплатным личным лимитам и добавляет групповые лимиты каждому участнику выбранной группы.
+Лимиты обновляются каждый день по московскому времени. Неиспользованные лимиты не переносятся.
 
-| Тариф | Цена сейчас | Личные лимиты в день | Групповые лимиты каждого участника в день |
-| --- | --- | --- | --- |
-| 1 неделя | 29 ⭐ вместо 49 ⭐ | 13 ответов, 8 изображений, 8 войсов, безлимит анализа | 1 ответ, 1 изображение, 1 войс, 1 анализ |
-| 1 месяц | 49 ⭐ вместо 99 ⭐ | 28 ответов, 18 изображений, 18 войсов, безлимит анализа | 3 ответа, 3 изображения, 3 войса, 3 анализа |
-| 3 месяца | 99 ⭐ вместо 199 ⭐ | 53 ответа, 33 изображения, 33 войса, безлимит анализа | 5 ответов, 5 изображений, 5 войсов, 5 анализов |
-| 1 год | 299 ⭐ вместо 599 ⭐ | 103 ответа, 103 изображения, 103 войса, безлимит анализа | 10 ответов, 10 изображений, 10 войсов, 10 анализов |
+### ⭐ Скидка 20%
 
-Без подписки: **3 ответа, 3 изображения, 3 войса и 1 анализ** в день. Например, неделя даёт **3 бесплатных + 10 по тарифу = 13 ответов**. В группе сначала расходуется ваш групповой лимит, затем — личный. Покупки, действующие одновременно, складываются: подписки одной группы увеличивают групповую квоту каждого её участника, но участники не тратят лимиты друг друга. В **/limits** эти два вида лимитов показаны отдельно.
+До **31 августа 2026 года, 23:59 МСК** действуют цены со скидкой 20% на все тарифы:
 
-Все лимиты обновляются в **00:00 МСК**. Неиспользованные не переносятся; дни новой покупки добавляются после уже оплаченного срока. Пока подписка активна, можно купить такой же или более высокий тариф.
+| Тариф | Было | Сейчас |
+| --- | ---: | ---: |
+| 1 неделя | 49 ⭐ | 39 ⭐ |
+| 1 месяц | 99 ⭐ | 79 ⭐ |
+| 3 месяца | 199 ⭐ | 159 ⭐ |
+| 1 год | 599 ⭐ | 479 ⭐ |
 
-</details>
-
-Спасибо, что вы с Ио. Продолжаю делать её полезнее для ваших чатов.
-
-_За всё время Ио ответила на ${stats.botReplies} сообщений и распознала ${stats.recognizedVoices} голосовых сообщений и кружков._`;
+${stats ? `_За всё время Ио ответила на ${stats.botReplies} сообщений и распознала ${stats.recognizedVoices} голосовых сообщений и кружков._` : '_Статистика в рассылке будет рассчитана отдельно для каждого группового чата._'}`;
 }
 
 async function getBroadcastData(botUserId: number): Promise<{
   groups: GroupChatTarget[];
-  stats: WhatsNewStats;
+  previewMarkdown: string;
 }> {
-  const [groups, botReplies, recognizedVoices] = await Promise.all([
-    findGroupChatsRepo(),
-    countMessagesWithWhereRepo({
-      senderId: BigInt(botUserId),
-      replyToMessageId: { not: null },
-    }),
-    countMessagesWithWhereRepo({
-      messageType: 'VOICE',
-      senderId: { not: BigInt(botUserId) },
-    }),
-  ]);
+  const activeGroups = await findActiveGroupChatsRepo();
+  const statsByChat = await countMessageStatsByChatRepo(
+    activeGroups.map((group) => group.id),
+    BigInt(botUserId),
+  );
 
-  return { groups, stats: { botReplies, recognizedVoices } };
+  return {
+    groups: activeGroups.map((group) => ({
+      ...group,
+      markdown: buildWhatsNewPost(
+        statsByChat.get(group.id) ?? { botReplies: 0, recognizedVoices: 0 },
+      ),
+    })),
+    previewMarkdown: buildWhatsNewPost(),
+  };
 }
 
 async function sendPost(
@@ -130,7 +133,7 @@ async function runBroadcast(
   try {
     for (const [index, group] of confirmation.groups.entries()) {
       try {
-        await sendPost(api, group.id, confirmation.markdown);
+        await sendPost(api, group.id, group.markdown);
         sent += 1;
       } catch (error) {
         logger.warn(
@@ -142,6 +145,18 @@ async function runBroadcast(
           },
           'Failed to send whats-new broadcast',
         );
+        try {
+          await deactivateChatRepo(group.id);
+        } catch (deactivationError) {
+          logger.error(
+            {
+              event: 'whats_new.broadcast_deactivation_failed',
+              err: deactivationError,
+              chatId: group.id.toString(),
+            },
+            'Failed to deactivate whats-new target chat',
+          );
+        }
       }
 
       if (index < confirmation.groups.length - 1) {
@@ -177,16 +192,15 @@ export async function whatsNewController(ctx: BotContext): Promise<void> {
     return;
   }
 
-  const { groups, stats } = await getBroadcastData(ctx.me.id);
+  const { groups, previewMarkdown } = await getBroadcastData(ctx.me.id);
   const token = createConfirmationToken();
-  const markdown = buildWhatsNewPost(stats);
   confirmations.set(token, {
     groups,
-    markdown,
+    previewMarkdown,
     expiresAt: new Date(Date.now() + confirmationLifetimeMs),
   });
 
-  const preview = `${markdown}\n\n> Готово к отправке в ${groups.length} групповых чатов.`;
+  const preview = `${previewMarkdown}\n\n> Готово к отправке в ${groups.length} активных групповых чатов. Статистика будет рассчитана отдельно для каждого чата.`;
   const replyMarkup = new InlineKeyboard().text(
     'Разослать',
     `whatsnew:${token}`,
