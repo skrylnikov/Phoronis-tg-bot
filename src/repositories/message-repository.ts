@@ -1,7 +1,7 @@
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import type { Prisma } from '../generated/prisma/client';
+import type { Prisma, MessageType } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, true>({
@@ -92,7 +92,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: replyId,
-        messageType: message.messageType ?? 'TEXT',
+        messageType: (message.messageType ?? 'TEXT') as MessageType,
       },
       update: {
         senderId: message.senderId,
@@ -102,7 +102,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         private: message.private ?? false,
         media: message.media ?? null,
         replyToMessageId: replyId,
-        messageType: message.messageType ?? 'TEXT',
+        messageType: (message.messageType ?? 'TEXT') as MessageType,
       },
       where: {
         chatId_id: {
