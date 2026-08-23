@@ -1,10 +1,64 @@
 import { describe, expect, it } from 'vitest';
+import { planDetails } from '../domain/quota-service';
 import {
   formatInvoiceDescription,
+  formatPaymentTerms,
   formatSubscriptionCatalog,
 } from '../domain/subscription-presentation';
+import {
+  getPlanTitle,
+  paymentTermsVersion,
+  subscriptionPlans,
+} from '../domain/subscription-rules';
 
 describe('subscription presentation', () => {
+  it('states the current personal and group quota contract', () => {
+    const text = formatPaymentTerms();
+
+    expect(text).toContain(
+      'Личные лимиты выбранного тарифа являются итоговыми и заменяют бесплатные дневные лимиты.',
+    );
+    expect(text).toContain(
+      'Активные подписки, оформленные для одной группы, суммируются.',
+    );
+    expect(text).toContain(
+      'Каждый участник получает независимую групповую квоту',
+    );
+    expect(text).toContain(
+      'сначала расходуется групповая квота, затем личная.',
+    );
+    expect(text).not.toContain(
+      'Подписка прибавляет лимиты к вашим бесплатным дневным лимитам',
+    );
+    expect(text).toContain(`Версия: ${paymentTermsVersion}.`);
+  });
+
+  it('uses the domain catalog for every tariff in the catalog and invoice', () => {
+    const options = subscriptionPlans.map((plan) => ({
+      plan,
+      amount: planDetails[plan].amount,
+      actualDiscount: 0,
+      requestedDiscount: 0,
+      promotionEndsAt: new Date('2026-08-31T20:59:59.999Z'),
+    }));
+    const catalog = formatSubscriptionCatalog(options);
+
+    for (const plan of subscriptionPlans) {
+      const details = planDetails[plan];
+      expect(catalog).toContain(
+        `«${getPlanTitle(plan)}»\nОбычная цена: ${details.amount} ⭐`,
+      );
+
+      const invoice = formatInvoiceDescription({
+        plan,
+        amount: details.amount,
+        discountPercent: 0,
+        expiresAt: new Date('2026-08-10T09:30:00.000Z'),
+      });
+      expect(invoice).toContain(`Обычная цена: ${details.amount} ⭐`);
+    }
+  });
+
   it('shows the promotional price and every daily quota in the catalog', () => {
     const text = formatSubscriptionCatalog([
       {
@@ -29,7 +83,7 @@ describe('subscription presentation', () => {
 
   it('uses the same loyalty-discounted price in the invoice summary', () => {
     const text = formatInvoiceDescription({
-      baseAmount: 99,
+      plan: 'MONTH',
       amount: 79,
       discountPercent: 20,
       expiresAt: new Date('2026-08-10T09:30:00.000Z'),
@@ -42,7 +96,7 @@ describe('subscription presentation', () => {
 
   it('does not show a discount for a regular-price invoice', () => {
     const text = formatInvoiceDescription({
-      baseAmount: 599,
+      plan: 'YEAR',
       amount: 599,
       discountPercent: 0,
       expiresAt: new Date('2026-08-10T09:30:00.000Z'),

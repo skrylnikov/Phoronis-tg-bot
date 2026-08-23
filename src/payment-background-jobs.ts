@@ -103,27 +103,32 @@ export function createPaymentBackgroundJobHandlers(
   return {
     PAYMENT_BUYER_NOTIFICATION: async (job, signal) => {
       const payload = read(job);
-      await abortable(
+      if (job.externalDeliveryId) return;
+      const message = await abortable(
         api.sendMessage(
           Number(payload.userId),
           `Оплата прошла. Тариф «${getPlanTitle(payload.plan)}» активирован.`,
         ),
         signal,
       );
+      return { externalDeliveryId: String(message.message_id) };
     },
     PAYMENT_BENEFICIARY_NOTIFICATION: async (job, signal) => {
       const payload = read(job);
-      await abortable(
+      if (job.externalDeliveryId) return;
+      const message = await abortable(
         api.sendMessage(
           Number(payload.beneficiaryChatId),
           `${payload.buyer.firstName} оформил(а) подписку ${getPlanTitle(payload.plan)} и подарил(а) этому чату увеличенные лимиты ✨`,
         ),
         signal,
       );
+      return { externalDeliveryId: String(message.message_id) };
     },
     PAYMENT_ANALYTICS_NOTIFICATION: async (job, signal) => {
       const payload = read(job);
-      await abortable(
+      if (job.externalDeliveryId) return;
+      const messageId = await abortable(
         sendPurchaseNotification({
           api,
           buyer: telegramBuyer(payload),
@@ -133,6 +138,7 @@ export function createPaymentBackgroundJobHandlers(
         }),
         signal,
       );
+      return { externalDeliveryId: String(messageId) };
     },
     USER_MESSAGE_ANALYSIS: async (job, signal) => {
       await abortable(

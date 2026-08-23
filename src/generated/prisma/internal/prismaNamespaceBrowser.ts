@@ -225,7 +225,8 @@ export const BackgroundJobScalarFieldEnum = {
   startedAt: 'startedAt',
   completedAt: 'completedAt',
   updatedAt: 'updatedAt',
-  lastError: 'lastError'
+  lastError: 'lastError',
+  externalDeliveryId: 'externalDeliveryId'
 } as const
 
 export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]

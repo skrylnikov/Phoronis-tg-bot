@@ -78,4 +78,51 @@ describe('durable user message analysis', () => {
 
     expect(mocks.releaseQuota).toHaveBeenCalledWith(reservation);
   });
+
+  it('returns the quota reservation when fact analysis fails', async () => {
+    const reservation = {
+      allowed: true,
+      kind: 'ANALYSIS' as const,
+      day: new Date('2026-08-23T00:00:00.000Z'),
+    };
+    const error = new Error('fact analyzer unavailable');
+    mocks.reserveQuota.mockResolvedValueOnce(reservation);
+    mocks.findMessagesRepo.mockResolvedValueOnce([]);
+    mocks.analyzeUserMetaInfo.mockRejectedValueOnce(error);
+
+    await expect(
+      analyzeUserMessagesForUser({ userId: 42, chatId: -100, isGroup: true }),
+    ).rejects.toThrow('fact analyzer unavailable');
+
+    expect(mocks.releaseQuota).toHaveBeenCalledWith(reservation);
+  });
+
+  it('returns quota on a failed attempt and spends it once on retry success', async () => {
+    const firstReservation = {
+      allowed: true,
+      kind: 'ANALYSIS' as const,
+      day: new Date('2026-08-23T00:00:00.000Z'),
+    };
+    const secondReservation = { ...firstReservation };
+    mocks.reserveQuota
+      .mockResolvedValueOnce(firstReservation)
+      .mockResolvedValueOnce(secondReservation);
+    mocks.findMessagesRepo.mockResolvedValue([]);
+    mocks.analyzeUserMetaInfo
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce([101n]);
+
+    await expect(
+      analyzeUserMessagesForUser({ userId: 42, chatId: -100, isGroup: true }),
+    ).rejects.toThrow('temporary failure');
+    await analyzeUserMessagesForUser({
+      userId: 42,
+      chatId: -100,
+      isGroup: true,
+    });
+
+    expect(mocks.analyzeUserMetaInfo).toHaveBeenCalledTimes(2);
+    expect(mocks.releaseQuota).toHaveBeenCalledTimes(1);
+    expect(mocks.releaseQuota).toHaveBeenCalledWith(firstReservation);
+  });
 });

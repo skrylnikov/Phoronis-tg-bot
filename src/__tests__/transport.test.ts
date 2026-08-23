@@ -6,7 +6,14 @@ import type { TelegramUpdateQueue } from '../telegram-update-queue';
 import { createBotTransport } from '../transport';
 import type { TransportConfig } from '../transport-config';
 
-function createBot() {
+type MockBot = Bot<BotContext> & {
+  api: Bot<BotContext>['api'] & { setWebhook: ReturnType<typeof vi.fn> };
+  init: ReturnType<typeof vi.fn>;
+  start: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
+};
+
+function createBot(): MockBot {
   return {
     api: {
       setWebhook: vi.fn(async () => true),
@@ -16,7 +23,7 @@ function createBot() {
     isRunning: vi.fn(() => false),
     start: vi.fn(async () => undefined),
     stop: vi.fn(async () => undefined),
-  } as unknown as Bot<BotContext>;
+  } as unknown as MockBot;
 }
 
 function createQueue() {
@@ -31,15 +38,117 @@ function createQueue() {
   } satisfies TelegramUpdateQueue;
 }
 
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('bot transport', () => {
   it('starts polling without configuring a webhook', async () => {
     const bot = createBot();
-    const transport = createBotTransport(bot, { mode: 'polling' }, vi.fn());
+    const pollingLoop = deferred<void>();
+    bot.start.mockImplementation(() => pollingLoop.promise);
+    const onPollingError = vi.fn();
+    const transport = createBotTransport(
+      bot,
+      { mode: 'polling' },
+      onPollingError,
+    );
+
+    runtimeState.setReady('database', true);
+    runtimeState.setReady('embeddings', true);
+    runtimeState.setReady('jobWorker', true);
+    runtimeState.setReady('transport', false);
+    runtimeState.setReady('updateWorkers', false);
+    expect(runtimeState.isReady()).toBe(false);
 
     await transport.start();
 
+    expect(bot.init).toHaveBeenCalledBefore(bot.start);
     expect(bot.start).toHaveBeenCalledOnce();
+    expect(onPollingError).not.toHaveBeenCalled();
     expect(bot.api.setWebhook).not.toHaveBeenCalled();
+
+    await transport.stop();
+    pollingLoop.resolve();
+    expect(onPollingError).not.toHaveBeenCalled();
+  });
+
+  it('keeps polling unready and fails startup when Telegram init fails', async () => {
+    const bot = createBot();
+    const error = new Error('Telegram init failed');
+    bot.init.mockRejectedValueOnce(error);
+    const onPollingError = vi.fn();
+    const transport = createBotTransport(
+      bot,
+      { mode: 'polling' },
+      onPollingError,
+    );
+
+    await expect(transport.start()).rejects.toThrow('Telegram init failed');
+    expect(onPollingError).toHaveBeenCalledWith(error);
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'not-ready',
+      updateWorkers: 'not-ready',
+    });
+  });
+
+  it('resets readiness and reports a rejected polling loop', async () => {
+    const bot = createBot();
+    const pollingLoop = deferred<void>();
+    bot.start.mockImplementation(() => pollingLoop.promise);
+    const onPollingError = vi.fn();
+    const transport = createBotTransport(
+      bot,
+      { mode: 'polling' },
+      onPollingError,
+    );
+
+    await transport.start();
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'ready',
+      updateWorkers: 'ready',
+    });
+
+    const error = new Error('polling stopped');
+    pollingLoop.reject(error);
+    await vi.waitFor(() => expect(onPollingError).toHaveBeenCalledWith(error));
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'not-ready',
+      updateWorkers: 'not-ready',
+    });
+  });
+
+  it('resets readiness when the polling loop ends unexpectedly', async () => {
+    const bot = createBot();
+    const pollingLoop = deferred<void>();
+    bot.start.mockImplementation(() => pollingLoop.promise);
+    const onPollingError = vi.fn();
+    const transport = createBotTransport(
+      bot,
+      { mode: 'polling' },
+      onPollingError,
+    );
+
+    await transport.start();
+    pollingLoop.resolve();
+    await vi.waitFor(() => expect(onPollingError).toHaveBeenCalledOnce());
+    expect(onPollingError.mock.calls[0]?.[0]).toMatchObject({
+      message: 'Polling loop ended unexpectedly',
+    });
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'not-ready',
+      updateWorkers: 'not-ready',
+    });
   });
 
   it('configures webhook without starting polling', async () => {

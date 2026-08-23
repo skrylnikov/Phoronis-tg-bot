@@ -17,7 +17,11 @@ import {
   saveUser,
 } from '../domain';
 import { logger } from '../logger';
-import { findFirstMessageRepo, updateMessageFieldsRepo } from '../repositories';
+import {
+  findChatByIdRepo,
+  findFirstMessageRepo,
+  updateMessageFieldsRepo,
+} from '../repositories';
 import { currentUpdateAbortSignal } from '../update-signal.js';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
@@ -36,6 +40,10 @@ export const voiceController = async (ctx: BotContext) => {
     const chatId = ctx.chatId;
 
     await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+    const chatSettings = await findChatByIdRepo(BigInt(chatId), {
+      privateModeEnabled: true,
+    });
+    const isPrivateMode = chatSettings?.privateModeEnabled ?? false;
     const existingVoiceMessage = await findFirstMessageRepo(
       {
         chatId,
@@ -145,6 +153,7 @@ export const voiceController = async (ctx: BotContext) => {
           sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
           messageType: 'VOICE',
           text: recognizedResult,
+          private: isPrivateMode,
           replyToMessageId: ctx.msg?.reply_to_message?.message_id
             ? BigInt(ctx.msg.reply_to_message.message_id)
             : undefined,
@@ -161,6 +170,7 @@ export const voiceController = async (ctx: BotContext) => {
           sentAt: new Date(reply.date * 1000),
           messageType: 'VOICE',
           text: reply.text,
+          private: isPrivateMode,
           replyToMessageId: ctx.message?.message_id
             ? BigInt(ctx.message.message_id)
             : undefined,

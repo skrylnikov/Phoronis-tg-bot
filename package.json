@@ -9,6 +9,7 @@
     "start": "bun run ./src/index.ts",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",
+    "db:benchmark:vector": "bun run ./src/scripts/vector-search-benchmark.ts",
     "db:wait-vector": "bun run ./src/scripts/wait-for-vector.ts",
     "postinstall": "prisma generate",
     "dev": "bun --watch ./src/index.ts",

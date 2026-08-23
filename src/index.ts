@@ -23,8 +23,11 @@ import { handleError } from './utils/error-handler';
 
 bot.use(controllers);
 
+let shutdown: (() => Promise<void>) | undefined;
 const botTransport = createBotTransport(bot, transportConfig, (error) => {
   handleError(error, 'Failed to start bot polling');
+  process.exitCode = 1;
+  void shutdown?.();
 });
 const healthServer = startHealthServer({
   webhookHandler: botTransport.webhookHandler,
@@ -69,8 +72,6 @@ await registerBotCommands(bot.api);
 startScheduler();
 startEmbeddingBackfill();
 await jobRunner.start();
-await botTransport.start();
-
 process.on('uncaughtException', (err) => {
   handleError(err, 'Uncaught exception', {
     event: 'process.uncaught_exception',
@@ -83,7 +84,7 @@ process.on('unhandledRejection', (err) => {
   });
 });
 
-const shutdown = createRuntimeShutdown({
+shutdown = createRuntimeShutdown({
   drainMs: shutdownDrainMs,
   stopHealthServer: () => healthServer.stop(),
   stopTransport: () => botTransport.stop(),
@@ -96,3 +97,10 @@ const shutdown = createRuntimeShutdown({
 // is about to be terminated
 process.once('SIGINT', shutdown);
 process.once('SIGTERM', shutdown);
+
+try {
+  await botTransport.start();
+} catch (error) {
+  await shutdown();
+  throw error;
+}

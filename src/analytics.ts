@@ -64,9 +64,9 @@ export async function sendPurchaseNotification(input: {
   beneficiaryChatId: bigint;
   plan: SubscriptionPlan;
   amount: number;
-}): Promise<void> {
+}): Promise<number> {
   const chat = await findChatById(input.beneficiaryChatId);
-  await input.api.sendMessage(
+  const message = await input.api.sendMessage(
     analyticsChatId,
     [
       'Новая подписка',
@@ -76,6 +76,7 @@ export async function sendPurchaseNotification(input: {
       `Сумма: ${input.amount} ⭐`,
     ].join('\n'),
   );
+  return message.message_id;
 }
 
 export async function sendDailyAnalyticsReport(

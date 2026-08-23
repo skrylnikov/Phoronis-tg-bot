@@ -235,6 +235,7 @@ model BackgroundJob {
   completedAt DateTime?
   updatedAt   DateTime          @updatedAt
   lastError   String?
+  externalDeliveryId String?
 
   @@index([status, availableAt, createdAt])
   @@index([status, leaseUntil])

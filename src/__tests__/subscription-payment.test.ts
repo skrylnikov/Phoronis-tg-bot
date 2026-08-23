@@ -3,6 +3,7 @@ import type { BotContext } from '../bot';
 
 const mocks = vi.hoisted(() => ({
   activatePayment: vi.fn(),
+  formatPaymentTerms: vi.fn(() => 'Условия'),
   getPlanTitle: vi.fn(() => '1 неделя'),
   sendPurchaseNotification: vi.fn(),
 }));
@@ -13,8 +14,9 @@ vi.mock('../analytics', () => ({
 vi.mock('../config', () => ({ paymentSupportContact: '@support' }));
 vi.mock('../domain', () => ({
   activatePayment: mocks.activatePayment,
+  formatPaymentTerms: mocks.formatPaymentTerms,
   getPlanTitle: mocks.getPlanTitle,
-  paymentTermsVersion: '2026-07-28',
+  paymentTermsVersion: '2026-08-23',
   subscriptionPlans: ['WEEK'],
 }));
 

@@ -127,6 +127,7 @@ interface AiControllerOptions {
   messageText?: string;
   ephemeralReceiverUserId?: number;
   persistResponse?: boolean;
+  privateMode?: boolean;
   readOnlyTools?: boolean;
   resolveContext?: boolean;
   includeRecentChatContext?: boolean;
@@ -552,6 +553,7 @@ export const aiController = async (
           sentAt: new Date(reply.date * 1000),
           messageType: 'TEXT',
           text: result.toString(),
+          private: options.privateMode ?? false,
         });
       } catch (err) {
         logger.error(

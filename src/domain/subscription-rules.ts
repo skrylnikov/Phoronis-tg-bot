@@ -1,5 +1,5 @@
 export const augustPromotionEndsAt = new Date('2026-08-31T20:59:59.999Z');
-export const paymentTermsVersion = '2026-07-28';
+export const paymentTermsVersion = '2026-08-23';
 
 export type SubscriptionPlan = 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR';
 

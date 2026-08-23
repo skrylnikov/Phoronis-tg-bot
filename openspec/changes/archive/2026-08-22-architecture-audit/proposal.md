@@ -6,24 +6,7 @@
 
 ## Why
 
-### Проблема 1: Generated Prisma Client в src/
-
-**Текущее состояние:** Prisma client генерируется в `src/generated/prisma/` (1.4MB), что загрязняет исходный код и увеличивает размер репозитория.
-
-**Риски:**
-- Сгенерированный код попадает в code review
-- Увеличивается время сборки и индексации IDE
-- Нарушается принцип разделения source и generated кода
-
-**Место в коде:**
-```
-prisma/schema.prisma:
-  generator client {
-    output = "../src/generated/prisma"  ← Проблема
-  }
-```
-
-### Проблема 2: Путаница src/tools/ vs src/ai/tools/
+### Проблема 1: Путаница src/tools/ vs src/ai/tools/
 
 **Текущее состояние:** Инструменты разбросаны по двум директориям без чёткого разделения:
 - `src/tools/` - language, memory, user, shared (не AI-специфичные утилиты)
@@ -36,7 +19,7 @@ prisma/schema.prisma:
 - `src/ai/tools/memory.ts` - AI tool для LLM (используется в chat-generation)
 - `src/tools/user/` - fact-analyzer, meta-analyzer (используются напрямую, не через AI tools)
 
-### Проблема 3: Минимальное использование LangChain
+### Проблема 2: Минимальное использование LangChain
 
 **Текущее состояние:** LangChain установлен как зависимость (@langchain/community + @langchain/core), но используется только в одном месте:
 
@@ -49,7 +32,7 @@ import { WikipediaQueryRun } from '@langchain/community/tools/wikipedia_query_ru
 
 **Альтернатива:** Простой fetch к Wikipedia API (wikipedia.org/w/api.php).
 
-### Проблема 4: Дублирование AI SDK и LangChain
+### Проблема 3: Дублирование AI SDK и LangChain
 
 **Текущее состояние:** 
 - AI SDK (Vercel AI) используется для text generation (`generateText`, `streamText`)
@@ -58,7 +41,7 @@ import { WikipediaQueryRun } from '@langchain/community/tools/wikipedia_query_ru
 
 **Проблема:** Концептуальное дублирование. AI SDK уже предоставляет tool system (dynamicTool), LangChain не нужен.
 
-### Проблема 5: shared/ - слишком общее название
+### Проблема 4: shared/ - слишком общее название
 
 **Текущее состояние:** `src/shared/` содержит:
 - quota-service.ts (бизнес-логика квот)
@@ -71,14 +54,14 @@ import { WikipediaQueryRun } from '@langchain/community/tools/wikipedia_query_ru
 
 **Альтернатива:** Переименовать в `src/domain/` или разбить на `src/services/` + `src/repositories/`.
 
-### Проблема 6: Нет чёткого разделения слоёв
+### Проблема 5: Нет чёткого разделения слоёв
 
 **Текущее состояние:** Вызовы идут хаотично:
-- controllers → ai → shared → prisma
-- controllers → shared → prisma
-- ai → tools/user → prisma (fact-analyzer обращается к БД напрямую)
+- controllers → ai → shared → database
+- controllers → shared → database
+- ai → tools/user → database (fact-analyzer обращается к БД напрямую)
 
-**Проблема:** Нарушение layered architecture. Domain logic (ai, shared) смешана с data access (prisma).
+**Проблема:** Нарушение layered architecture. Domain logic (ai, shared) смешана с data access.
 
 **Желаемое состояние:**
 ```
@@ -86,10 +69,10 @@ controllers (handlers)
   ↓
 services (business logic: quota, subscriptions, ai)
   ↓
-repositories (data access: prisma)
+repositories (data access: database)
 ```
 
-### Проблема 7: Редкое использование date-fns
+### Проблема 6: Редкое использование date-fns
 
 **Факт:** date-fns используется только 2 раза:
 - `src/ai/controllet.ts`: `import { format } from 'date-fns'` - для форматирования даты в prompt
@@ -103,7 +86,7 @@ new Date().toLocaleString('ru-RU', {
 })
 ```
 
-### Проблема 8: Редкое использование remeda
+### Проблема 7: Редкое использование remeda
 
 **Факт:** remeda используется 4 раза:
 - `src/tools/language/tokenizator.ts`: `map`, `piped`
@@ -118,7 +101,7 @@ new Date().toLocaleString('ru-RU', {
 
 `piped` - синтаксический сахар для композиции функций, можно обойтись нативным JS.
 
-### Проблема 9: axios вместо нативного fetch
+### Проблема 8: axios вместо нативного fetch
 
 **Факт:** axios используется только 2 раза:
 - `src/controllers/voice.ts`: загрузка OGG файла
@@ -134,30 +117,7 @@ const data = await response.json();
 
 ## What Changes
 
-### 1. Переместить Prisma generated client
-
-**Было:**
-```prisma
-generator client {
-  output = "../src/generated/prisma"
-}
-```
-
-**Станет:**
-```prisma
-generator client {
-  output = "../node_modules/@prisma/client"
-  // или отдельная папка вне src:
-  output = "../.prisma/client"
-}
-```
-
-**Изменения:**
-- Обновить все импорты с `../generated/prisma/client` на `@prisma/client`
-- Удалить `src/generated/` из репозитория
-- Добавить `.prisma/` в `.gitignore` (если используется custom output)
-
-### 2. Реорганизовать tools
+### 1. Реорганизовать tools
 
 **Цель:** Разделить AI tools (для LLM) и domain utilities.
 
@@ -201,7 +161,7 @@ src/domain/  (новая директория для бизнес-логики)
 
 **Удалить:** `src/tools/memory/` - если не используется, или объединить с ai/tools/memory.
 
-### 3. Удалить LangChain, заменить на простой fetch
+### 2. Удалить LangChain, заменить на простой fetch
 
 **Удалить зависимости:**
 - `@langchain/community`
@@ -223,7 +183,7 @@ async function searchWikipedia(query: string): Promise<string> {
 }
 ```
 
-### 4. Переименовать shared/ в domain/
+### 3. Переименовать shared/ в domain/
 
 **Было:** `src/shared/`
 
@@ -233,14 +193,14 @@ async function searchWikipedia(query: string): Promise<string> {
 
 **Рекомендация:** На первом этапе просто переименовать в `domain/`, т.к. это уже domain logic.
 
-### 5. Внедрить layered architecture
+### 4. Внедрить layered architecture
 
 **Целевая структура:**
 ```
 src/
 ├── controllers/     (HTTP/Telegram handlers, routing)
 ├── services/        (business logic: AI, quota, subscriptions)
-├── repositories/    (data access: Prisma wrappers)
+├── repositories/    (data access wrappers)
 ├── domain/          (domain models, utilities)
 ├── ai/              (AI-specific: models, tools, prompts)
 ├── features/        (feature implementations)
@@ -250,10 +210,10 @@ src/
 **Принципы:**
 - controllers зависят от services
 - services зависят от repositories
-- repositories - единственный слой, работающий с Prisma
+- repositories - единственный слой, работающий с data access
 - domain - pure functions, domain models (не зависит от инфраструктуры)
 
-### 6. Удалить date-fns
+### 5. Удалить date-fns
 
 **Заменить:**
 ```typescript
@@ -272,7 +232,7 @@ const time = new Date().toLocaleString('ru-RU', {
 }).replace(',', ''); // "22.08.2026 23:45:30"
 ```
 
-### 7. Удалить remeda
+### 6. Удалить remeda
 
 **Заменить:**
 ```typescript
@@ -289,7 +249,7 @@ const result = piped(data, map(fn1), filter(fn2));
 const result = data.map(fn1).filter(fn2);
 ```
 
-### 8. Заменить axios на fetch
+### 7. Заменить axios на fetch
 
 **Заменить:**
 ```typescript
@@ -306,28 +266,23 @@ const data = await response.json();
 
 ### Основные цели
 
-1. **Очистить src/ от generated кода**
-   - Переместить Prisma client в node_modules или .prisma/
-   - Обновить все импорты
-   - Уменьшить размер репозитория на 1.4MB
-
-2. **Привести структуру папок в порядок**
+1. **Привести структуру папок в порядок**
    - Разделить AI tools и domain utilities
    - Переименовать shared/ в domain/ или services/
    - Удалить дублирование (tools/memory vs ai/tools/memory)
 
-3. **Удалить избыточные зависимости**
+2. **Удалить избыточные зависимости**
    - Удалить LangChain (заменить на fetch)
    - Удалить date-fns (заменить на toLocaleString)
    - Удалить remeda (заменить на нативные методы)
    - Удалить axios (заменить на fetch)
 
-4. **Внедрить layered architecture**
+3. **Внедрить layered architecture**
    - Разделить слои: controllers → services → repositories
-   - Изолировать Prisma в repositories layer
+   - Изолировать data access в repositories layer
    - Сделать domain layer независимым от инфраструктуры
 
-5. **Улучшить maintainability**
+4. **Улучшить maintainability**
    - Чёткое разделение ответственности между модулями
    - Снижение coupling между слоями
    - Упрощение зависимостей
@@ -336,50 +291,13 @@ const data = await response.json();
 
 - Изменение бизнес-логики (квоты, подписки остаются как есть)
 - Изменение API контроллеров (Grammy handlers)
-- Изменение базы данных (Prisma schema остаётся без изменений)
+- Изменение схемы базы данных
 - Добавление новых фич
 - Изменение используемых AI моделей
 
 ## Technical Approach
 
-### Этап 1: Переместить Prisma client (низкий риск)
-
-1. Изменить `prisma/schema.prisma`:
-   ```prisma
-   generator client {
-     provider = "prisma-client"
-     output   = "../node_modules/@prisma/client"
-   }
-   ```
-
-2. Глобальная замена импортов:
-   ```bash
-   # Найти все импорты
-   rg "from '../generated/prisma" src/
-   
-   # Заменить на
-   from '@prisma/client'
-   ```
-
-3. Удалить `src/generated/`:
-   ```bash
-   rm -rf src/generated/
-   git add src/generated/ -A
-   ```
-
-4. Обновить `.gitignore`:
-   ```
-   node_modules/
-   # Убедиться что @prisma/client будет игнорироваться
-   ```
-
-5. Пересобрать:
-   ```bash
-   bun run db:generate
-   bun run typecheck
-   ```
-
-### Этап 2: Удалить избыточные зависимости (средний риск)
+### Этап 1: Удалить избыточные зависимости (средний риск)
 
 #### 2.1. Удалить LangChain
 
@@ -501,7 +419,7 @@ const data = await response.json();
    bun remove remeda
    ```
 
-### Этап 3: Реорганизовать структуру (высокий риск)
+### Этап 2: Реорганизовать структуру (высокий риск)
 
 **Примечание:** Этот этап самый инвазивный. Рекомендуется выполнять постепенно.
 
@@ -525,9 +443,9 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 #### 3.3. Выделить repositories layer (опционально)
 
 Создать `src/repositories/`:
-- `chat-repository.ts` (обёртка над prisma.chat)
-- `user-repository.ts` (обёртка над prisma.user)
-- `message-repository.ts` (обёртка над prisma.message)
+- `chat-repository.ts` (обёртка над chat storage)
+- `user-repository.ts` (обёртка над user storage)
+- `message-repository.ts` (обёртка над message storage)
 
 Переместить туда логику из `save-chat.ts`, `save-user.ts`, `save-message.ts`.
 
@@ -535,8 +453,7 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 
 ### Положительное
 
-1. **Чистота репозитория:** -1.4MB generated кода из src/
-2. **Простота зависимостей:** -5 пакетов (langchain, axios, date-fns, remeda + подзависимости)
+1. **Простота зависимостей:** -4 прямых пакета (langchain, axios, date-fns, remeda + подзависимости)
 3. **Меньше bundle size:** Особенно для будущих serverless/edge deployments
 4. **Ясная структура:** Понятное разделение AI tools, domain logic, data access
 5. **Лучший DX:** IDE быстрее индексирует код, меньше path confusion
@@ -560,7 +477,7 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 
 ### 1. Оставить всё как есть
 
-**Отклонено:** Проблемы будут накапливаться. Generated код в src/ - антипаттерн. Избыточные зависимости увеличивают attack surface и bundle size.
+**Отклонено:** Проблемы будут накапливаться. Избыточные зависимости увеличивают attack surface и bundle size.
 
 ### 2. Удалить только самые тяжёлые зависимости (LangChain)
 
@@ -570,10 +487,6 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 
 **Отклонено:** Слишком инвазивно. Текущая структура работает, нужны только точечные улучшения.
 
-### 4. Использовать Prisma в node_modules (не custom output)
-
-**Рекомендовано:** Это стандартный подход. Custom output в `.prisma/client` - опция для монорепозиториев.
-
 ## Success Metrics
 
 ### Обязательные
@@ -581,28 +494,20 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 - [ ] `bun run typecheck` проходит без ошибок
 - [ ] `bun run lint` проходит без ошибок
 - [ ] Все существующие тесты проходят
-- [ ] `src/generated/` удалена из репозитория
 - [ ] В `package.json` удалены неиспользуемые зависимости
 - [ ] Размер `node_modules/` уменьшился (замерить до/после)
 
 ### Желательные
 
-- [ ] Обновлены импорты во всех файлах
 - [ ] Создана новая структура папок (domain/, repositories/)
 - [ ] Обновлён AGENTS.md с новой структурой
 - [ ] Обновлён README.md с новыми зависимостями
 
 ### Метрики
 
-**До:**
-- `src/generated/`: 1.4MB
+**Снимок для сравнения:**
 - Зависимостей: 23 (package.json dependencies)
-- Импорты Prisma: `from '../generated/prisma/client'`
-
-**После:**
-- `src/generated/`: не существует
-- Зависимостей: ~18 (удалено 5)
-- Импорты Prisma: `from '@prisma/client'`
+- Размер `node_modules/` и итоговое количество зависимостей фиксируются до/после удаления избыточных пакетов.
 
 ## Timeline
 
@@ -612,18 +517,15 @@ rg "from './shared" src/ -l | xargs sed -i "s|from './shared|from './domain|g"
 
 ### Рекомендуемый порядок реализации
 
-1. **Этап 1: Prisma client** (1-2 дня, низкий риск)
-   - PR #1: Переместить generated client
-   
-2. **Этап 2: Зависимости** (2-3 дня, средний риск)
+1. **Этап 1: Зависимости** (2-3 дня, средний риск)
    - PR #2: Удалить LangChain, заменить Wikipedia tool
    - PR #3: Удалить axios, date-fns, remeda
    
-3. **Этап 3: Структура** (3-5 дней, высокий риск)
+2. **Этап 2: Структура** (3-5 дней, высокий риск)
    - PR #4: Переименовать shared/ → domain/
    - PR #5: Реорганизовать tools/
    - PR #6: (опционально) Выделить repositories layer
 
 **Общее время:** 1-2 недели при последовательной работе.
 
-**Альтернатива:** Можно делать только Этап 1 + Этап 2 (удаление зависимостей), отложив реорганизацию структуры.
+**Альтернатива:** Можно делать только Этап 1 (удаление зависимостей), отложив реорганизацию структуры.

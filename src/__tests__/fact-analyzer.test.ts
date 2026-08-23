@@ -84,6 +84,23 @@ beforeEach(() => {
 });
 
 describe('analyzeUserMetaInfo source messages', () => {
+  it('propagates analysis failures to the durable job runner', async () => {
+    const error = new Error('model unavailable');
+    mocks.generateObject.mockRejectedValue(error);
+
+    await expect(
+      analyzeUserMetaInfo(42n, [createMessage(101n, 'Сообщение')]),
+    ).rejects.toThrow('model unavailable');
+
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'user_fact.analysis_failed',
+        err: error,
+      }),
+      expect.any(String),
+    );
+  });
+
   it('saves a valid model-selected source message and includes IDs in the prompt', async () => {
     mocks.generateObject.mockResolvedValue({
       object: {
@@ -194,6 +211,58 @@ describe('analyzeUserMetaInfo source messages', () => {
         sourceMessageId: 101n,
       },
     });
+  });
+
+  it('does not increase a fact twice for the same source message', async () => {
+    mocks.generateObject.mockResolvedValue({
+      object: {
+        facts: [
+          { content: 'Тот же факт', type: 'FACT', sourceMessageId: '101' },
+        ],
+      },
+    });
+    mocks.searchSimilarFacts.mockResolvedValue([
+      { id: 200n, content: 'Тот же факт', similarity: 0.95 },
+    ]);
+    mocks.generateText.mockResolvedValue({
+      output: {
+        duplicateId: '200',
+        contradictionId: null,
+        reason: 'duplicate',
+      },
+    });
+    mocks.prisma.userFact.findUnique
+      .mockResolvedValueOnce({
+        id: 200n,
+        content: 'Тот же факт',
+        weight: 2,
+        sourceChatId: 7n,
+        sourceMessageId: 100n,
+      })
+      .mockResolvedValueOnce({
+        id: 200n,
+        content: 'Тот же факт',
+        weight: 3,
+        sourceChatId: 7n,
+        sourceMessageId: 101n,
+      });
+
+    const messages = [createMessage(101n, 'Тот же факт')];
+    const savedFactIds = await analyzeUserMetaInfo(42n, messages);
+    await analyzeUserMetaInfo(42n, messages);
+
+    expect(savedFactIds).toEqual([200n]);
+    expect(mocks.prisma.userFact.update).toHaveBeenCalledTimes(1);
+    expect(mocks.prisma.userFact.update).toHaveBeenCalledWith({
+      where: { id: 200n },
+      data: {
+        weight: 3,
+        updatedAt: expect.any(Date),
+        sourceChatId: 7n,
+        sourceMessageId: 101n,
+      },
+    });
+    expect(mocks.prisma.factHistory.create).toHaveBeenCalledTimes(1);
   });
 
   it('updates the source when a fact is contradicted', async () => {

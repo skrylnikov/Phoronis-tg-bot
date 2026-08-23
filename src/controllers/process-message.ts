@@ -93,7 +93,7 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
   return optimalPhoto;
 }
 
-async function findPhotoInReplyChain(
+export async function findPhotoInReplyChain(
   ctx: BotContext,
   startMessage:
     | {
@@ -133,9 +133,7 @@ async function findPhotoInReplyChain(
         { media: true, replyToMessageId: true },
       );
 
-      if (!dbMessage?.replyToMessageId) break;
-
-      if (dbMessage.media) {
+      if (dbMessage?.media) {
         try {
           const media = JSON.parse(dbMessage.media) as {
             fileId?: string;
@@ -154,6 +152,8 @@ async function findPhotoInReplyChain(
           // Skip invalid media
         }
       }
+
+      if (!dbMessage?.replyToMessageId) break;
 
       currentMessage = {
         message_id: Number(dbMessage.replyToMessageId),
@@ -300,6 +300,7 @@ processMessageController.on(':text', async (ctx) => {
 
     await aiController(ctx, imageDescription, userContext, chatContext, {
       includeRecentChatContext: !isPrivateMode,
+      privateMode: isPrivateMode,
     });
   } catch (error) {
     handleError(error, 'Processing text message');
@@ -394,6 +395,7 @@ processMessageController.on(':photo', async (ctx) => {
     }
     await aiController(ctx, imageDescription, undefined, undefined, {
       includeRecentChatContext: !isPrivateMode,
+      privateMode: isPrivateMode,
     });
   } catch (error) {
     handleError(error, 'Processing media message');

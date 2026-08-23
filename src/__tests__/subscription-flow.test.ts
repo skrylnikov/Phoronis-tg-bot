@@ -209,6 +209,29 @@ describe('subscription purchase flow', () => {
     });
   });
 
+  it('requires re-acceptance when a purchase session has an old terms version', async () => {
+    prisma.purchaseSession.findUnique.mockResolvedValue({
+      token: 'session',
+      userId: 123n,
+      beneficiaryChatId: -100n,
+      expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      termsAcceptedAt: new Date('2026-07-28T12:00:00.000Z'),
+      termsVersion: '2026-07-28',
+    });
+
+    await expect(
+      createPaymentOrder({
+        userId: 123,
+        plan: 'WEEK',
+        purchaseToken: 'session',
+        now: new Date('2026-08-23T12:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({
+      code: 'TERMS_NOT_ACCEPTED',
+    });
+    expect(prisma.paymentOrder.create).not.toHaveBeenCalled();
+  });
+
   it('expires a promotional order no later than the promotion', async () => {
     const now = new Date('2026-08-31T20:45:00.000Z');
     const acceptedAt = new Date('2026-08-31T20:44:00.000Z');

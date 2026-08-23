@@ -209,19 +209,18 @@ async function saveUserFact(
     const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
-      const sourceData =
-        existingFact.sourceChatId === null ||
-        existingFact.sourceMessageId === null
-          ? {
-              sourceChatId: source.chatId,
-              sourceMessageId: source.messageId,
-            }
-          : {};
+      if (
+        existingFact.sourceChatId === source.chatId &&
+        existingFact.sourceMessageId === source.messageId
+      ) {
+        return checkResult.similarFactId;
+      }
 
       await updateUserFactRepo(checkResult.similarFactId, {
         weight: existingFact.weight + 1,
         updatedAt: new Date(),
-        ...sourceData,
+        sourceChatId: source.chatId,
+        sourceMessageId: source.messageId,
       });
 
       await createFactHistory(
@@ -247,6 +246,13 @@ async function saveUserFact(
     const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
+      if (
+        existingFact.sourceChatId === source.chatId &&
+        existingFact.sourceMessageId === source.messageId
+      ) {
+        return checkResult.similarFactId;
+      }
+
       await updateUserFactRepo(checkResult.similarFactId, {
         content,
         weight: Math.max(existingFact.weight - 1, 1),
@@ -439,7 +445,7 @@ ${userPrompt}
       { event: 'user_fact.analysis_failed', ...analysisContext, err: error },
       'Error analyzing user meta info',
     );
-    return null;
+    throw error;
   }
 }
 

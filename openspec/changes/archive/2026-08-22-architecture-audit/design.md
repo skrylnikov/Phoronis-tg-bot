@@ -42,8 +42,8 @@
 ┌────────────────────────┬─────────────────────────────────────┐
 │ Tools (src/tools/)     │ Database (src/db.ts)                │
 │  ├─ language/          │   ↓                                  │
-│  │   ├─ tokenizator.ts │ Prisma Client                       │
-│  │   ├─ cleaner.ts     │ (src/generated/prisma/) ← PROBLEM   │
+│  │   ├─ tokenizator.ts │ Database access                     │
+│  │   ├─ cleaner.ts     │ PostgreSQL + pgvector               │
 │  │   └─ activate.ts    │   ↓                                  │
 │  ├─ user/              │ PostgreSQL + pgvector               │
 │  │   ├─ fact-analyzer.ts                                     │
@@ -60,16 +60,14 @@
 **Проблемные зоны:**
 
 1. **Bidirectional dependencies:**
-   - `controllers/` → `ai/` → `shared/` → `prisma`
-   - `ai/tools/` → `tools/user/` (fact-analyzer) → `prisma`
-   - `ai/controllet.ts` → `tools/user/fact-analyzer.ts` → `prisma` (обход shared/)
+   - `controllers/` → `ai/` → `shared/` → `database`
+   - `ai/tools/` → `tools/user/` (fact-analyzer) → `database`
+   - `ai/controllet.ts` → `tools/user/fact-analyzer.ts` → `database` (обход shared/)
 
 2. **Дублирование:**
    - `src/tools/memory/` и `src/ai/tools/memory.ts`
    - Оба работают с памятью, но разделение неясно
 
-3. **Generated в src/:**
-   - `src/generated/prisma/` (1.4MB) - нарушает separation of concerns
 
 ## Target Architecture
 
@@ -99,12 +97,12 @@
 │  ├─ message-repository.ts                                     │
 │  ├─ subscription-repository.ts                                │
 │  └─ quota-repository.ts                                       │
-│  (единственный слой, работающий с Prisma)                    │
+│  (единственный слой, работающий с database adapter)          │
 └──────────────────────────────────────────────────────────────┘
          ↓ depends on
 ┌──────────────────────────────────────────────────────────────┐
-│ Data Access (Prisma Client)                                   │
-│  - @prisma/client (node_modules/) ← Больше не в src/         │
+│ Data Access (existing database client)                        │
+│  - Existing database integration remains unchanged            │
 └──────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
@@ -127,95 +125,11 @@
 - ✅ `controllers/` → `services/`
 - ✅ `services/` → `repositories/`
 - ✅ `services/` → `domain/`
-- ✅ `repositories/` → `Prisma Client`
+- ✅ `repositories/` → `database adapter`
 
 ## Detailed Changes
 
-### Change 1: Prisma Client Location
-
-#### Current State
-
-```typescript
-// prisma/schema.prisma
-generator client {
-  provider   = "prisma-client"
-  output     = "../src/generated/prisma"  // ← PROBLEM
-  engineType = "client"
-}
-
-// src/db.ts
-import { PrismaClient } from './generated/prisma/client.js';
-
-// Hundreds of files:
-import { User, Chat } from '../generated/prisma/client.js';
-import type { Message } from '../../generated/prisma/client.js';
-```
-
-**Problems:**
-1. `src/generated/` (1.4MB) загрязняет репозиторий
-2. Непредсказуемые relative paths (`../`, `../../`, `../../../`)
-3. IDE индексирует generated код
-
-#### Target State
-
-```typescript
-// prisma/schema.prisma
-generator client {
-  provider   = "prisma-client"
-  output     = "../node_modules/@prisma/client"  // ← SOLUTION
-  engineType = "client"
-}
-
-// src/db.ts
-import { PrismaClient } from '@prisma/client';
-
-// All files:
-import { User, Chat, Message } from '@prisma/client';
-```
-
-**Benefits:**
-- Стандартный подход (как в документации Prisma)
-- Простые импорты (`@prisma/client` везде)
-- `src/` остаётся чистым
-- IDE не индексирует generated код (в node_modules)
-
-#### Migration Path
-
-**Step 1:** Изменить schema.prisma
-```bash
-# Edit prisma/schema.prisma:
-# output = "../node_modules/@prisma/client"
-```
-
-**Step 2:** Пересобрать
-```bash
-bun run db:generate
-```
-
-**Step 3:** Глобальная замена импортов
-```bash
-# Find all imports
-rg "from ['\"].*generated/prisma" src/ -l
-
-# Replace with @prisma/client
-# Can use sed or IDE's find-replace
-find src/ -name "*.ts" -exec sed -i "s|from '.*generated/prisma/client'|from '@prisma/client'|g" {} +
-find src/ -name "*.ts" -exec sed -i 's|from ".*generated/prisma/client"|from "@prisma/client"|g' {} +
-```
-
-**Step 4:** Удалить generated/
-```bash
-rm -rf src/generated/
-git add src/generated/ -A
-```
-
-**Step 5:** Verify
-```bash
-bun run typecheck
-bun run test:unit
-```
-
-### Change 2: Remove LangChain Dependency
+### Change 1: Remove LangChain Dependency
 
 #### Current State
 
@@ -307,7 +221,7 @@ export const wikipediaTool = dynamicTool({
 - Прозрачная реализация (понятно, что происходит)
 - Легче тестировать
 
-### Change 3: Remove axios, date-fns, remeda
+### Change 2: Remove axios, date-fns, remeda
 
 #### axios → fetch
 
@@ -394,7 +308,7 @@ return tokens.map(normalize).map(toLowerCase);
 
 **Note:** `piped()` - это синтаксический сахар для chaining. В большинстве случаев достаточно `.map().filter()`.
 
-### Change 4: Reorganize Folder Structure
+### Change 3: Reorganize Folder Structure
 
 #### Phase 1: Rename shared/ → domain/
 
@@ -507,9 +421,9 @@ rg "from ['\"].*/tools/(language|user|shared)" src/ -l | \
 **Target:**
 ```
 src/repositories/
-  ├── chat-repository.ts       (Prisma wrapper)
-  ├── user-repository.ts       (Prisma wrapper)
-  ├── message-repository.ts    (Prisma wrapper)
+  ├── chat-repository.ts       (database wrapper)
+  ├── user-repository.ts       (database wrapper)
+  ├── message-repository.ts    (database wrapper)
   ├── subscription-repository.ts
   └── quota-repository.ts
 
@@ -518,31 +432,6 @@ src/services/  (renamed from domain/)
   ├── quota-service.ts         (uses quota-repository)
   ├── subscription-service.ts  (uses subscription-repository)
   └── ...
-```
-
-**Пример: user-repository.ts**
-
-```typescript
-import { PrismaClient, type User } from '@prisma/client';
-import { prisma } from '../db.js';
-
-export class UserRepository {
-  constructor(private prisma: PrismaClient) {}
-
-  async findById(id: bigint): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
-  }
-
-  async upsert(data: Omit<User, 'metaInfo'>): Promise<User> {
-    return this.prisma.user.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
-    });
-  }
-}
-
-export const userRepository = new UserRepository(prisma);
 ```
 
 **Note:** Этот шаг опционален и может быть выполнен позже, если потребуется больше изоляции data access.
@@ -554,14 +443,6 @@ export const userRepository = new UserRepository(prisma);
 **Existing tests affected:**
 - `src/__tests__/subscription-*.test.ts` - импорты из shared/
 - `src/__tests__/fact-analyzer.test.ts` - импорты из tools/user/
-- `src/__tests__/*.test.ts` - все импорты Prisma
-
-**Migration:**
-```bash
-# Update all test imports after each phase
-rg "from ['\"].*generated/prisma" src/__tests__/ -l | \
-  xargs sed -i "s|from '.*generated/prisma/client'|from '@prisma/client'|g"
-```
 
 ### Integration Tests
 
@@ -609,16 +490,7 @@ bun run dev        # Bot starts without errors
 
 ## Rollback Plan
 
-### Этап 1 (Prisma client)
-
-**Rollback:**
-1. Вернуть изменения в `prisma/schema.prisma`
-2. `bun run db:generate`
-3. Откатить commit
-
-**Риск:** Низкий. Только импорты меняются.
-
-### Этап 2 (Dependencies)
+### Этап 1 (Dependencies)
 
 **Rollback per dependency:**
 - LangChain: `bun add @langchain/community @langchain/core` + откатить wikipedia.ts
@@ -628,7 +500,7 @@ bun run dev        # Bot starts without errors
 
 **Риск:** Средний. Логика меняется, нужно тестирование.
 
-### Этап 3 (Structure)
+### Этап 2 (Structure)
 
 **Rollback:**
 1. `git mv src/domain src/shared` (или обратно)
@@ -646,18 +518,7 @@ bun run dev        # Bot starts without errors
 - [ ] Замерить bundle size: `du -sh node_modules/`
 - [ ] Сохранить список зависимостей: `bun list > before-deps.txt`
 
-### Phase 1: Prisma Client
-
-- [ ] Изменить `prisma/schema.prisma` output
-- [ ] `bun run db:generate`
-- [ ] Найти все импорты: `rg "from.*generated/prisma" src/`
-- [ ] Заменить импорты (глобально или per-file)
-- [ ] Удалить `src/generated/`
-- [ ] `bun run typecheck`
-- [ ] `bun run test:unit`
-- [ ] Commit & push
-
-### Phase 2: Dependencies
+### Phase 1: Dependencies
 
 #### 2.1. LangChain
 - [ ] Переписать `wikipedia.ts` без LangChain
@@ -688,7 +549,7 @@ bun run dev        # Bot starts without errors
 - [ ] `bun run typecheck`
 - [ ] Commit
 
-### Phase 3: Structure (Optional)
+### Phase 2: Structure (Optional)
 
 - [ ] `git mv src/shared src/domain`
 - [ ] Обновить импорты
@@ -722,7 +583,7 @@ bun run dev        # Bot starts without errors
    src/
    ├── controllers/     - Bot message handlers and route logic
    ├── services/        - Business logic (AI, quotas, subscriptions)
-   ├── repositories/    - Data access layer (Prisma wrappers)
+   ├── repositories/    - Data access layer (database wrappers)
    ├── domain/          - Domain models and utilities
    ├── ai/              - AI/LLM integration
    ├── features/        - Feature implementations
@@ -744,8 +605,6 @@ bun run dev        # Bot starts without errors
 ✅ `bun run typecheck` - no errors
 ✅ `bun run lint` - no errors
 ✅ `bun run test:unit` - all pass
-✅ `src/generated/` deleted
-✅ Prisma imports use `@prisma/client`
 ✅ LangChain removed from package.json
 
 ### Should Have

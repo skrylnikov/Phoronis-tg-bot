@@ -11,10 +11,14 @@ import {
 } from './repositories';
 import { runtimeState } from './runtime-state';
 
+export interface BackgroundJobHandlerResult {
+  externalDeliveryId?: string;
+}
+
 export type BackgroundJobHandler = (
   job: ClaimedBackgroundJob,
   signal: AbortSignal,
-) => Promise<void>;
+) => Promise<BackgroundJobHandlerResult | undefined> | Promise<void>;
 
 export interface BackgroundJobRunner {
   start(): Promise<void>;
@@ -30,6 +34,35 @@ function errorMessage(error: unknown): string {
     0,
     2000,
   );
+}
+
+function paymentOrderId(job: ClaimedBackgroundJob): string | undefined {
+  if (!job.type.startsWith('PAYMENT_')) return undefined;
+  if (
+    !job.payload ||
+    typeof job.payload !== 'object' ||
+    !('orderId' in job.payload) ||
+    typeof job.payload.orderId !== 'string'
+  ) {
+    return undefined;
+  }
+  return job.payload.orderId;
+}
+
+function attemptLogContext(job: ClaimedBackgroundJob) {
+  const orderId = paymentOrderId(job);
+  return {
+    jobId: job.id,
+    jobType: job.type,
+    dedupeKey: job.dedupeKey,
+    attempts: job.attempts,
+    correlationId: job.id,
+    ...(orderId ? { paymentOrderId: orderId } : {}),
+    retryAfterUnknownDelivery:
+      job.type.startsWith('PAYMENT_') &&
+      job.attempts > 1 &&
+      job.externalDeliveryId === null,
+  };
 }
 
 export function createBackgroundJobRunner(
@@ -84,21 +117,32 @@ export function createBackgroundJobRunner(
         Math.max(1_000, Math.floor(jobConfig.leaseDurationMs / 3)),
       );
       const startedAt = Date.now();
+      const attemptContext = attemptLogContext(job);
+      logger.info(
+        { event: 'job.attempt_started', ...attemptContext },
+        'Background job attempt started',
+      );
 
       try {
         if (!handler)
           throw new Error(`No handler for background job ${job.type}`);
-        await handler(job, controller.signal);
+        const result = await handler(job, controller.signal);
+        const externalDeliveryId =
+          result && typeof result === 'object'
+            ? result.externalDeliveryId
+            : undefined;
         if (!controller.signal.aborted) {
-          const completed = await completeBackgroundJobRepo(job.id, workerId);
+          const completed = await completeBackgroundJobRepo(
+            job.id,
+            workerId,
+            externalDeliveryId,
+          );
           if (completed) {
             logger.info(
               {
                 event: 'job.completed',
-                jobId: job.id,
-                jobType: job.type,
-                dedupeKey: job.dedupeKey,
-                attempts: job.attempts,
+                ...attemptContext,
+                externalDeliveryId: externalDeliveryId ?? null,
                 durationMs: Date.now() - startedAt,
               },
               'Background job completed',
@@ -110,9 +154,7 @@ export function createBackgroundJobRunner(
           logger.warn(
             {
               event: 'job.lease_lost',
-              jobId: job.id,
-              jobType: job.type,
-              dedupeKey: job.dedupeKey,
+              ...attemptContext,
               err: error,
             },
             'Background job stopped after lease loss or shutdown',
@@ -128,10 +170,7 @@ export function createBackgroundJobRunner(
           logger.warn(
             {
               event: outcome === 'failed' ? 'job.failed' : 'job.retry',
-              jobId: job.id,
-              jobType: job.type,
-              dedupeKey: job.dedupeKey,
-              attempts: job.attempts,
+              ...attemptContext,
               outcome,
               err: error,
             },

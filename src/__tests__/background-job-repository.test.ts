@@ -15,6 +15,7 @@ vi.mock('../db', () => ({ prisma }));
 import {
   backgroundJobBackoffMs,
   claimNextBackgroundJobRepo,
+  completeBackgroundJobRepo,
   enqueueBackgroundJobRepo,
   failBackgroundJobRepo,
   heartbeatBackgroundJobRepo,
@@ -100,6 +101,20 @@ describe('background jobs', () => {
     expect(prisma.backgroundJob.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'FAILED' }),
+      }),
+    );
+  });
+
+  it('persists the external delivery id with completion', async () => {
+    prisma.backgroundJob.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      completeBackgroundJobRepo('job-1', 'worker-1', 'telegram-101'),
+    ).resolves.toBe(true);
+
+    expect(prisma.backgroundJob.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ externalDeliveryId: 'telegram-101' }),
       }),
     );
   });

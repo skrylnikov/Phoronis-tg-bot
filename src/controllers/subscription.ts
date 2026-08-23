@@ -7,6 +7,7 @@ import {
   createPaymentOrder,
   createPurchaseSession,
   formatInvoiceDescription,
+  formatPaymentTerms,
   formatSubscriptionCatalog,
   getActiveSubscription,
   getInvoicePayload,
@@ -41,18 +42,7 @@ function planFromValue(value: string): SubscriptionPlan | null {
     : null;
 }
 
-const paymentTermsText = `Условия подписки Phoronis
-
-• Это разовая покупка за Telegram Stars без автоматического продления.
-• Подписка прибавляет лимиты к вашим бесплатным дневным лимитам и добавляет групповые лимиты каждому участнику выбранной группы.
-• Подписки, оформленные для одной группы, складываются. Каждый участник тратит групповые лимиты независимо от остальных; в группе они расходуются раньше личных.
-• Дни новой покупки добавляются после уже оплаченного срока. Лимиты одновременно активных покупок суммируются и обновляются ежедневно по московскому времени.
-• Пока действует подписка, можно купить такой же или более дорогой тариф. Более дешёвый тариф станет доступен после её окончания.
-• Неиспользованные дневные лимиты не переносятся и не обмениваются на деньги или Stars.
-• Ответы создаются ИИ и могут содержать ошибки; важную информацию необходимо проверять самостоятельно.
-• При возврате соответствующие дни и лимиты отзываются. По вопросам оплаты используйте /paysupport.
-
-Нажимая «Принимаю условия», вы подтверждаете согласие с этими условиями. Версия: ${paymentTermsVersion}.`;
+const paymentTermsText = formatPaymentTerms();
 
 const acceptedPaymentTermsText = `${paymentTermsText}
 
@@ -200,7 +190,7 @@ export async function subscriptionCallbackController(
   await ctx.replyWithInvoice(
     `Phoronis — ${getPlanTitle(plan)}`,
     formatInvoiceDescription({
-      baseAmount: order.baseAmount,
+      plan: order.plan,
       amount: order.amount,
       discountPercent: order.discountPercent,
       expiresAt: order.expiresAt,

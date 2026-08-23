@@ -3,12 +3,14 @@ import type { BotContext } from '../bot';
 
 const {
   acceptPurchaseTerms,
+  formatPaymentTerms,
   formatSubscriptionCatalog,
   getMinimumPurchasablePlan,
   getPlanTitle,
   getPurchaseOptions,
 } = vi.hoisted(() => ({
   acceptPurchaseTerms: vi.fn(),
+  formatPaymentTerms: vi.fn(() => 'Условия'),
   formatSubscriptionCatalog: vi.fn(() => 'Тарифы'),
   getMinimumPurchasablePlan: vi.fn(),
   getPlanTitle: vi.fn(() => '1 неделя'),
@@ -19,11 +21,12 @@ vi.mock('../config', () => ({ paymentSupportContact: '@support' }));
 vi.mock('../analytics', () => ({ sendPurchaseNotification: vi.fn() }));
 vi.mock('../domain', () => ({
   acceptPurchaseTerms,
+  formatPaymentTerms,
   formatSubscriptionCatalog,
   getMinimumPurchasablePlan,
   getPlanTitle,
   getPurchaseOptions,
-  paymentTermsVersion: '2026-07-28',
+  paymentTermsVersion: '2026-08-23',
   subscriptionPlans: ['WEEK'],
 }));
 
@@ -72,6 +75,9 @@ describe('subscription terms acceptance', () => {
       expect.stringContaining('✅ Условия приняты'),
     );
     expect(editMessageReplyMarkup).not.toHaveBeenCalled();
+    expect(editMessageText.mock.invocationCallOrder[0]).toBeLessThan(
+      reply.mock.invocationCallOrder[0],
+    );
     expect(reply).toHaveBeenCalledWith(
       'Тарифы\n\nВыберите тариф. Личные и групповые лимиты начнут действовать сразу после оплаты.',
       expect.objectContaining({

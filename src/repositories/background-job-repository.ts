@@ -13,6 +13,7 @@ export interface ClaimedBackgroundJob {
   dedupeKey: string;
   payload: BackgroundJobPayload;
   attempts: number;
+  externalDeliveryId: string | null;
 }
 
 const MAX_BACKOFF_MS = 30 * 60 * 1000;
@@ -70,7 +71,7 @@ export async function claimNextBackgroundJobRepo(
         "lastError" = NULL
     FROM candidate
     WHERE item."id" = candidate."id"
-    RETURNING item."id", item."type", item."dedupeKey", item."payload", item."attempts"
+      RETURNING item."id", item."type", item."dedupeKey", item."payload", item."attempts", item."externalDeliveryId"
   `);
   return rows[0];
 }
@@ -90,6 +91,7 @@ export async function heartbeatBackgroundJobRepo(
 export async function completeBackgroundJobRepo(
   id: string,
   workerId: string,
+  externalDeliveryId?: string,
 ): Promise<boolean> {
   const result = await prisma.backgroundJob.updateMany({
     where: { id, status: BackgroundJobStatus.PROCESSING, workerId },
@@ -98,6 +100,7 @@ export async function completeBackgroundJobRepo(
       completedAt: new Date(),
       leaseUntil: null,
       workerId: null,
+      ...(externalDeliveryId === undefined ? {} : { externalDeliveryId }),
     },
   });
   return result.count === 1;

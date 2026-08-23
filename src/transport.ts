@@ -114,20 +114,50 @@ export function createBotTransport(
   providedQueue?: TelegramUpdateQueue,
 ): BotTransport {
   if (config.mode === 'polling') {
+    let pollingLoop: Promise<void> | undefined;
+    let pollingStarted = false;
+    let stopping = false;
+
+    const failPolling = (error: unknown) => {
+      if (!pollingStarted || stopping) return;
+      pollingStarted = false;
+      runtimeState.setReady('transport', false);
+      runtimeState.setReady('updateWorkers', false);
+      onPollingError(error);
+    };
+
     return {
       start: async () => {
-        bot.start().catch(onPollingError);
-        runtimeState.setReady('transport', true);
-        runtimeState.setReady('updateWorkers', true);
-        logger.info(
-          { event: 'transport.started', mode: config.mode },
-          'Bot transport started',
-        );
+        stopping = false;
+        try {
+          await bot.init();
+          pollingStarted = true;
+          pollingLoop = Promise.resolve(bot.start());
+          void pollingLoop.then(
+            () => failPolling(new Error('Polling loop ended unexpectedly')),
+            (error: unknown) => failPolling(error),
+          );
+          runtimeState.setReady('transport', true);
+          runtimeState.setReady('updateWorkers', true);
+          logger.info(
+            { event: 'transport.started', mode: config.mode },
+            'Bot transport started',
+          );
+        } catch (error) {
+          pollingStarted = false;
+          runtimeState.setReady('transport', false);
+          runtimeState.setReady('updateWorkers', false);
+          onPollingError(error);
+          throw error;
+        }
       },
       stop: async () => {
+        stopping = true;
+        pollingStarted = false;
         runtimeState.setReady('transport', false);
         runtimeState.setReady('updateWorkers', false);
         await bot.stop();
+        pollingLoop = undefined;
       },
     };
   }

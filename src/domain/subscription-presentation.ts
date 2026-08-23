@@ -3,6 +3,10 @@ import {
   planDetails,
   type QuotaKind,
 } from './quota-service';
+import {
+  paymentTermsVersion,
+  type SubscriptionPlan,
+} from './subscription-rules';
 import { getPlanTitle, type PurchaseOption } from './subscriptions';
 
 function formatLimit(value: number): string {
@@ -30,6 +34,21 @@ export function formatPlanPrice(input: {
     lines.push(`Цена: ${input.amount} ⭐`);
   }
   return lines;
+}
+
+export function formatPaymentTerms(): string {
+  return `Условия подписки Phoronis
+
+• Это разовая покупка за Telegram Stars без автоматического продления.
+• Личные лимиты выбранного тарифа являются итоговыми и заменяют бесплатные дневные лимиты. Групповой тариф добавляет групповые лимиты каждому участнику выбранной группы.
+• Активные подписки, оформленные для одной группы, суммируются. Каждый участник получает независимую групповую квоту и не расходует квоту других участников; сначала расходуется групповая квота, затем личная.
+• Дни новой покупки добавляются после уже оплаченного срока. Лимиты одновременно активных покупок суммируются и обновляются ежедневно по московскому времени.
+• Пока действует подписка, можно купить такой же или более дорогой тариф. Более дешёвый тариф станет доступен после её окончания.
+• Неиспользованные дневные лимиты не переносятся и не обмениваются на деньги или Stars.
+• Ответы создаются ИИ и могут содержать ошибки; важную информацию необходимо проверять самостоятельно.
+• При возврате соответствующие дни и лимиты отзываются. По вопросам оплаты используйте /paysupport.
+
+Нажимая «Принимаю условия», вы подтверждаете согласие с этими условиями. Версия: ${paymentTermsVersion}.`;
 }
 
 export function formatSubscriptionCatalog(
@@ -62,15 +81,16 @@ export function formatSubscriptionCatalog(
 }
 
 export function formatInvoiceDescription(input: {
-  baseAmount: number;
+  plan: SubscriptionPlan;
   amount: number;
   discountPercent: number;
   expiresAt: Date;
 }): string {
+  const details = planDetails[input.plan];
   return [
     'Личные лимиты и групповые лимиты для каждого участника выбранного чата.',
     ...formatPlanPrice({
-      baseAmount: input.baseAmount,
+      baseAmount: details.amount,
       amount: input.amount,
       discountPercent: input.discountPercent,
     }),
