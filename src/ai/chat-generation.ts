@@ -64,10 +64,7 @@ export const chatGeneration = async (
           });
         }
 
-        await updateChatRepo(
-          BigInt(chatId),
-          { greeting },
-        );
+        await updateChatRepo(BigInt(chatId), { greeting });
 
         return JSON.stringify({
           message: `Приветствие установлено: ${greeting}`,

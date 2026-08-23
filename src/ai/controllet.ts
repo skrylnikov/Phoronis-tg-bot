@@ -17,8 +17,8 @@ import { getTopUserFacts } from '../domain/user/fact-analyzer';
 import type { Message, User } from '../generated/prisma/client';
 import { logger } from '../logger';
 import {
-  findMessageWithSelectRepo,
   findManyMessagesRepo,
+  findMessageWithSelectRepo,
 } from '../repositories/message-repository';
 import { findManyUsersRepo } from '../repositories/user-repository';
 import { chatModel, liteChatModel } from './ai';
@@ -50,7 +50,7 @@ function convertFactsToMetaInfo(
 const getThread = async (chatId: number, messageId: bigint | null) => {
   const result: Array<Message & { sender: User }> = [];
   while (messageId) {
-    const messages = await findManyMessagesRepo(
+    const messages = (await findManyMessagesRepo(
       {
         chatId,
         id: {
@@ -63,7 +63,7 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
         },
         take: 10,
       },
-    );
+    )) as unknown as Array<Message & { sender: User }>;
 
     if (messages.length === 0) {
       break;
@@ -94,7 +94,7 @@ const getThreadBySessionId = async (
   sessionId: string,
 ) => {
   const result: Array<Message & { sender: User }> = [];
-  const messages = await findManyMessagesRepo(
+  const messages = (await findManyMessagesRepo(
     {
       chatId,
       sessionId,
@@ -105,7 +105,7 @@ const getThreadBySessionId = async (
       },
       take: 10,
     },
-  );
+  )) as unknown as Array<Message & { sender: User }>;
 
   let lastId: bigint | null = messageId;
   while (lastId) {
@@ -252,8 +252,8 @@ export const aiController = async (
     const replyToMessage = options.ephemeralReceiverUserId
       ? null
       : await findMessageWithSelectRepo(
-          ctx.chatId ?? 0,
-          msg.message_id,
+          BigInt(ctx.chatId ?? 0),
+          BigInt(msg.message_id),
           {
             id: true,
             sessionId: true,
@@ -360,11 +360,9 @@ export const aiController = async (
     ];
 
     const [userList, prompt, allMemories] = await Promise.all([
-      findManyUsersRepo(
-        {
-          id: { in: allUserIds.map(BigInt) },
-        },
-      ),
+      findManyUsersRepo({
+        id: { in: allUserIds.map(BigInt) },
+      }),
       langfuse.getPrompt('chat-generation'),
       getRecentMemoriesForUsers(allUserIds, ctx.chatId ?? 0, 10).catch(
         () => new Map(),

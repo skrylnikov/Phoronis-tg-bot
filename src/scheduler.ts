@@ -97,10 +97,10 @@ export function startScheduler() {
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
           const results = await Promise.allSettled(
-            chatsToSend.map((chat) => sendSelfieSaturdayMessage(chat.id)),
+            chatsToSend.map((chat: { id: bigint }) => sendSelfieSaturdayMessage(chat.id)),
           );
 
-          results.forEach((result, index) => {
+          results.forEach((result: PromiseSettledResult<unknown>, index: number) => {
             if (result.status === 'rejected') {
               logger.error(
                 {
@@ -163,10 +163,10 @@ export function startScheduler() {
 
           // Используем Promise.allSettled для параллельной отправки и обработки ошибок
           const results = await Promise.allSettled(
-            chatsToSend.map((chat) => sendInktoberMessage(chat.id)),
+            chatsToSend.map((chat: { id: bigint }) => sendInktoberMessage(chat.id)),
           );
 
-          results.forEach((result, index) => {
+          results.forEach((result: PromiseSettledResult<unknown>, index: number) => {
             if (result.status === 'rejected') {
               logger.error(
                 {

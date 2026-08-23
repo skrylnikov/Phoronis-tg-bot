@@ -1,15 +1,15 @@
 import type { Update } from '@grammyjs/types';
 import type { Bot } from 'grammy';
 import type { BotContext } from './bot';
-import { Prisma } from './generated/prisma/client';
+import type { Prisma } from './generated/prisma/client';
 import { logger } from './logger';
 import {
   claimNextTelegramUpdateRepo,
-  markTelegramUpdateCompletedRepo,
-  markTelegramUpdateFailedRepo,
   cleanupTelegramUpdatesRepo,
   enqueueTelegramUpdateRepo,
   isDuplicatePrismaErrorRepo,
+  markTelegramUpdateCompletedRepo,
+  markTelegramUpdateFailedRepo,
 } from './repositories';
 
 const normalWorkerCount = 3;
@@ -177,7 +177,11 @@ async function claimNextUpdate(
   lane: QueueLane,
   workerId: string,
 ): Promise<QueuedUpdate | undefined> {
-  const row = await claimNextTelegramUpdateRepo(lane, workerId, leaseDurationMs);
+  const row = await claimNextTelegramUpdateRepo(
+    lane,
+    workerId,
+    leaseDurationMs,
+  );
   return row
     ? {
         updateId: row.updateId,

@@ -306,11 +306,10 @@ export interface ReplyRoot {
   rootId: bigint;
 }
 
-export interface ChatHistoryReplyRoot {
+export type ChatHistoryReplyRoot = {
   candidateId: bigint;
   rootMessageId: bigint;
-  incomplete: boolean;
-}
+};
 
 export async function findReplyRootsRepo(
   candidateIds: bigint[],
@@ -347,30 +346,58 @@ export async function findReplyRootsRepo(
   `);
 }
 
+export async function findChatHistoryReplyRootsRepo(
+  chatId: bigint,
+  currentMessageId: bigint,
+  candidateIds: bigint[],
+): Promise<ChatHistoryReplyRoot[]> {
+  if (candidateIds.length === 0) return [];
+
+  return prisma.$queryRaw<ChatHistoryReplyRoot[]>`
+    WITH RECURSIVE ancestors AS (
+      SELECT
+        m."chatId",
+        m."id" AS "candidateId",
+        m."id",
+        m."replyToMessageId",
+        ARRAY[m."id"]::bigint[] AS path
+      FROM "Message" m
+      WHERE m."chatId" = ${chatId}
+        AND m."private" = FALSE
+        AND m."id" < ${currentMessageId}
+        AND m."id" = ANY(${candidateIds})
+
+      UNION ALL
+
+      SELECT
+        a."chatId",
+        a."candidateId",
+        parent."id",
+        parent."replyToMessageId",
+        a.path || parent."id"
+      FROM ancestors a
+      JOIN "Message" parent
+        ON parent."chatId" = a."chatId"
+        AND parent."id" = a."replyToMessageId"
+        AND parent."id" < ${currentMessageId}
+        AND NOT (parent."id" = ANY(a.path))
+        AND array_length(a.path, 1) < 50
+    )
+    SELECT DISTINCT ON ("candidateId")
+      "candidateId",
+      COALESCE("replyToMessageId", "id") AS "rootMessageId"
+    FROM ancestors
+    WHERE "replyToMessageId" IS NULL
+    ORDER BY "candidateId"
+  `;
+}
+
 export interface ReplyGraphRow {
   id: bigint;
   replyToMessageId: bigint | null;
   senderId: bigint;
   sentAt: Date;
   searchText: string | null;
-}
-
-export interface ChatHistoryReplyGraphRow {
-  id: bigint;
-  replyToMessageId: bigint | null;
-  senderId: bigint;
-  messageType: string;
-  text: string | null;
-  summary: string | null;
-  searchText: string | null;
-  sentAt: Date;
-  rootMessageId: bigint;
-  depth: number;
-  sender: {
-    firstName: string | null;
-    lastName: string | null;
-    userName: string | null;
-  };
 }
 
 export async function fetchReplyGraphRepo(
@@ -408,6 +435,97 @@ export async function fetchReplyGraphRepo(
     SELECT * FROM reply_tree
   `);
 }
+
+export type ChatHistoryReplyGraphRow = {
+  id: bigint;
+  chatId: bigint;
+  senderId: bigint;
+  sessionId: string | null;
+  replyToMessageId: bigint | null;
+  messageType: string;
+  text: string | null;
+  media: string | null;
+  summary: string | null;
+  private: boolean;
+  sentAt: Date;
+  rootMessageId: bigint;
+  depth: number;
+};
+
+export async function fetchChatHistoryReplyGraphRepo(
+  chatId: bigint,
+  rootIds: bigint[],
+): Promise<ChatHistoryReplyGraphRow[]> {
+  if (rootIds.length === 0) return [];
+
+  return prisma.$queryRaw<ChatHistoryReplyGraphRow[]>`
+    WITH RECURSIVE reply_tree AS (
+      SELECT
+        m."id",
+        m."chatId",
+        m."replyToMessageId",
+        m."senderId",
+        m."sessionId",
+        m."messageType",
+        m."text",
+        m."summary",
+        m."searchText",
+        m."sentAt",
+        m."private",
+        m."media",
+        m."id" AS "rootMessageId",
+        0::int AS depth,
+        ARRAY[m."id"]::bigint[] AS path
+      FROM "Message" m
+      WHERE m."chatId" = ${chatId}
+        AND m."private" = FALSE
+        AND m."id" = ANY(${rootIds})
+
+      UNION ALL
+
+      SELECT
+        child."id",
+        child."chatId",
+        child."replyToMessageId",
+        child."senderId",
+        child."sessionId",
+        child."messageType",
+        child."text",
+        child."summary",
+        child."searchText",
+        child."sentAt",
+        child."private",
+        child."media",
+        rt."rootMessageId",
+        rt.depth + 1,
+        rt.path || child."id"
+      FROM reply_tree rt
+      JOIN "Message" child
+        ON child."chatId" = rt."chatId"
+        AND child."replyToMessageId" = rt."id"
+        AND child."private" = FALSE
+        AND NOT (child."id" = ANY(rt.path))
+        AND rt.depth < 50
+    )
+    SELECT
+      id,
+      "chatId",
+      "senderId",
+      "sessionId",
+      "replyToMessageId",
+      "messageType",
+      text,
+      summary,
+      private,
+      media,
+      "sentAt",
+      "rootMessageId",
+      depth
+    FROM reply_tree
+    ORDER BY "rootMessageId", depth, "sentAt"
+  `;
+}
+
 export async function healthCheckRepo(): Promise<void> {
   await prisma.$queryRaw`SELECT 1`;
 }

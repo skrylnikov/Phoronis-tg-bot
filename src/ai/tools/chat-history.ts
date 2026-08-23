@@ -2,22 +2,21 @@ import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
 import type { Prisma } from '../../generated/prisma/client';
+import { MessageType } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import { findChatByIdRepo } from '../../repositories/chat-repository';
 import {
-  findManyMessagesRepo,
-  findFirstMessageRepo,
-  countMessagesRepo,
-} from '../../repositories/message-repository';
-import {
-  findManyUsersRepo,
-} from '../../repositories/user-repository';
-import {
-  findReplyRootsRepo as findChatHistoryReplyRootsRepo,
-  fetchReplyGraphRepo as fetchChatHistoryReplyGraphRepo,
-  type ChatHistoryReplyRoot,
   type ChatHistoryReplyGraphRow,
+  type ChatHistoryReplyRoot,
+  fetchChatHistoryReplyGraphRepo,
+  findChatHistoryReplyRootsRepo,
 } from '../../repositories/embedding-repository';
+import {
+  countMessagesRepo,
+  findFirstMessageRepo,
+  findManyMessagesRepo,
+} from '../../repositories/message-repository';
+import { findManyUsersRepo } from '../../repositories/user-repository';
 import { embedQuery } from '../embedding/client';
 import {
   searchChatMessages,
@@ -101,10 +100,6 @@ type ReplyGraphRow = HistoryRow & {
   rootMessageId: bigint;
   depth: number;
 };
-
-type ReplyRoot = ChatHistoryReplyRoot;
-
-type ReplyGraphRow = ChatHistoryReplyGraphRow;
 
 type SearchCandidate = {
   row: HistoryRow;
@@ -297,18 +292,35 @@ async function resolveReplyRoots(
   chatId: bigint,
   currentMessageId: bigint,
   candidateIds: bigint[],
-): Promise<ReplyRoot[]> {
+): Promise<Array<{ candidateId: bigint; rootMessageId: bigint; incomplete: boolean }>> {
   if (candidateIds.length === 0) return [];
-  return findChatHistoryReplyRootsRepo(chatId, currentMessageId, candidateIds);
+  const rows = await findChatHistoryReplyRootsRepo(chatId, currentMessageId, candidateIds);
+  return rows.map((r) => ({
+    candidateId: r.candidateId,
+    rootMessageId: r.rootMessageId,
+    incomplete: false,
+  }));
 }
 
 async function loadReplyGraphRows(
   chatId: bigint,
-  currentMessageId: bigint,
   rootIds: bigint[],
-): Promise<ReplyGraphRow[]> {
+): Promise<HistoryRow[]> {
   if (rootIds.length === 0) return [];
-  return fetchChatHistoryReplyGraphRepo(chatId, currentMessageId, rootIds);
+  const rows: ChatHistoryReplyGraphRow[] = await fetchChatHistoryReplyGraphRepo(chatId, rootIds);
+  return rows.map((r: ChatHistoryReplyGraphRow): HistoryRow => ({
+    id: r.id,
+    senderId: r.senderId,
+    sessionId: r.sessionId,
+    replyToMessageId: r.replyToMessageId,
+    messageType: r.messageType as MessageType,
+    text: r.text,
+    media: r.media,
+    summary: r.summary,
+    searchText: null,
+    sentAt: r.sentAt,
+    private: r.private,
+  }));
 }
 
 function countReplyBranches(rows: HistoryRow[]): number {
@@ -327,7 +339,10 @@ async function loadReplyGraphs(
   candidateIds: bigint[],
 ): Promise<{
   graphs: Map<string, ReplyGraph>;
-  rootsByCandidate: Map<string, ReplyRoot>;
+  rootsByCandidate: Map<
+    string,
+    { candidateId: bigint; rootMessageId: bigint; incomplete: boolean }
+  >;
 }> {
   const roots = await resolveReplyRoots(chatId, currentMessageId, candidateIds);
   const rootsByCandidate = new Map(
@@ -338,11 +353,11 @@ async function loadReplyGraphs(
       roots.map((root) => [root.rootMessageId.toString(), root.rootMessageId]),
     ).values(),
   ];
-  const rows = await loadReplyGraphRows(chatId, currentMessageId, rootIds);
+  const rows = await loadReplyGraphRows(chatId, rootIds);
   const rowsByRoot = new Map<string, HistoryRow[]>();
 
   for (const row of rows) {
-    const rootId = row.rootMessageId.toString();
+    const rootId = row.replyToMessageId?.toString() ?? row.id.toString();
     const rootRows = rowsByRoot.get(rootId) ?? [];
     rootRows.push(row);
     rowsByRoot.set(rootId, rootRows);
@@ -440,7 +455,7 @@ function createBaseWhere(
     chatId,
     private: false,
     id: { lt: currentMessageId },
-    sentAt: { ...(startAt ? { gte: startAt } : {}), lt: endAt },
+    sentAt: { ...(startAt ? { gte: startAt } : {}), ...(endAt ? { lt: endAt } : {}) },
     ...(senderId ? { senderId } : {}),
     OR: [{ text: { not: null } }, { summary: { not: null } }],
   };
@@ -539,7 +554,7 @@ async function getRecentHistory(
       },
     );
     const result = getTruncatedMessages(
-      rows as HistoryRow[],
+      rows as unknown as HistoryRow[],
       limit,
       maxHistoryCharacters,
     );
@@ -607,21 +622,18 @@ async function getUserStats(
     );
     const [totalCount, rows] = await Promise.all([
       countMessagesRepo(where),
-      findManyMessagesRepo(
-        where,
-        {
-          select: messageSelect,
-          orderBy: { id: 'desc' },
-          take: limit,
-        },
-      ),
+      findManyMessagesRepo(where, {
+        select: messageSelect,
+        orderBy: { id: 'desc' },
+        take: limit,
+      }),
     ]);
 
     return {
       mode: 'user_stats',
       totalCount,
       truncated: totalCount > limit,
-      messages: (rows as HistoryRow[])
+      messages: (rows as unknown as HistoryRow[])
         .map((row) => formatMessage(row))
         .reverse(),
     };
@@ -752,14 +764,11 @@ async function searchHistory(
   try {
     const [exactCount, exactRows] = await Promise.all([
       countMessagesRepo(where),
-      findManyMessagesRepo(
-        where,
-        {
-          select: messageSelect,
-          orderBy: { id: 'desc' },
-          take: searchCandidateLimit,
-        },
-      ),
+      findManyMessagesRepo(where, {
+        select: messageSelect,
+        orderBy: { id: 'desc' },
+        take: searchCandidateLimit,
+      }),
     ]);
 
     let lexicalRows: Awaited<ReturnType<typeof searchChatMessagesLexical>> = [];
@@ -809,7 +818,7 @@ async function searchHistory(
     }
 
     const candidates = new Map<string, SearchCandidate>();
-    for (const [index, row] of (exactRows as HistoryRow[]).entries()) {
+    for (const [index, row] of (exactRows as unknown as HistoryRow[]).entries()) {
       addSearchCandidate(candidates, row, index + 1, { exactMatch: true });
     }
     for (const [index, row] of lexicalRows.entries()) {
@@ -985,7 +994,7 @@ export async function getRecentPublicChatContext(
       },
     );
     return getTruncatedMessages(
-      rows as HistoryRow[],
+      rows as unknown as HistoryRow[],
       maxRecentMessages,
       maxRecentContextCharacters,
     );

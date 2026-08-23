@@ -18,10 +18,7 @@ import {
   saveUser,
 } from '../domain';
 import { logger } from '../logger';
-import {
-  findFirstMessageRepo,
-  updateMessageFieldsRepo,
-} from '../repositories';
+import { findFirstMessageRepo, updateMessageFieldsRepo } from '../repositories';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 

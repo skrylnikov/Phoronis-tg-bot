@@ -3,23 +3,26 @@ import { prisma } from '../db';
 import { Prisma } from '../generated/prisma/client';
 
 export async function claimNextTelegramUpdateRepo(
-  lane: string,
+  lane: 'NORMAL' | 'URGENT',
   workerId: string,
   leaseDurationMs: number,
-): Promise<{
-  updateId: bigint;
-  payload: Update;
-  partitionKey: string;
-  lane: string;
-  attempts: number;
-  receivedAt: Date;
-} | undefined> {
+): Promise<
+  | {
+      updateId: bigint;
+      payload: Update;
+      partitionKey: string;
+      lane: 'NORMAL' | 'URGENT';
+      attempts: number;
+      receivedAt: Date;
+    }
+  | undefined
+> {
   const rows = await prisma.$queryRaw<
     Array<{
       updateId: bigint;
       payload: Update;
       partitionKey: string;
-      lane: string;
+      lane: 'NORMAL' | 'URGENT';
       attempts: number;
       receivedAt: Date;
     }>
@@ -65,7 +68,16 @@ export async function claimNextTelegramUpdateRepo(
     RETURNING item."updateId", item."payload", item."partitionKey", item."lane", item."attempts", item."receivedAt"
   `);
 
-  return rows[0];
+  return rows[0] as
+    | {
+        updateId: bigint;
+        payload: Update;
+        partitionKey: string;
+        lane: 'NORMAL' | 'URGENT';
+        attempts: number;
+        receivedAt: Date;
+      }
+    | undefined;
 }
 
 export async function markTelegramUpdateCompletedRepo(
@@ -147,7 +159,7 @@ export async function enqueueTelegramUpdateRepo(
   updateId: bigint,
   payload: Prisma.InputJsonValue,
   partitionKey: string,
-  lane: string,
+  lane: 'NORMAL' | 'URGENT',
 ): Promise<void> {
   await prisma.telegramUpdate.create({
     data: {

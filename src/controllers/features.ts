@@ -1,14 +1,14 @@
 import { Composer } from 'grammy';
 import type { BotContext } from '../bot';
+import { sendInktoberMessage } from '../features/inktober';
+import { sendSelfieSaturdayMessage } from '../features/selfie-saturday';
+import { logger } from '../logger';
 import {
   countMessagesWithWhereRepo,
   findChatByIdRepo,
   updateChatRepo,
   upsertChatFeatureRepo,
 } from '../repositories';
-import { sendInktoberMessage } from '../features/inktober';
-import { sendSelfieSaturdayMessage } from '../features/selfie-saturday';
-import { logger } from '../logger';
 
 export const featuresController = new Composer<BotContext>();
 
@@ -41,11 +41,7 @@ featuresController.command('enable', async (ctx) => {
 
   try {
     if (feature === 'selfiesaturday') {
-      await upsertChatFeatureRepo(
-        BigInt(ctx.chat.id),
-        'selfieSaturday',
-        true,
-      );
+      await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'selfieSaturday', true);
       await ctx.reply("Функция 'Селфи Суббота' включена для этого чата! 🎉");
     } else if (feature === 'inktober') {
       await upsertChatFeatureRepo(BigInt(ctx.chat.id), 'inktober', true);

@@ -1,5 +1,5 @@
-import { deleteOldPrivateMessagesRepo } from '../repositories/message-repository';
 import { logger } from '../logger';
+import { deleteOldPrivateMessagesRepo } from '../repositories/message-repository';
 
 export async function cleanOldPrivateMessages(): Promise<number> {
   const count = await deleteOldPrivateMessagesRepo();

@@ -70,11 +70,9 @@ export const saveMessage = async (message: SaveMessageParams) => {
   }
 };
 
-export async function countMessagesRepo(where: {
-  chatId: bigint;
-  senderId: bigint;
-  private: boolean;
-}) {
+export async function countMessagesRepo(
+  where: Prisma.MessageWhereInput,
+): Promise<number> {
   return prisma.message.count({ where });
 }
 
@@ -139,7 +137,9 @@ export async function updateMessageManyRepo(
   return prisma.message.updateMany({ where, data });
 }
 
-export async function countMessagesWithWhereRepo(where: Prisma.MessageWhereInput) {
+export async function countMessagesWithWhereRepo(
+  where: Prisma.MessageWhereInput,
+) {
   return prisma.message.count({ where });
 }
 
@@ -148,7 +148,9 @@ export async function findManyMessagesRepo(
   options?: {
     include?: Prisma.MessageInclude;
     select?: Prisma.MessageSelect;
-    orderBy?: Prisma.MessageOrderByWithRelationInput | Prisma.MessageOrderByWithRelationInput[];
+    orderBy?:
+      | Prisma.MessageOrderByWithRelationInput
+      | Prisma.MessageOrderByWithRelationInput[];
     take?: number;
     skip?: number;
   },
@@ -164,7 +166,9 @@ export async function findFirstMessageRepo(
   options?: {
     include?: Prisma.MessageInclude;
     select?: Prisma.MessageSelect;
-    orderBy?: Prisma.MessageOrderByWithRelationInput | Prisma.MessageOrderByWithRelationInput[];
+    orderBy?:
+      | Prisma.MessageOrderByWithRelationInput
+      | Prisma.MessageOrderByWithRelationInput[];
   },
 ) {
   return prisma.message.findFirst({

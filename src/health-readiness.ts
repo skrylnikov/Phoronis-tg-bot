@@ -1,6 +1,6 @@
 import { checkEmbeddingHealth } from './ai/embedding';
-import { healthCheckRepo } from './repositories/embedding-repository';
 import { logger } from './logger';
+import { healthCheckRepo } from './repositories/embedding-repository';
 
 export async function getReadinessResponse(): Promise<Response> {
   try {
