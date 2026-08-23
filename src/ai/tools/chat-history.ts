@@ -317,19 +317,22 @@ async function loadReplyGraphRows(
     rootIds,
   );
   return rows.map(
-    (r: ChatHistoryReplyGraphRow): HistoryRow => ({
-      id: r.id,
-      senderId: r.senderId,
-      sessionId: r.sessionId,
-      replyToMessageId: r.replyToMessageId,
-      messageType: r.messageType as MessageType,
-      text: r.text,
-      media: r.media,
-      summary: r.summary,
-      searchText: null,
-      sentAt: r.sentAt,
-      private: r.private,
-    }),
+    (r: ChatHistoryReplyGraphRow) =>
+      ({
+        id: r.id,
+        senderId: r.senderId,
+        replyToMessageId: r.replyToMessageId,
+        messageType: r.messageType,
+        text: r.text,
+        summary: r.summary,
+        searchText: null,
+        sentAt: r.sentAt,
+        sender: {
+          firstName: null,
+          lastName: null,
+          userName: null,
+        },
+      }) as HistoryRow,
   );
 }
 
