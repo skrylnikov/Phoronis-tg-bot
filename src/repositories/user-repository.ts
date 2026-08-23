@@ -76,11 +76,11 @@ export async function findManyUsersRepo(
 
 export async function findUserByIdRepo<T extends Prisma.UserSelect>(
   userId: bigint,
-  select?: T,
+  select: T,
 ) {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: select as any,
+    select: select as Prisma.UserSelect,
   });
 }
 
