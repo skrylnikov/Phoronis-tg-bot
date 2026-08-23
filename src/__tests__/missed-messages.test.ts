@@ -322,6 +322,8 @@ describe('searchChatHistory', () => {
       }),
     );
 
+    expect(messageQueryRaw).toHaveBeenCalledTimes(2);
+    expect(result.threads).toHaveLength(1);
     expect(result.threads[0]).toMatchObject({
       rootMessageId: '101',
       incomplete: true,
