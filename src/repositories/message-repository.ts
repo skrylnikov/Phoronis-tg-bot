@@ -29,7 +29,10 @@ async function checkMessageExistsRepo(
     });
     return message !== null;
   } catch (error) {
-    handleError(error, `Error checking message existence ${chatId}_${messageId}`);
+    handleError(
+      error,
+      `Error checking message existence ${chatId}_${messageId}`,
+    );
     return false;
   }
 }
@@ -44,7 +47,10 @@ async function findReplyIdRepo(
     const exists = await checkMessageExistsRepo(chatId, replyToMessageId);
     return exists ? replyToMessageId : null;
   } catch (error) {
-    handleError(error, `Error finding reply ID for ${chatId}_${replyToMessageId}`);
+    handleError(
+      error,
+      `Error finding reply ID for ${chatId}_${replyToMessageId}`,
+    );
     return null;
   }
 }
@@ -70,7 +76,10 @@ export const saveMessage = async (message: SaveMessageParams) => {
       return;
     }
 
-    const replyId = await findReplyIdRepo(message.chatId, message.replyToMessageId);
+    const replyId = await findReplyIdRepo(
+      message.chatId,
+      message.replyToMessageId,
+    );
 
     await prisma.message.upsert({
       create: {

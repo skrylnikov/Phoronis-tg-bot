@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { prismaMessageFindUnique, prismaMessageUpsert, handleError, lruCacheGet, lruCacheHas, lruCacheSet } = vi.hoisted(
-  () => ({
-    prismaMessageFindUnique: vi.fn(),
-    prismaMessageUpsert: vi.fn(),
-    handleError: vi.fn(),
-    lruCacheGet: vi.fn(),
-    lruCacheHas: vi.fn(),
-    lruCacheSet: vi.fn(),
-  }),
-);
+const {
+  prismaMessageFindUnique,
+  prismaMessageUpsert,
+  handleError,
+  lruCacheGet,
+  lruCacheHas,
+  lruCacheSet,
+} = vi.hoisted(() => ({
+  prismaMessageFindUnique: vi.fn(),
+  prismaMessageUpsert: vi.fn(),
+  handleError: vi.fn(),
+  lruCacheGet: vi.fn(),
+  lruCacheHas: vi.fn(),
+  lruCacheSet: vi.fn(),
+}));
 
 vi.mock('lru-cache', () => ({
   LRUCache: class {
