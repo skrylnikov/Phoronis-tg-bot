@@ -17,6 +17,7 @@ import { getTopUserFacts } from '../domain/user/fact-analyzer';
 import type { Message, User } from '../generated/prisma/client';
 import { logger } from '../logger';
 import {
+  findFirstMessageRepo,
   findManyMessagesRepo,
   findMessageWithSelectRepo,
 } from '../repositories/message-repository';
@@ -149,6 +150,23 @@ export const aiController = async (
 
   const startedAt = performance.now();
   await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
+  const existingResponse = await findFirstMessageRepo({
+    chatId: BigInt(ctx.chatId),
+    replyToMessageId: BigInt(msg.message_id),
+    senderId: BigInt(ctx.me.id),
+    messageType: 'TEXT',
+  });
+  if (existingResponse) {
+    logger.info(
+      {
+        event: 'ai.response_duplicate_skipped',
+        sourceMessageId: msg.message_id,
+        responseMessageId: Number(existingResponse.id),
+      },
+      'Skipped duplicate AI response after persisted delivery',
+    );
+    return;
+  }
   const isGroup = chat.type === 'group' || chat.type === 'supergroup';
   const quotaReservation = await reserveQuota({
     userId: ctx.from.id,
@@ -555,6 +573,7 @@ export const aiController = async (
       },
       'AI response failed',
     );
+    throw err;
   } finally {
     clearInterval(typingInterval);
     if (!completed) {

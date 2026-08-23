@@ -16,6 +16,7 @@ import {
   getUserPersonalMemoriesRepo,
   updateMemoryRepo,
 } from '../../repositories/memory-repository';
+import { currentUpdateAbortSignalWithTimeout } from '../../update-signal';
 
 interface SaveMemoryOptions {
   userId: number;
@@ -80,6 +81,9 @@ async function checkForSimilarMemories(
       .join('\n');
 
     const llmResult = await generateText({
+      abortSignal: currentUpdateAbortSignalWithTimeout(
+        similarityCheckTimeoutMs,
+      ),
       model: utilityModel,
       output: Output.object({ schema: memoryCheckSchema }),
       prompt: `Анализируй новую запись и существующие записи на предмет дубликатов и противоречий.
@@ -98,7 +102,6 @@ ${candidates}
 Если противоречие найдено - верни его ID.
 Если нет ни того ни другого - верни null для обоих полей.`,
       temperature: 0,
-      abortSignal: AbortSignal.timeout(similarityCheckTimeoutMs),
     });
 
     if (llmResult.output.duplicateId) {

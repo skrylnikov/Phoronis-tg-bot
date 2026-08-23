@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
 import { updateChatRepo } from '../repositories/chat-repository';
+import { currentUpdateAbortSignal } from '../update-signal';
 import { chatModel } from './ai';
 import { isChatHistorySearchIntent } from './history-intent';
 import { splitSystemMessages } from './prompt';
@@ -99,6 +100,7 @@ export const chatGeneration = async (
   const generationStartedAt = performance.now();
   let firstTextAt: number | null = null;
   const generationOptions = {
+    abortSignal: currentUpdateAbortSignal(),
     model: options.model ?? chatModel,
     instructions: prompt.instructions,
     messages: prompt.messages,

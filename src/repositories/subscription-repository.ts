@@ -1,5 +1,6 @@
 import { prisma } from '../db';
 import {
+  BackgroundJobType,
   PaymentOrderStatus,
   Prisma,
   type SubscriptionPlan,
@@ -168,6 +169,11 @@ export async function activatePaymentWithSubscription(input: {
   durationDays: number;
   now: Date;
   amount: number;
+  buyer: {
+    firstName: string;
+    lastName?: string;
+    username?: string;
+  };
 }) {
   return runSerializableTransaction(async (tx) => {
     const existingCharge = await tx.paymentOrder.findUnique({
@@ -175,6 +181,12 @@ export async function activatePaymentWithSubscription(input: {
       include: { subscription: true },
     });
     if (existingCharge) {
+      if (existingCharge.subscription) {
+        await ensurePaymentJobs(tx, {
+          order: existingCharge,
+          buyer: input.buyer,
+        });
+      }
       return existingCharge.subscription
         ? { ...existingCharge.subscription, activatedNow: false }
         : null;
@@ -228,8 +240,72 @@ export async function activatePaymentWithSubscription(input: {
       },
     });
 
+    await ensurePaymentJobs(tx, { order: pendingOrder, buyer: input.buyer });
+
     return { ...subscription, activatedNow: true };
   });
+}
+
+async function ensurePaymentJobs(
+  tx: Prisma.TransactionClient,
+  input: {
+    order: {
+      id: string;
+      userId: bigint;
+      beneficiaryChatId: bigint;
+      plan: SubscriptionPlan;
+      amount: number;
+    };
+    buyer: {
+      firstName: string;
+      lastName?: string;
+      username?: string;
+    };
+  },
+): Promise<void> {
+  const payload = {
+    orderId: input.order.id,
+    userId: input.order.userId.toString(),
+    beneficiaryChatId: input.order.beneficiaryChatId.toString(),
+    plan: input.order.plan,
+    amount: input.order.amount,
+    buyer: input.buyer,
+  } satisfies Prisma.InputJsonObject;
+  const jobs = [
+    [BackgroundJobType.PAYMENT_BUYER_NOTIFICATION, 'buyer'],
+    [BackgroundJobType.PAYMENT_BENEFICIARY_NOTIFICATION, 'beneficiary'],
+    [BackgroundJobType.PAYMENT_ANALYTICS_NOTIFICATION, 'analytics'],
+  ] as const;
+  await Promise.all(
+    jobs.map(([type, kind]) =>
+      tx.backgroundJob.upsert({
+        where: { dedupeKey: `payment-order:${input.order.id}:${kind}` },
+        create: {
+          type,
+          dedupeKey: `payment-order:${input.order.id}:${kind}`,
+          payload,
+        },
+        update: {},
+      }),
+    ),
+  );
+}
+
+export async function ensurePaymentNotificationJobsRepo(input: {
+  order: {
+    id: string;
+    userId: bigint;
+    beneficiaryChatId: bigint;
+    plan: SubscriptionPlan;
+    amount: number;
+  };
+  buyer: {
+    firstName: string;
+    lastName?: string;
+    username?: string;
+  };
+}): Promise<void> {
+  await ensurePaymentJobs(prisma, input);
 }
 
 export async function refundPaymentWithSubscription(

@@ -89,15 +89,19 @@ describe('Message Repository', () => {
 describe('Subscription Repository', () => {
   test('findActiveUserSubscriptions returns active subscriptions', async () => {
     const userId = BigInt(Date.now());
+    const chatId = BigInt(Date.now() + 1);
     const now = new Date();
     const startsAt = new Date(now.getTime() - 1000);
     const endsAt = new Date(now.getTime() + 1000);
 
     await prisma.user.create({ data: { id: userId, firstName: 'Test' } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test Group', chatType: 'GROUP' },
+    });
     await prisma.subscription.create({
       data: {
         userId,
-        beneficiaryChatId: -100n,
+        beneficiaryChatId: chatId,
         plan: 'MONTH',
         startsAt,
         endsAt,
@@ -144,7 +148,11 @@ describe('Subscription Repository', () => {
 
   test('countPaidOrders returns correct count', async () => {
     const userId = BigInt(Date.now());
+    const chatId = BigInt(Date.now() + 1);
     await prisma.user.create({ data: { id: userId, firstName: 'Test' } });
+    await prisma.chat.create({
+      data: { id: chatId, title: 'Test Group', chatType: 'GROUP' },
+    });
 
     const count1 = await countPaidOrders(userId);
     expect(count1).toBe(0);
@@ -152,7 +160,7 @@ describe('Subscription Repository', () => {
     await prisma.paymentOrder.create({
       data: {
         userId,
-        beneficiaryChatId: -100n,
+        beneficiaryChatId: chatId,
         plan: 'WEEK',
         baseAmount: 49,
         amount: 39,

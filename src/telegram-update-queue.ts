@@ -3,19 +3,19 @@ import type { Bot } from 'grammy';
 import type { BotContext } from './bot';
 import type { Prisma } from './generated/prisma/client';
 import { logger } from './logger';
+import { queueConfig } from './queue-config';
 import {
   claimNextTelegramUpdateRepo,
   cleanupTelegramUpdatesRepo,
   enqueueTelegramUpdateRepo,
+  heartbeatTelegramUpdateRepo,
   isDuplicatePrismaErrorRepo,
   markTelegramUpdateCompletedRepo,
   markTelegramUpdateFailedRepo,
+  releaseTelegramUpdateLeasesRepo,
 } from './repositories';
+import { withUpdateAbortSignal } from './update-signal';
 
-const normalWorkerCount = 3;
-const leaseDurationMs = 5 * 60 * 1000;
-const pollIntervalMs = 250;
-const maxAttempts = 5;
 const cleanupIntervalMs = 6 * 60 * 60 * 1000;
 const completedRetentionMs = 7 * 24 * 60 * 60 * 1000;
 const failedRetentionMs = 30 * 24 * 60 * 60 * 1000;
@@ -40,6 +40,24 @@ export interface EnqueueResult {
 export interface TelegramUpdateRouting {
   lane: QueueLane;
   partitionKey: string;
+}
+
+export type TelegramUpdateOutcome =
+  | { kind: 'completed' }
+  | { kind: 'retryable'; error: unknown }
+  | { kind: 'terminal'; error: unknown };
+
+export class TerminalUpdateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TerminalUpdateError';
+  }
+}
+
+export function mapTelegramUpdateError(error: unknown): TelegramUpdateOutcome {
+  return error instanceof TerminalUpdateError
+    ? { kind: 'terminal', error }
+    : { kind: 'retryable', error };
 }
 
 export interface TelegramUpdateQueue {
@@ -180,7 +198,7 @@ async function claimNextUpdate(
   const row = await claimNextTelegramUpdateRepo(
     lane,
     workerId,
-    leaseDurationMs,
+    queueConfig.leaseDurationMs,
   );
   return row
     ? {
@@ -225,14 +243,16 @@ async function markFailed(
   workerId: string,
   startedAt: number,
   error: unknown,
+  terminal: boolean,
 ): Promise<void> {
   const message = getErrorMessage(error);
   const result = await markTelegramUpdateFailedRepo(
     update.updateId,
     workerId,
     update.attempts,
-    maxAttempts,
+    queueConfig.maxAttempts,
     message,
+    terminal,
   );
   if (result === 0) {
     logger.warn(
@@ -252,7 +272,7 @@ async function markFailed(
 
   const waitMs = Math.max(0, startedAt - update.receivedAt.getTime());
   const processingMs = Math.max(0, Date.now() - startedAt);
-  if (update.attempts >= maxAttempts) {
+  if (update.attempts >= queueConfig.maxAttempts) {
     logger.error(
       {
         event: 'update.failed',
@@ -310,6 +330,7 @@ export function createTelegramUpdateQueue(
   let stopping = false;
   let cleanupTimer: ReturnType<typeof setInterval> | undefined;
   let workers: Promise<void>[] = [];
+  const activeControllers = new Set<AbortController>();
 
   async function processUpdates(lane: QueueLane): Promise<void> {
     const workerId = `${lane.toLowerCase()}-${crypto.randomUUID()}`;
@@ -322,15 +343,46 @@ export function createTelegramUpdateQueue(
           { event: 'update.worker_claim_failed', lane, err: error },
           'Failed to claim Telegram update',
         );
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        await new Promise((resolve) =>
+          setTimeout(resolve, queueConfig.pollIntervalMs),
+        );
         continue;
       }
       if (!update) {
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        await new Promise((resolve) =>
+          setTimeout(resolve, queueConfig.pollIntervalMs),
+        );
         continue;
+      }
+      if (stopping) {
+        await releaseTelegramUpdateLeasesRepo(workerId);
+        break;
       }
 
       const startedAt = Date.now();
+      let leaseLost = false;
+      const controller = new AbortController();
+      activeControllers.add(controller);
+      const heartbeat = setInterval(
+        () => {
+          void heartbeatTelegramUpdateRepo(
+            update?.updateId ?? 0n,
+            workerId,
+            queueConfig.leaseDurationMs,
+          )
+            .then((renewed) => {
+              if (!renewed) {
+                leaseLost = true;
+                controller.abort(new Error('Telegram update lease lost'));
+              }
+            })
+            .catch(() => {
+              leaseLost = true;
+              controller.abort(new Error('Telegram update heartbeat failed'));
+            });
+        },
+        Math.max(1_000, Math.floor(queueConfig.leaseDurationMs / 3)),
+      );
       logger.info(
         {
           event: 'update.started',
@@ -345,8 +397,13 @@ export function createTelegramUpdateQueue(
       );
 
       try {
-        await bot.handleUpdate(update.payload);
-        const completed = await markCompleted(update, workerId, startedAt);
+        await withUpdateAbortSignal(controller.signal, () =>
+          bot.handleUpdate(update.payload),
+        );
+        const completed =
+          leaseLost || controller.signal.aborted
+            ? false
+            : await markCompleted(update, workerId, startedAt);
         if (completed) {
           logger.info(
             {
@@ -361,25 +418,53 @@ export function createTelegramUpdateQueue(
           );
         }
       } catch (error) {
-        try {
-          await markFailed(update, workerId, startedAt, error);
-        } catch (stateError) {
-          logger.error(
+        if (controller.signal.aborted || leaseLost) {
+          logger.warn(
             {
-              event: 'update.state_update_failed',
+              event: 'update.lease_lost',
               updateId: Number(update.updateId),
               lane: update.lane,
               partitionKey: update.partitionKey,
-              waitMs: Math.max(0, startedAt - update.receivedAt.getTime()),
-              processingMs: Date.now() - startedAt,
-              err: stateError,
-              originalError: error,
+              err: error,
             },
-            'Failed to persist Telegram update failure state',
+            'Telegram update stopped after lease loss or shutdown',
           );
+        } else {
+          const mappedOutcome = mapTelegramUpdateError(error);
+          const outcome =
+            mappedOutcome.kind === 'completed'
+              ? { kind: 'retryable' as const, error }
+              : mappedOutcome;
+          try {
+            await markFailed(
+              update,
+              workerId,
+              startedAt,
+              outcome.error,
+              outcome.kind === 'terminal',
+            );
+          } catch (stateError) {
+            logger.error(
+              {
+                event: 'update.state_update_failed',
+                updateId: Number(update.updateId),
+                lane: update.lane,
+                partitionKey: update.partitionKey,
+                waitMs: Math.max(0, startedAt - update.receivedAt.getTime()),
+                processingMs: Date.now() - startedAt,
+                err: stateError,
+                originalError: error,
+              },
+              'Failed to persist Telegram update failure state',
+            );
+          }
         }
+      } finally {
+        clearInterval(heartbeat);
+        activeControllers.delete(controller);
       }
     }
+    await releaseTelegramUpdateLeasesRepo(workerId);
   }
 
   return {
@@ -402,7 +487,7 @@ export function createTelegramUpdateQueue(
       }, cleanupIntervalMs);
       workers = [
         processUpdates('URGENT'),
-        ...Array.from({ length: normalWorkerCount }, () =>
+        ...Array.from({ length: queueConfig.normalWorkers }, () =>
           processUpdates('NORMAL'),
         ),
       ];
@@ -411,6 +496,9 @@ export function createTelegramUpdateQueue(
     async stop() {
       stopping = true;
       if (cleanupTimer) clearInterval(cleanupTimer);
+      for (const controller of activeControllers) {
+        controller.abort(new Error('Telegram update queue is stopping'));
+      }
       await Promise.all(workers);
       workers = [];
     },

@@ -18,6 +18,7 @@ vi.mock('../logger', () => ({
 }));
 
 import { getReadinessResponse } from '../health-readiness';
+import { RuntimeState } from '../runtime-state';
 
 describe('readiness', () => {
   beforeEach(() => {
@@ -25,22 +26,44 @@ describe('readiness', () => {
     checkEmbeddingHealth.mockReset();
   });
 
-  it('reports unavailable TEI as degraded without becoming unready', async () => {
+  function readyState(): RuntimeState {
+    const state = new RuntimeState();
+    state.setReady('database', true);
+    state.setReady('embeddings', true);
+    state.setReady('transport', true);
+    state.setReady('updateWorkers', true);
+    state.setReady('jobWorker', true);
+    return state;
+  }
+
+  it('reports unavailable TEI as not ready', async () => {
     checkEmbeddingHealth.mockResolvedValue(false);
 
-    const response = await getReadinessResponse();
+    const response = await getReadinessResponse(readyState());
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
-      status: 'degraded',
-      components: { database: 'ready', embeddings: 'degraded' },
+      status: 'not-ready',
+      components: {
+        database: 'ready',
+        embeddings: 'not-ready',
+        transport: 'ready',
+        updateWorkers: 'ready',
+        jobWorker: 'ready',
+      },
     });
   });
 
   it('is unready when PostgreSQL is unavailable', async () => {
     queryRaw.mockRejectedValue(new Error('database unavailable'));
 
-    const response = await getReadinessResponse();
+    const response = await getReadinessResponse(readyState());
+
+    expect(response.status).toBe(503);
+  });
+
+  it('is not ready before required runtime components start', async () => {
+    const response = await getReadinessResponse(new RuntimeState());
 
     expect(response.status).toBe(503);
   });

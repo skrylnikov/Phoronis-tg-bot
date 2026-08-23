@@ -3,8 +3,13 @@ import {
   withAdvisoryLock,
 } from '../../advisory-lock';
 import { embeddingVersion } from '../../config';
-import { prisma } from '../../db';
 import { logger } from '../../logger';
+import {
+  countEmbeddingBacklogRepo,
+  findFactsForEmbeddingBackfillRepo,
+  findMemoriesForEmbeddingBackfillRepo,
+  findMessagesForEmbeddingBackfillRepo,
+} from '../../repositories/embedding-repository';
 import { checkEmbeddingHealth, embedPassages } from './client';
 import { formatMessageSearchText } from './format';
 import {
@@ -33,15 +38,6 @@ let workerPromise: Promise<void> | null = null;
 let stopped = false;
 let wakeWorker: (() => void) | null = null;
 
-function outdatedEmbeddingWhere() {
-  return {
-    OR: [
-      { embeddingVersion: null },
-      { embeddingVersion: { not: embeddingVersion } },
-    ],
-  };
-}
-
 export function nextEmbeddingBackoff(currentMs: number): number {
   return Math.min(currentMs * 2, MAX_RETRY_MS);
 }
@@ -65,21 +61,10 @@ function delay(ms: number): Promise<void> {
 }
 
 async function backfillMessages(): Promise<number> {
-  const messages = await prisma.message.findMany({
-    where: {
-      AND: [
-        outdatedEmbeddingWhere(),
-        { OR: [{ private: false }, { private: null }] },
-      ],
-    },
-    include: {
-      replyToMessage: {
-        select: { text: true, summary: true },
-      },
-    },
-    orderBy: [{ sentAt: 'asc' }, { chatId: 'asc' }, { id: 'asc' }],
-    take: BATCH_SIZE,
-  });
+  const messages = await findMessagesForEmbeddingBackfillRepo(
+    embeddingVersion,
+    BATCH_SIZE,
+  );
 
   const embeddable = messages
     .map((message) => ({
@@ -120,11 +105,10 @@ async function backfillMessages(): Promise<number> {
 }
 
 async function backfillMemories(): Promise<number> {
-  const memories = await prisma.memory.findMany({
-    where: outdatedEmbeddingWhere(),
-    orderBy: { id: 'asc' },
-    take: BATCH_SIZE,
-  });
+  const memories = await findMemoriesForEmbeddingBackfillRepo(
+    embeddingVersion,
+    BATCH_SIZE,
+  );
   if (memories.length === 0) return 0;
 
   const embeddings = await embedPassages(
@@ -137,11 +121,10 @@ async function backfillMemories(): Promise<number> {
 }
 
 async function backfillFacts(): Promise<number> {
-  const facts = await prisma.userFact.findMany({
-    where: outdatedEmbeddingWhere(),
-    orderBy: { id: 'asc' },
-    take: BATCH_SIZE,
-  });
+  const facts = await findFactsForEmbeddingBackfillRepo(
+    embeddingVersion,
+    BATCH_SIZE,
+  );
   if (facts.length === 0) return 0;
 
   const embeddings = await embedPassages(facts.map((fact) => fact.content));
@@ -152,18 +135,8 @@ async function backfillFacts(): Promise<number> {
 }
 
 async function getBacklog(): Promise<Backlog> {
-  const [messages, memories, facts] = await Promise.all([
-    prisma.message.count({
-      where: {
-        AND: [
-          outdatedEmbeddingWhere(),
-          { OR: [{ private: false }, { private: null }] },
-        ],
-      },
-    }),
-    prisma.memory.count({ where: outdatedEmbeddingWhere() }),
-    prisma.userFact.count({ where: outdatedEmbeddingWhere() }),
-  ]);
+  const [messages, memories, facts] =
+    await countEmbeddingBacklogRepo(embeddingVersion);
   return { messages, memories, facts };
 }
 

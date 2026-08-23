@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { currentUpdateAbortSignal } from '../../update-signal';
 
 async function searchWikipedia(query: string): Promise<string> {
   const url = new URL('https://en.wikipedia.org/w/api.php');
@@ -10,7 +11,9 @@ async function searchWikipedia(query: string): Promise<string> {
   url.searchParams.append('format', 'json');
   url.searchParams.append('utf8', '1');
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    signal: currentUpdateAbortSignal(),
+  });
   if (!response.ok) {
     throw new Error(`Wikipedia API error: ${response.statusText}`);
   }
@@ -37,7 +40,9 @@ async function searchWikipedia(query: string): Promise<string> {
       extractUrl.searchParams.append('exchars', '1200');
       extractUrl.searchParams.append('format', 'json');
 
-      const extractResponse = await fetch(extractUrl.toString());
+      const extractResponse = await fetch(extractUrl.toString(), {
+        signal: currentUpdateAbortSignal(),
+      });
       if (!extractResponse.ok) return null;
 
       const extractData = (await extractResponse.json()) as {

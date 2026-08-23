@@ -1,6 +1,7 @@
 import type { Bot } from 'grammy';
 import { describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
+import { runtimeState } from '../runtime-state';
 import type { TelegramUpdateQueue } from '../telegram-update-queue';
 import { createBotTransport } from '../transport';
 import type { TransportConfig } from '../transport-config';
@@ -63,6 +64,16 @@ describe('bot transport', () => {
     });
     expect(queue.start).toHaveBeenCalledOnce();
     expect(pollingStart).not.toHaveBeenCalled();
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'ready',
+      updateWorkers: 'ready',
+    });
+
+    await transport.stop();
+    expect(runtimeState.snapshot()).toMatchObject({
+      transport: 'not-ready',
+      updateWorkers: 'not-ready',
+    });
   });
 
   it('rejects a webhook request with the wrong secret', async () => {

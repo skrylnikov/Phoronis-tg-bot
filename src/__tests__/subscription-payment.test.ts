@@ -64,7 +64,7 @@ describe('successful payment handling', () => {
     expect(mocks.sendPurchaseNotification).not.toHaveBeenCalled();
   });
 
-  it('confirms a newly activated payment once', async () => {
+  it('leaves confirmation delivery to durable background jobs', async () => {
     mocks.activatePayment.mockResolvedValue({
       activatedNow: true,
       plan: 'WEEK',
@@ -75,8 +75,8 @@ describe('successful payment handling', () => {
 
     await successfulPaymentController(context);
 
-    expect(reply).toHaveBeenCalledOnce();
-    expect(sendMessage).toHaveBeenCalledOnce();
-    expect(mocks.sendPurchaseNotification).toHaveBeenCalledOnce();
+    expect(reply).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(mocks.sendPurchaseNotification).not.toHaveBeenCalled();
   });
 });

@@ -60,6 +60,7 @@ export const ModelName = {
   LimitNotice: 'LimitNotice',
   DailyAnalytics: 'DailyAnalytics',
   TelegramUpdate: 'TelegramUpdate',
+  BackgroundJob: 'BackgroundJob',
   Message: 'Message',
   GuestInteraction: 'GuestInteraction',
   Memory: 'Memory',
@@ -208,6 +209,26 @@ export const TelegramUpdateScalarFieldEnum = {
 } as const
 
 export type TelegramUpdateScalarFieldEnum = (typeof TelegramUpdateScalarFieldEnum)[keyof typeof TelegramUpdateScalarFieldEnum]
+
+
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  dedupeKey: 'dedupeKey',
+  payload: 'payload',
+  status: 'status',
+  attempts: 'attempts',
+  availableAt: 'availableAt',
+  leaseUntil: 'leaseUntil',
+  workerId: 'workerId',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  updatedAt: 'updatedAt',
+  lastError: 'lastError'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
 
 
 export const MessageScalarFieldEnum = {

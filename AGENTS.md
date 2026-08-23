@@ -167,9 +167,8 @@ src/
 - No inline comments for obvious operations
 
 ### Testing
-- No test framework configured (no test script in package.json)
-- To add tests: install vitest or jest and configure in package.json
-- Example test command pattern: `bun test <filename>` for running single test
+- Vitest is configured in `package.json` and is the default `bun run test` suite.
+- Run a focused file with `bun run test -- src/__tests__/file.test.ts`.
 
 ### Dependencies & Libraries
 - Grammy framework for Telegram Bot API
@@ -195,7 +194,7 @@ src/
 3. Save message to database
 4. Generate local embeddings for text content
 5. Search pgvector for similar user messages (context retrieval)
-6. AI generates response using LangChain/AI SDK
+6. AI generates response using the AI SDK through RouterAI
 7. Response formatted with telegramify-markdown
 8. Bot reply sent and logged to database
 

@@ -53,8 +53,8 @@ vi.mock('../ai/rich-message', () => ({
 vi.mock('../ai/image-description', () => ({
   describeTelegramPhoto: vi.fn(),
 }));
-vi.mock('../domain/user/message-analyzer', () => ({
-  analyzeUserMessages: vi.fn().mockResolvedValue(undefined),
+vi.mock('../application/user-message-analysis', () => ({
+  scheduleUserMessageAnalysis: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../logger', () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },

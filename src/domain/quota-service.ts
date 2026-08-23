@@ -213,6 +213,7 @@ export async function reserveQuota(input: {
     const chatLimit = sumLimits(chatSubscriptions, 'chat')[input.kind];
     if (
       chatSubscriptions.length > 0 &&
+      // Group quota is keyed by (member, chat, kind, day), never by chat alone.
       (await reserveQuotaUsage(
         'CHAT',
         userId,

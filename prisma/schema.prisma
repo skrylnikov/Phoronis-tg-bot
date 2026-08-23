@@ -206,6 +206,40 @@ model TelegramUpdate {
   @@index([partitionKey, lane, updateId, status])
 }
 
+enum BackgroundJobType {
+  PAYMENT_BUYER_NOTIFICATION
+  PAYMENT_BENEFICIARY_NOTIFICATION
+  PAYMENT_ANALYTICS_NOTIFICATION
+  USER_MESSAGE_ANALYSIS
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model BackgroundJob {
+  id          String            @id @default(cuid())
+  type        BackgroundJobType
+  dedupeKey   String            @unique
+  payload     Json
+  status      BackgroundJobStatus @default(PENDING)
+  attempts    Int               @default(0)
+  availableAt DateTime          @default(now())
+  leaseUntil  DateTime?
+  workerId    String?
+  createdAt   DateTime          @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime          @updatedAt
+  lastError   String?
+
+  @@index([status, availableAt, createdAt])
+  @@index([status, leaseUntil])
+}
+
 enum MessageType {
   TEXT
   MEDIA

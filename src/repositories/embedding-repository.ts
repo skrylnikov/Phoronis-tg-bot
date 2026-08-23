@@ -1,8 +1,11 @@
+import pgvector from 'pgvector';
 import { prisma } from '../db';
 import { Prisma } from '../generated/prisma/client';
 
 function toVectorSql(embedding: number[]): string {
-  return `[${embedding.join(',')}]`;
+  const value = pgvector.toSql(embedding);
+  if (!value) throw new Error('Cannot serialize an empty embedding');
+  return value;
 }
 
 export async function updateMessageEmbeddingRepo(
@@ -33,6 +36,270 @@ export async function deleteMessageEmbeddingRepo(
         "embeddingVersion" = NULL
     WHERE "chatId" = ${chatId} AND "id" = ${messageId}
   `;
+}
+
+export async function markMessageEmbeddingSkippedRepo(
+  chatId: bigint,
+  messageId: bigint,
+  version: number,
+): Promise<void> {
+  await prisma.$executeRaw`
+    UPDATE "Message"
+    SET "searchText" = NULL,
+        "embedding" = NULL,
+        "embeddingVersion" = ${version}
+    WHERE "chatId" = ${chatId} AND "id" = ${messageId}
+  `;
+}
+
+export async function searchUserMessageContextRepo(
+  userId: bigint,
+  embedding: number[],
+  threshold: number,
+  limit: number,
+  version: number,
+): Promise<string[]> {
+  const vector = toVectorSql(embedding);
+  const rows = await prisma.$queryRaw<Array<{ content: string }>>`
+    SELECT "searchText" AS content
+    FROM "Message"
+    WHERE "senderId" = ${userId}
+      AND "private" IS NOT TRUE
+      AND "embeddingVersion" = ${version}
+      AND "embedding" IS NOT NULL
+      AND "searchText" IS NOT NULL
+      AND 1 - ("embedding" <=> ${vector}::vector) >= ${threshold}
+    ORDER BY "embedding" <=> ${vector}::vector
+    LIMIT ${limit}
+  `;
+  return rows.map((row) => row.content);
+}
+
+export async function searchChatMessageContextRepo(
+  chatId: bigint,
+  embedding: number[],
+  threshold: number,
+  limit: number,
+  version: number,
+): Promise<string[]> {
+  const vector = toVectorSql(embedding);
+  const rows = await prisma.$queryRaw<Array<{ content: string }>>`
+    SELECT "searchText" AS content
+    FROM "Message"
+    WHERE "chatId" = ${chatId}
+      AND "private" IS NOT TRUE
+      AND "embeddingVersion" = ${version}
+      AND "embedding" IS NOT NULL
+      AND "searchText" IS NOT NULL
+      AND 1 - ("embedding" <=> ${vector}::vector) >= ${threshold}
+    ORDER BY "embedding" <=> ${vector}::vector
+    LIMIT ${limit}
+  `;
+  return rows.map((row) => row.content);
+}
+
+export interface EmbeddingSearchChatMessage {
+  id: bigint;
+  replyToMessageId: bigint | null;
+  senderId: bigint;
+  messageType: string;
+  sentAt: Date;
+  text: string | null;
+  summary: string | null;
+  searchText: string | null;
+  similarity: number;
+  sender: {
+    firstName: string | null;
+    lastName: string | null;
+    userName: string | null;
+  };
+}
+
+export interface EmbeddingLexicalChatMessage
+  extends Omit<EmbeddingSearchChatMessage, 'similarity'> {
+  lexicalRank: number;
+  exactMatch: boolean;
+}
+
+const messageSearchDocument = Prisma.sql`
+  coalesce(m."text", '') || ' ' ||
+  coalesce(m."summary", '') || ' ' ||
+  coalesce(m."searchText", '')
+`;
+
+function messageSearchVector() {
+  return Prisma.sql`
+    to_tsvector('russian'::regconfig, ${messageSearchDocument}) ||
+    to_tsvector('english'::regconfig, ${messageSearchDocument})
+  `;
+}
+
+function messageSearchQuery(query: string) {
+  return Prisma.sql`
+    websearch_to_tsquery('russian'::regconfig, ${query}) ||
+    websearch_to_tsquery('english'::regconfig, ${query})
+  `;
+}
+
+function broadSearchQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean)
+    .map((term) => `"${term.replaceAll('"', '')}"`)
+    .join(' OR ');
+}
+
+export async function searchChatMessagesRepo(params: {
+  chatId: bigint;
+  embedding: number[];
+  threshold: number;
+  limit: number;
+  beforeMessageId?: bigint;
+  senderId?: bigint;
+  startAt?: Date;
+  endAt?: Date;
+  version: number;
+}): Promise<EmbeddingSearchChatMessage[]> {
+  const vector = toVectorSql(params.embedding);
+  const conditions = [
+    Prisma.sql`m."chatId" = ${params.chatId}`,
+    Prisma.sql`m."private" = FALSE`,
+    Prisma.sql`m."embeddingVersion" = ${params.version}`,
+    Prisma.sql`m."embedding" IS NOT NULL`,
+    Prisma.sql`m."searchText" IS NOT NULL`,
+    Prisma.sql`1 - (m."embedding" <=> ${vector}::vector) >= ${params.threshold}`,
+  ];
+  if (params.beforeMessageId !== undefined) {
+    conditions.push(Prisma.sql`m."id" < ${params.beforeMessageId}`);
+  }
+  if (params.senderId !== undefined) {
+    conditions.push(Prisma.sql`m."senderId" = ${params.senderId}`);
+  }
+  if (params.startAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" >= ${params.startAt}`);
+  }
+  if (params.endAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" < ${params.endAt}`);
+  }
+  return prisma.$queryRaw<EmbeddingSearchChatMessage[]>(Prisma.sql`
+    SELECT
+      m."id", m."replyToMessageId", m."senderId", m."messageType", m."sentAt",
+      m."text", m."summary", m."searchText",
+      1 - (m."embedding" <=> ${vector}::vector)::float8 AS "similarity",
+      json_build_object(
+        'firstName', u."firstName",
+        'lastName', u."lastName",
+        'userName', u."userName"
+      ) AS "sender"
+    FROM "Message" m
+    JOIN "User" u ON u."id" = m."senderId"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY m."embedding" <=> ${vector}::vector
+    LIMIT ${params.limit}
+  `);
+}
+
+export async function searchChatMessagesLexicalRepo(params: {
+  chatId: bigint;
+  query: string;
+  limit: number;
+  beforeMessageId?: bigint;
+  senderId?: bigint;
+  startAt?: Date;
+  endAt?: Date;
+}): Promise<EmbeddingLexicalChatMessage[]> {
+  const broadQuery = broadSearchQuery(params.query);
+  const conditions = [
+    Prisma.sql`m."chatId" = ${params.chatId}`,
+    Prisma.sql`m."private" = FALSE`,
+    Prisma.sql`(m."text" IS NOT NULL OR m."summary" IS NOT NULL OR m."searchText" IS NOT NULL)`,
+    Prisma.sql`(${messageSearchVector()}) @@ (${messageSearchQuery(params.query)})`,
+  ];
+  if (params.beforeMessageId !== undefined) {
+    conditions.push(Prisma.sql`m."id" < ${params.beforeMessageId}`);
+  }
+  if (params.senderId !== undefined) {
+    conditions.push(Prisma.sql`m."senderId" = ${params.senderId}`);
+  }
+  if (params.startAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" >= ${params.startAt}`);
+  }
+  if (params.endAt !== undefined) {
+    conditions.push(Prisma.sql`m."sentAt" < ${params.endAt}`);
+  }
+  return prisma.$queryRaw<EmbeddingLexicalChatMessage[]>(Prisma.sql`
+    SELECT
+      m."id", m."replyToMessageId", m."senderId", m."messageType", m."sentAt",
+      m."text", m."summary", m."searchText",
+      GREATEST(
+        ts_rank_cd((${messageSearchVector()}), (${messageSearchQuery(params.query)})),
+        ts_rank_cd((${messageSearchVector()}), (${messageSearchQuery(broadQuery)})) * 0.75
+      )::float8 AS "lexicalRank",
+      strpos(lower(${messageSearchDocument}), lower(${params.query})) > 0 AS "exactMatch",
+      json_build_object(
+        'firstName', u."firstName",
+        'lastName', u."lastName",
+        'userName', u."userName"
+      ) AS "sender"
+    FROM "Message" m
+    JOIN "User" u ON u."id" = m."senderId"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY "exactMatch" DESC, "lexicalRank" DESC, m."id" DESC
+    LIMIT ${params.limit}
+  `);
+}
+
+export async function searchSimilarMemoriesVersionedRepo(
+  userId: bigint,
+  chatId: bigint,
+  isUser: boolean,
+  embedding: number[],
+  threshold: number,
+  limit: number,
+  version: number,
+): Promise<SimilarMemory[]> {
+  const vector = toVectorSql(embedding);
+  const conditions = [
+    Prisma.sql`"embeddingVersion" = ${version}`,
+    Prisma.sql`"embedding" IS NOT NULL`,
+    Prisma.sql`1 - ("embedding" <=> ${vector}::vector) >= ${threshold}`,
+    Prisma.sql`"isUser" = ${isUser}`,
+    Prisma.sql`"userId" = ${userId}`,
+    ...(isUser ? [] : [Prisma.sql`"chatId" = ${chatId}`]),
+  ];
+  return prisma.$queryRaw<SimilarMemory[]>(Prisma.sql`
+    SELECT "id", "content", 1 - ("embedding" <=> ${vector}::vector) AS similarity
+    FROM "Memory"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY "embedding" <=> ${vector}::vector
+    LIMIT ${limit}
+  `);
+}
+
+export async function searchSimilarFactsVersionedRepo(
+  userId: bigint,
+  embedding: number[],
+  threshold: number,
+  limit: number,
+  version: number,
+  type?: string,
+): Promise<SimilarFact[]> {
+  const vector = toVectorSql(embedding);
+  const conditions = [
+    Prisma.sql`"userId" = ${userId}`,
+    Prisma.sql`"embeddingVersion" = ${version}`,
+    Prisma.sql`"embedding" IS NOT NULL`,
+    Prisma.sql`1 - ("embedding" <=> ${vector}::vector) >= ${threshold}`,
+    ...(type ? [Prisma.sql`"type"::text = ${type}`] : []),
+  ];
+  return prisma.$queryRaw<SimilarFact[]>(Prisma.sql`
+    SELECT "id", "content", 1 - ("embedding" <=> ${vector}::vector) AS similarity
+    FROM "UserFact"
+    WHERE ${Prisma.join(conditions, ' AND ')}
+    ORDER BY "embedding" <=> ${vector}::vector
+    LIMIT ${limit}
+  `);
 }
 
 export async function updateMemoryEmbeddingRepo(
@@ -596,4 +863,62 @@ export async function fetchChatHistoryReplyGraphRepo(
 
 export async function healthCheckRepo(): Promise<void> {
   await prisma.$queryRaw`SELECT 1`;
+}
+
+function outdatedEmbeddingWhere(version: number) {
+  return {
+    OR: [{ embeddingVersion: null }, { embeddingVersion: { not: version } }],
+  };
+}
+
+export function findMessagesForEmbeddingBackfillRepo(
+  version: number,
+  take: number,
+) {
+  return prisma.message.findMany({
+    where: {
+      AND: [
+        outdatedEmbeddingWhere(version),
+        { OR: [{ private: false }, { private: null }] },
+      ],
+    },
+    include: { replyToMessage: { select: { text: true, summary: true } } },
+    orderBy: [{ sentAt: 'asc' }, { chatId: 'asc' }, { id: 'asc' }],
+    take,
+  });
+}
+
+export function findMemoriesForEmbeddingBackfillRepo(
+  version: number,
+  take: number,
+) {
+  return prisma.memory.findMany({
+    where: outdatedEmbeddingWhere(version),
+    orderBy: { id: 'asc' },
+    take,
+  });
+}
+
+export function findFactsForEmbeddingBackfillRepo(
+  version: number,
+  take: number,
+) {
+  return prisma.userFact.findMany({
+    where: outdatedEmbeddingWhere(version),
+    orderBy: { id: 'asc' },
+    take,
+  });
+}
+
+export function countEmbeddingBacklogRepo(version: number) {
+  const where = outdatedEmbeddingWhere(version);
+  return Promise.all([
+    prisma.message.count({
+      where: {
+        AND: [where, { OR: [{ private: false }, { private: null }] }],
+      },
+    }),
+    prisma.memory.count({ where }),
+    prisma.userFact.count({ where }),
+  ]);
 }

@@ -1,4 +1,6 @@
+export { disconnectPrismaRepo } from '../db';
 export * from './analytics-repository';
+export * from './background-job-repository';
 export * from './chat-repository';
 export * from './embedding-repository';
 export * from './fact-impact-repository';
@@ -11,6 +13,3 @@ export * from './telegram-update-repository';
 export * from './user-fact-repository';
 export * from './user-meta-repository';
 export * from './user-repository';
-
-import { prisma } from '../db';
-export const disconnectPrismaRepo = () => prisma.$disconnect();

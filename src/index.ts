@@ -1,12 +1,22 @@
 import { GrammyError, HttpError } from 'grammy';
-import { startEmbeddingBackfill, stopEmbeddingBackfill } from './ai/embedding';
+import {
+  checkEmbeddingHealth,
+  startEmbeddingBackfill,
+  stopEmbeddingBackfill,
+} from './ai/embedding';
+import { createBackgroundJobRunner } from './background-job-runner';
 import { bot } from './bot';
 import { registerBotCommands } from './bot-commands';
-import { transportConfig } from './config';
+import { shutdownDrainMs, transportConfig } from './config';
 import { controllers } from './controllers';
+import { connectPrismaRepo } from './db';
 import { startHealthServer } from './health';
 import { logger, telegramLogContext } from './logger';
+import { createPaymentBackgroundJobHandlers } from './payment-background-jobs';
 import { disconnectPrismaRepo } from './repositories';
+import { readRuntimeConfig } from './runtime-config';
+import { createRuntimeShutdown } from './runtime-shutdown';
+import { runtimeState } from './runtime-state';
 import { startScheduler } from './scheduler';
 import { createBotTransport } from './transport';
 import { handleError } from './utils/error-handler';
@@ -20,6 +30,10 @@ const healthServer = startHealthServer({
   webhookHandler: botTransport.webhookHandler,
   webhookPath: botTransport.webhookPath,
 });
+
+const jobRunner = createBackgroundJobRunner(
+  createPaymentBackgroundJobHandlers(bot.api),
+);
 
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -44,9 +58,17 @@ bot.catch((err) => {
   }
 });
 
+readRuntimeConfig(process.env);
+await connectPrismaRepo();
+runtimeState.setReady('database', true);
+if (!(await checkEmbeddingHealth())) {
+  throw new Error('Embeddings service is not ready');
+}
+runtimeState.setReady('embeddings', true);
 await registerBotCommands(bot.api);
 startScheduler();
 startEmbeddingBackfill();
+await jobRunner.start();
 await botTransport.start();
 
 process.on('uncaughtException', (err) => {
@@ -61,17 +83,14 @@ process.on('unhandledRejection', (err) => {
   });
 });
 
-const shutdown = async () => {
-  logger.info({ event: 'process.shutdown_started' }, 'Shutting down the bot');
-  healthServer.stop();
-  await botTransport.stop();
-  await stopEmbeddingBackfill();
-  await disconnectPrismaRepo();
-  logger.info(
-    { event: 'process.shutdown_completed' },
-    'Bot shutdown completed',
-  );
-};
+const shutdown = createRuntimeShutdown({
+  drainMs: shutdownDrainMs,
+  stopHealthServer: () => healthServer.stop(),
+  stopTransport: () => botTransport.stop(),
+  stopJobRunner: () => jobRunner.stop(),
+  stopEmbeddings: () => stopEmbeddingBackfill(),
+  disconnectDatabase: () => disconnectPrismaRepo(),
+});
 
 // Stopping the bot when the Node.js process
 // is about to be terminated

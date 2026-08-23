@@ -1,9 +1,16 @@
 import { customAlphabet } from 'nanoid';
+import { readJobConfig, readQueueConfig } from './runtime-config';
 import { readTransportConfig } from './transport-config';
 
-const showError = (msg: string) => {
+const showError = (msg: string): never => {
   throw new Error(msg);
 };
+
+export const databaseURL = process.env.DATABASE_URL || '';
+export const queueConfig = readQueueConfig(process.env);
+export const jobConfig = readJobConfig(process.env);
+export const shutdownDrainMs = Number(process.env.SHUTDOWN_DRAIN_MS || 30_000);
+export { readRuntimeConfig } from './runtime-config';
 
 export const token = process.env.TOKEN || showError('token not found in .env');
 export const openWeatherToken =

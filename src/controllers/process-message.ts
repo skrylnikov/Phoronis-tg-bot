@@ -6,6 +6,7 @@ import {
   searchAndIndexMessage,
 } from '../ai';
 import { describeTelegramPhoto } from '../ai/image-description';
+import { scheduleUserMessageAnalysis } from '../application/user-message-analysis';
 import type { BotContext } from '../bot';
 import {
   releaseQuota,
@@ -15,7 +16,6 @@ import {
   saveUser,
 } from '../domain';
 import { recordUserReaction } from '../domain/user/fact-impact-tracker';
-import { analyzeUserMessages } from '../domain/user/message-analyzer';
 import { logger } from '../logger';
 import {
   findChatByIdRepo,
@@ -214,12 +214,11 @@ processMessageController.on(':text', async (ctx) => {
     }
 
     if (!isPrivateMode) {
-      void analyzeUserMessages(ctx).catch((error) =>
-        logger.error(
-          { event: 'user_meta.background_analysis_failed', err: error },
-          'Failed to analyze user metadata',
-        ),
-      );
+      await scheduleUserMessageAnalysis({
+        userId: ctx.from.id,
+        chatId: ctx.chatId,
+        isGroup: isGroupChat(ctx),
+      });
     }
 
     const replyText =
@@ -304,6 +303,7 @@ processMessageController.on(':text', async (ctx) => {
     });
   } catch (error) {
     handleError(error, 'Processing text message');
+    throw error;
   }
 });
 
@@ -397,5 +397,6 @@ processMessageController.on(':photo', async (ctx) => {
     });
   } catch (error) {
     handleError(error, 'Processing media message');
+    throw error;
   }
 });

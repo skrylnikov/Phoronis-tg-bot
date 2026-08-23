@@ -8,6 +8,7 @@ import {
   findUserMetaByIdRepo,
   updateUserMetaInfoRepo,
 } from '../../repositories/user-meta-repository';
+import { currentUpdateAbortSignal } from '../../update-signal';
 
 const userMetaInfoSchema = z.object({
   interests: z.array(
@@ -113,6 +114,7 @@ export async function analyzeUserMetaInfo(userId: bigint, messages: Message[]) {
  ${messages.map((m) => m.summary || m.text).join('\n')}`;
 
     const result = await generateObject({
+      abortSignal: currentUpdateAbortSignal(),
       model: utilityModel,
       schema: userMetaInfoSchema,
       prompt: `

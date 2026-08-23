@@ -12,7 +12,7 @@ context: |
   Key technologies:
   - Grammy framework for Telegram Bot API
   - Prisma with PostgreSQL for data persistence
-  - LangChain and AI SDK for LLM integration
+  - AI SDK for LLM integration through RouterAI
   - Local TEI embeddings with vector search (pgvector)
   - Yandex Cloud for voice recognition
   - RouterAI for vision/image description

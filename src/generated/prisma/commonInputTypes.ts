@@ -440,6 +440,40 @@ export type EnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
 }
 
+export type EnumBackgroundJobTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobType | Prisma.EnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel> | $Enums.BackgroundJobType
+}
+
+export type EnumBackgroundJobStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobStatus | Prisma.EnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel> | $Enums.BackgroundJobStatus
+}
+
+export type EnumBackgroundJobTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobType | Prisma.EnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobTypeWithAggregatesFilter<$PrismaModel> | $Enums.BackgroundJobType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel>
+}
+
+export type EnumBackgroundJobStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobStatus | Prisma.EnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobStatusWithAggregatesFilter<$PrismaModel> | $Enums.BackgroundJobStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel>
+}
+
 export type BigIntNullableFilter<$PrismaModel = never> = {
   equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel> | null
   in?: bigint[] | number[] | Prisma.ListBigIntFieldRefInput<$PrismaModel> | null
@@ -968,6 +1002,40 @@ export type NestedEnumTelegramUpdateStatusWithAggregatesFilter<$PrismaModel = ne
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumTelegramUpdateStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumBackgroundJobTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobType | Prisma.EnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel> | $Enums.BackgroundJobType
+}
+
+export type NestedEnumBackgroundJobStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobStatus | Prisma.EnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel> | $Enums.BackgroundJobStatus
+}
+
+export type NestedEnumBackgroundJobTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobType | Prisma.EnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobType[] | Prisma.ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobTypeWithAggregatesFilter<$PrismaModel> | $Enums.BackgroundJobType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackgroundJobTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumBackgroundJobStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackgroundJobStatus | Prisma.EnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BackgroundJobStatus[] | Prisma.ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBackgroundJobStatusWithAggregatesFilter<$PrismaModel> | $Enums.BackgroundJobStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackgroundJobStatusFilter<$PrismaModel>
 }
 
 export type NestedBigIntNullableFilter<$PrismaModel = never> = {

@@ -17,6 +17,10 @@ import {
   findUserFactsRepo,
   updateUserFactRepo,
 } from '../../repositories/user-fact-repository';
+import {
+  currentUpdateAbortSignal,
+  currentUpdateAbortSignalWithTimeout,
+} from '../../update-signal';
 
 type FactType = 'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST';
 
@@ -112,6 +116,9 @@ async function checkForSimilarFacts(
       .join('\n');
 
     const llmResult = await generateText({
+      abortSignal: currentUpdateAbortSignalWithTimeout(
+        similarityCheckTimeoutMs,
+      ),
       model: utilityModel,
       output: Output.object({ schema: factsCheckSchema }),
       prompt: `Анализируй новый факт и существующие факты на предмет дубликатов и противоречий.
@@ -130,7 +137,6 @@ ${candidates}
 Если противоречие найдено - верни его ID.
 Если нет ни того ни другого - верни null для обоих полей.`,
       temperature: 0,
-      abortSignal: AbortSignal.timeout(similarityCheckTimeoutMs),
     });
 
     if (llmResult.output.duplicateId) {
@@ -391,6 +397,7 @@ ${userPrompt}
     analysisContext.promptLength = analysisPrompt.length;
 
     const result = await generateObject({
+      abortSignal: currentUpdateAbortSignal(),
       model: utilityModel,
       schema: factExtractionSchema,
       prompt: analysisPrompt,

@@ -1,5 +1,6 @@
 import { getReadinessResponse } from './health-readiness';
 import { logger } from './logger';
+import { runtimeState } from './runtime-state';
 import type { BunWebhookHandler } from './transport';
 
 export interface HealthServerOptions {
@@ -29,6 +30,9 @@ export function createHealthFetch({
 
       const startedAt = Date.now();
       try {
+        if (runtimeState.isShuttingDown()) {
+          return new Response('Service unavailable', { status: 503 });
+        }
         return await webhookHandler({
           headers: request.headers,
           json: () => request.json(),

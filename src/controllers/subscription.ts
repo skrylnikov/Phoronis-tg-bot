@@ -1,5 +1,4 @@
 import { InlineKeyboard } from 'grammy';
-import { sendPurchaseNotification } from '../analytics';
 import type { BotContext } from '../bot';
 import { paymentSupportContact } from '../config';
 import {
@@ -293,37 +292,13 @@ export async function successfulPaymentController(
     currency: payment.currency,
     amount: payment.total_amount,
     chargeId: payment.telegram_payment_charge_id,
+    buyer: {
+      firstName: ctx.from.first_name,
+      lastName: ctx.from.last_name,
+      username: ctx.from.username,
+    },
   });
   if (!subscription?.activatedNow) return;
-
-  await ctx.reply(
-    `Оплата прошла. Тариф «${getPlanTitle(subscription.plan)}» активирован до ${subscription.endsAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}.`,
-  );
-
-  await ctx.api
-    .sendMessage(
-      Number(subscription.beneficiaryChatId),
-      `${ctx.from.first_name} оформил(а) подписку ${getPlanTitle(subscription.plan)} и подарил(а) этому чату увеличенные лимиты ✨`,
-    )
-    .catch((error) =>
-      logger.error(
-        { event: 'subscription.purchase_announcement_failed', err: error },
-        'Failed to announce subscription purchase',
-      ),
-    );
-
-  await sendPurchaseNotification({
-    api: ctx.api,
-    buyer: ctx.from,
-    beneficiaryChatId: subscription.beneficiaryChatId,
-    plan: subscription.plan,
-    amount: payment.total_amount,
-  }).catch((error) =>
-    logger.error(
-      { event: 'subscription.analytics_notification_failed', err: error },
-      'Failed to send purchase analytics notification',
-    ),
-  );
 }
 
 export async function refundedPaymentController(

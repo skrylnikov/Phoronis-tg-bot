@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { openWeatherToken } from '../../config';
+import { currentUpdateAbortSignal } from '../../update-signal';
 
 export const weatherTool = tool({
   description: 'Получить погоду для указанного места',
@@ -12,6 +13,7 @@ export const weatherTool = tool({
     try {
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${openWeatherToken}&lang=ru&units=metric`,
+        { signal: currentUpdateAbortSignal() },
       );
       if (!response.ok) {
         throw new Error(`Weather API error: ${response.statusText}`);

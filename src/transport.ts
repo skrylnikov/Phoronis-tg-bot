@@ -2,6 +2,7 @@ import type { Update } from '@grammyjs/types';
 import type { Bot } from 'grammy';
 import type { BotContext } from './bot';
 import { logger } from './logger';
+import { runtimeState } from './runtime-state';
 import {
   createTelegramUpdateQueue,
   isTelegramUpdate,
@@ -116,12 +117,16 @@ export function createBotTransport(
     return {
       start: async () => {
         bot.start().catch(onPollingError);
+        runtimeState.setReady('transport', true);
+        runtimeState.setReady('updateWorkers', true);
         logger.info(
           { event: 'transport.started', mode: config.mode },
           'Bot transport started',
         );
       },
       stop: async () => {
+        runtimeState.setReady('transport', false);
+        runtimeState.setReady('updateWorkers', false);
         await bot.stop();
       },
     };
@@ -139,6 +144,8 @@ export function createBotTransport(
         max_connections: 1,
         secret_token: config.webhookSecret,
       });
+      runtimeState.setReady('transport', true);
+      runtimeState.setReady('updateWorkers', true);
       logger.info(
         {
           event: 'transport.started',
@@ -149,6 +156,8 @@ export function createBotTransport(
       );
     },
     stop: async () => {
+      runtimeState.setReady('transport', false);
+      runtimeState.setReady('updateWorkers', false);
       await queue.stop();
       // Keep the webhook configured across graceful pod restarts.
     },

@@ -29,7 +29,7 @@ A sophisticated Telegram bot with AI capabilities, context awareness, and user b
 ### Core Components
 - **Telegram Integration**: Grammy.js framework for Telegram API
 - **Database**: PostgreSQL with Prisma ORM
-- **AI Services**: OpenRouter API with Gemini models
+- **AI Services**: RouterAI via the Vercel AI SDK with Gemini models
 - **Context Management**: PostgreSQL with pgvector and local multilingual embeddings
 - **Observability**: Langfuse for prompt management and tracing
 
@@ -37,7 +37,7 @@ A sophisticated Telegram bot with AI capabilities, context awareness, and user b
 ```
 src/
 ├── controllers/       - Bot message handlers and route logic
-├── ai/              - AI/LLM integration (LangChain, OpenRouter)
+├── ai/              - AI/LLM integration (AI SDK, RouterAI, TEI)
 ├── tools/           - Utility functions organized by domain
 ├── features/        - Feature implementations (selfie-saturday, etc.)
 ├── shared/          - Shared utilities and helpers
@@ -72,8 +72,8 @@ bun run lint
 
 ### Testing
 ```bash
-# Run unit tests
-bun run test:unit
+# Run the unit test suite
+bun run test
 ```
 
 ## Configuration
@@ -81,6 +81,7 @@ bun run test:unit
 Create a `.env` file with the following variables:
 ```
 TOKEN=your_telegram_bot_token
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/phoronis
 BOT_MODE=polling
 WEBHOOK_URL=
 WEBHOOK_SECRET=
@@ -97,6 +98,9 @@ EMBEDDING_VERSION=1
 EMBEDDING_TIMEOUT_MS=2000
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+QUEUE_NORMAL_WORKERS=3
+JOB_WORKERS=1
+SHUTDOWN_DRAIN_MS=30000
 ```
 
 Local development uses long polling with `BOT_MODE=polling`. Use a separate

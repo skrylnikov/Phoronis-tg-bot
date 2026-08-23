@@ -22,6 +22,9 @@ const { prisma } = vi.hoisted(() => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+    backgroundJob: {
+      upsert: vi.fn(),
+    },
     quotaUsage: {
       findMany: vi.fn(),
       updateMany: vi.fn(),
@@ -98,11 +101,24 @@ describe('subscription purchase flow', () => {
     expect(subscription?.endsAt).toEqual(new Date('2026-09-09T12:00:00.000Z'));
     expect(subscription?.activatedNow).toBe(true);
     expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+    expect(
+      prisma.backgroundJob.upsert.mock.calls.map(
+        ([call]) => call.where.dedupeKey,
+      ),
+    ).toEqual([
+      'payment-order:order-1:buyer',
+      'payment-order:order-1:beneficiary',
+      'payment-order:order-1:analytics',
+    ]);
   });
 
   it('does not mark an already processed charge as a new purchase', async () => {
     prisma.paymentOrder.findUnique.mockResolvedValue({
       id: 'order-1',
+      userId: 123n,
+      beneficiaryChatId: -100n,
+      plan: 'WEEK',
+      amount: 99,
       subscription: { id: 'subscription-1', endsAt: new Date('2026-08-01') },
     });
     prisma.paymentOrder.findFirst.mockResolvedValue(null);
@@ -117,6 +133,7 @@ describe('subscription purchase flow', () => {
 
     expect(subscription?.activatedNow).toBe(false);
     expect(prisma.subscription.create).not.toHaveBeenCalled();
+    expect(prisma.backgroundJob.upsert).toHaveBeenCalledTimes(3);
   });
 
   it('removes refunded days from later purchases without revoking them', async () => {

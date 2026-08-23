@@ -45,7 +45,6 @@ export async function claimNextTelegramUpdateRepo(
           SELECT 1
           FROM "TelegramUpdate" AS older
           WHERE older."partitionKey" = candidate_item."partitionKey"
-            AND older."lane" = candidate_item."lane"
             AND older."updateId" < candidate_item."updateId"
             AND older."status" IN (
               'PENDING'::"TelegramUpdateStatus",
@@ -100,12 +99,40 @@ export async function markTelegramUpdateCompletedRepo(
   return result.count;
 }
 
+export async function heartbeatTelegramUpdateRepo(
+  updateId: bigint,
+  workerId: string,
+  leaseDurationMs: number,
+): Promise<boolean> {
+  const result = await prisma.telegramUpdate.updateMany({
+    where: { updateId, status: 'PROCESSING', workerId },
+    data: { leaseUntil: new Date(Date.now() + leaseDurationMs) },
+  });
+  return result.count === 1;
+}
+
+export async function releaseTelegramUpdateLeasesRepo(
+  workerId: string,
+): Promise<number> {
+  const result = await prisma.telegramUpdate.updateMany({
+    where: { status: 'PROCESSING', workerId },
+    data: {
+      status: 'PENDING',
+      availableAt: new Date(),
+      leaseUntil: null,
+      workerId: null,
+    },
+  });
+  return result.count;
+}
+
 export async function markTelegramUpdateFailedRepo(
   updateId: bigint,
   workerId: string,
   attempts: number,
   maxAttempts: number,
   lastError: string,
+  terminal = false,
 ): Promise<number> {
   const data = {
     leaseUntil: null,
@@ -119,7 +146,7 @@ export async function markTelegramUpdateFailedRepo(
       workerId,
     },
     data:
-      attempts >= maxAttempts
+      terminal || attempts >= maxAttempts
         ? { ...data, status: 'FAILED' as const }
         : {
             ...data,

@@ -4,6 +4,7 @@ import {
   embeddingTimeoutMs,
 } from '../../config';
 import { logger } from '../../logger';
+import { currentUpdateAbortSignalWithTimeout } from '../../update-signal';
 
 const EMBEDDING_DIMENSIONS = 384;
 const BACKGROUND_TIMEOUT_MS = 30_000;
@@ -55,7 +56,7 @@ async function requestEmbeddings(
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ inputs, normalize: true }),
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: currentUpdateAbortSignalWithTimeout(timeoutMs),
   });
 
   if (!response.ok) {

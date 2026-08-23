@@ -9,7 +9,6 @@ import {
 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
 import { token } from '../config.js';
-
 import {
   releaseQuota,
   reserveQuota,
@@ -19,6 +18,7 @@ import {
 } from '../domain';
 import { logger } from '../logger';
 import { findFirstMessageRepo, updateMessageFieldsRepo } from '../repositories';
+import { currentUpdateAbortSignal } from '../update-signal.js';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -74,6 +74,7 @@ export const voiceController = async (ctx: BotContext) => {
 
     const response = await fetch(
       `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`,
+      { signal: currentUpdateAbortSignal() },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch file: ${response.statusText}`);
@@ -165,6 +166,7 @@ export const voiceController = async (ctx: BotContext) => {
             : undefined,
         }),
         generateText({
+          abortSignal: currentUpdateAbortSignal(),
           model: utilityModel,
           instructions: `${beautifierPrompt.compile()}\n${richMarkdownInstructions}`,
           messages: [
@@ -177,6 +179,7 @@ export const voiceController = async (ctx: BotContext) => {
         }),
         summarizePrompt
           ? generateText({
+              abortSignal: currentUpdateAbortSignal(),
               model: utilityModel,
               instructions: `${summarizePrompt.compile({
                 author: [
@@ -248,6 +251,7 @@ export const voiceController = async (ctx: BotContext) => {
       { event: 'voice.processing_failed', err },
       'Voice processing failed',
     );
+    throw err;
   } finally {
     if (!completed && reservation) {
       await releaseQuota(reservation).catch((err) =>

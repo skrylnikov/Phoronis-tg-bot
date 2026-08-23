@@ -3,6 +3,7 @@ import { Composer } from 'grammy';
 import { generateGuestResponse } from '../ai/guest-generation';
 import { describeTelegramPhoto } from '../ai/image-description';
 import { createRichMessageIfNeeded, toMarkdownV2 } from '../ai/rich-message';
+import { scheduleUserMessageAnalysis } from '../application/user-message-analysis';
 import type { BotContext } from '../bot';
 import {
   claimGuestInteraction,
@@ -14,7 +15,6 @@ import {
   saveMessage,
   saveUser,
 } from '../domain';
-import { analyzeUserMessages } from '../domain/user/message-analyzer';
 import { logger } from '../logger';
 import {
   findChatByIdRepo,
@@ -210,12 +210,11 @@ export async function handleGuestMessage(ctx: BotContext): Promise<void> {
   if (claim.kind !== 'claimed') return;
 
   if (!privateMode) {
-    void analyzeUserMessages(ctx).catch((error) =>
-      logger.error(
-        { event: 'user_meta.background_analysis_failed', err: error },
-        'Failed to analyze guest user metadata',
-      ),
-    );
+    await scheduleUserMessageAnalysis({
+      userId: ctx.from.id,
+      chatId: ctx.chatId,
+      isGroup: ctx.chat.type === 'group' || ctx.chat.type === 'supergroup',
+    });
   }
 
   try {
@@ -279,6 +278,7 @@ guestController.on('guest_message', async (ctx) => {
         { event: 'guest.error_response_failed', err: replyError },
         'Failed to send guest error response',
       );
+      throw error;
     }
   }
 });

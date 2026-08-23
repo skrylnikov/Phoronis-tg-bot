@@ -82,6 +82,26 @@ export const TelegramUpdateStatus = {
 export type TelegramUpdateStatus = (typeof TelegramUpdateStatus)[keyof typeof TelegramUpdateStatus]
 
 
+export const BackgroundJobType = {
+  PAYMENT_BUYER_NOTIFICATION: 'PAYMENT_BUYER_NOTIFICATION',
+  PAYMENT_BENEFICIARY_NOTIFICATION: 'PAYMENT_BENEFICIARY_NOTIFICATION',
+  PAYMENT_ANALYTICS_NOTIFICATION: 'PAYMENT_ANALYTICS_NOTIFICATION',
+  USER_MESSAGE_ANALYSIS: 'USER_MESSAGE_ANALYSIS'
+} as const
+
+export type BackgroundJobType = (typeof BackgroundJobType)[keyof typeof BackgroundJobType]
+
+
+export const BackgroundJobStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+} as const
+
+export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof BackgroundJobStatus]
+
+
 export const MessageType = {
   TEXT: 'TEXT',
   MEDIA: 'MEDIA',
