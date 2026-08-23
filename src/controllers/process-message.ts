@@ -188,7 +188,7 @@ processMessageController.on(':text', async (ctx) => {
       privateModeEnabled: true,
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
-    await saveMessage({
+    const saveResult = await saveMessage({
       id: BigInt(ctx.msg.message_id),
       chatId: BigInt(ctx.chatId),
       senderId: BigInt(ctx.from.id),
@@ -200,6 +200,18 @@ processMessageController.on(':text', async (ctx) => {
       messageType: 'TEXT',
       private: isPrivateMode ?? false,
     });
+
+    if (!saveResult.created) {
+      logger.debug(
+        {
+          event: 'message.duplicate_skipped',
+          messageId: ctx.msg.message_id,
+          chatId: ctx.chatId,
+        },
+        'Duplicate message skipped',
+      );
+      return;
+    }
 
     if (!isPrivateMode) {
       void analyzeUserMessages(ctx).catch((error) =>

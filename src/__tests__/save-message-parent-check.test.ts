@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  prismaMessageCreate,
   prismaMessageFindUnique,
-  prismaMessageUpsert,
   handleError,
   lruCacheGet,
   lruCacheHas,
   lruCacheSet,
 } = vi.hoisted(() => ({
+  prismaMessageCreate: vi.fn(),
   prismaMessageFindUnique: vi.fn(),
-  prismaMessageUpsert: vi.fn(),
   handleError: vi.fn(),
   lruCacheGet: vi.fn(),
   lruCacheHas: vi.fn(),
@@ -27,8 +27,8 @@ vi.mock('lru-cache', () => ({
 vi.mock('../db', () => ({
   prisma: {
     message: {
+      create: prismaMessageCreate,
       findUnique: prismaMessageFindUnique,
-      upsert: prismaMessageUpsert,
     },
   },
 }));
@@ -48,66 +48,133 @@ describe('saveMessage parent check', () => {
 
   it('sets replyToMessageId to null when parent does not exist', async () => {
     prismaMessageFindUnique.mockResolvedValueOnce(null);
-    prismaMessageUpsert.mockResolvedValueOnce({});
+    prismaMessageCreate.mockResolvedValueOnce({});
 
-    await saveMessage({
-      id: 101n,
-      chatId: -100n,
-      senderId: 456n,
-      sentAt: new Date(),
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Test reply',
       replyToMessageId: 99n,
-      text: 'Reply to missing message',
     });
 
+    expect(result.created).toBe(true);
     expect(prismaMessageFindUnique).toHaveBeenCalledWith({
-      where: {
-        chatId_id: {
-          chatId: -100n,
-          id: 99n,
-        },
-      },
-      select: {
-        id: true,
-      },
+      where: { chatId_id: { chatId: 456n, id: 99n } },
+      select: { id: true },
     });
-
-    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
-    expect(upsertCall.create.replyToMessageId).toBe(null);
-    expect(upsertCall.update.replyToMessageId).toBe(null);
+    const createCall = prismaMessageCreate.mock.calls[0][0];
+    expect(createCall.data.replyToMessageId).toBe(null);
   });
 
-  it('preserves replyToMessageId when parent exists', async () => {
+  it('keeps replyToMessageId when parent exists', async () => {
     prismaMessageFindUnique.mockResolvedValueOnce({ id: 99n });
-    prismaMessageUpsert.mockResolvedValueOnce({});
+    prismaMessageCreate.mockResolvedValueOnce({});
 
-    await saveMessage({
-      id: 101n,
-      chatId: -100n,
-      senderId: 456n,
-      sentAt: new Date(),
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Test reply',
       replyToMessageId: 99n,
-      text: 'Reply to existing message',
     });
 
-    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
-    expect(upsertCall.create.replyToMessageId).toBe(99n);
-    expect(upsertCall.update.replyToMessageId).toBe(99n);
+    expect(result.created).toBe(true);
+    const createCall = prismaMessageCreate.mock.calls[0][0];
+    expect(createCall.data.replyToMessageId).toBe(99n);
   });
 
-  it('handles undefined replyToMessageId', async () => {
-    prismaMessageUpsert.mockResolvedValueOnce({});
+  it('does not check parent when no replyToMessageId', async () => {
+    prismaMessageCreate.mockResolvedValueOnce({});
 
-    await saveMessage({
-      id: 101n,
-      chatId: -100n,
-      senderId: 456n,
-      sentAt: new Date(),
-      text: 'No reply',
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Test message',
     });
 
+    expect(result.created).toBe(true);
     expect(prismaMessageFindUnique).not.toHaveBeenCalled();
-    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
-    expect(upsertCall.create.replyToMessageId).toBe(null);
-    expect(upsertCall.update.replyToMessageId).toBe(null);
+    const createCall = prismaMessageCreate.mock.calls[0][0];
+    expect(createCall.data.replyToMessageId).toBe(null);
+  });
+});
+
+describe('saveMessage idempotency', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    lruCacheHas.mockReturnValue(false);
+    lruCacheSet.mockReturnValue(undefined);
+  });
+
+  it('returns created: true on first save', async () => {
+    prismaMessageCreate.mockResolvedValueOnce({});
+
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'First save',
+    });
+
+    expect(result.created).toBe(true);
+    expect(prismaMessageCreate).toHaveBeenCalledTimes(1);
+    expect(lruCacheSet).toHaveBeenCalledWith('456:123', true);
+  });
+
+  it('returns created: false on duplicate (P2002)', async () => {
+    prismaMessageCreate.mockRejectedValueOnce({ code: 'P2002' });
+
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Duplicate save',
+    });
+
+    expect(result.created).toBe(false);
+    expect(lruCacheSet).toHaveBeenCalledWith('456:123', true);
+    expect(handleError).not.toHaveBeenCalled();
+  });
+
+  it('returns created: false if already in cache', async () => {
+    lruCacheHas.mockReturnValue(true);
+
+    const result = await saveMessage({
+      id: 123n,
+      chatId: 456n,
+      senderId: 789n,
+      sentAt: new Date('2026-08-23T10:00:00Z'),
+      text: 'Cached message',
+    });
+
+    expect(result.created).toBe(false);
+    expect(prismaMessageCreate).not.toHaveBeenCalled();
+  });
+
+  it('rethrows non-P2002 errors', async () => {
+    const dbError = new Error('DB connection failed');
+    prismaMessageCreate.mockRejectedValueOnce(dbError);
+
+    await expect(
+      saveMessage({
+        id: 123n,
+        chatId: 456n,
+        senderId: 789n,
+        sentAt: new Date('2026-08-23T10:00:00Z'),
+        text: 'Error case',
+      }),
+    ).rejects.toThrow('DB connection failed');
+
+    expect(handleError).toHaveBeenCalledWith(
+      dbError,
+      'Error saving message 123',
+    );
   });
 });

@@ -101,7 +101,7 @@ async function persistObservedMessage(
 
   await saveUser(message.from);
   try {
-    await saveMessage({
+    const result = await saveMessage({
       id: BigInt(message.message_id),
       chatId: BigInt(chatId),
       senderId: BigInt(message.from.id),
@@ -119,14 +119,10 @@ async function persistObservedMessage(
         : undefined,
       private: privateMode,
     });
-  } catch (error) {
-    const concurrent = await findMessageByIdRepo(
-      BigInt(chatId),
-      BigInt(message.message_id),
-    );
-    if (!concurrent) throw error;
+    return result.created;
+  } catch {
+    return false;
   }
-  return true;
 }
 
 async function describeGuestPhoto(

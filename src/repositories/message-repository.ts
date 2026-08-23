@@ -69,20 +69,22 @@ export interface SaveMessageParams {
   messageType?: string;
 }
 
-export const saveMessage = async (message: SaveMessageParams) => {
-  try {
-    const cacheKey = `${message.chatId}:${message.id}`;
-    if (cache.has(cacheKey)) {
-      return;
-    }
+export const saveMessage = async (
+  message: SaveMessageParams,
+): Promise<{ created: boolean }> => {
+  const cacheKey = `${message.chatId}:${message.id}`;
+  if (cache.has(cacheKey)) {
+    return { created: false };
+  }
 
+  try {
     const replyId = await findReplyIdRepo(
       message.chatId,
       message.replyToMessageId,
     );
 
-    await prisma.message.upsert({
-      create: {
+    await prisma.message.create({
+      data: {
         id: message.id,
         chatId: message.chatId,
         senderId: message.senderId,
@@ -94,27 +96,22 @@ export const saveMessage = async (message: SaveMessageParams) => {
         replyToMessageId: replyId,
         messageType: (message.messageType ?? 'TEXT') as MessageType,
       },
-      update: {
-        senderId: message.senderId,
-        sentAt: message.sentAt,
-        text: message.text ?? message.caption ?? null,
-        summary: message.summary ?? null,
-        private: message.private ?? false,
-        media: message.media ?? null,
-        replyToMessageId: replyId,
-        messageType: (message.messageType ?? 'TEXT') as MessageType,
-      },
-      where: {
-        chatId_id: {
-          chatId: message.chatId,
-          id: message.id,
-        },
-      },
     });
 
     cache.set(cacheKey, true);
+    return { created: true };
   } catch (error) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'P2002'
+    ) {
+      cache.set(cacheKey, true);
+      return { created: false };
+    }
     handleError(error, `Error saving message ${message.id}`);
+    throw error;
   }
 };
 
