@@ -143,6 +143,8 @@ export async function findSubscriptionByOrderId(orderId: string) {
   });
   return order?.subscription ?? null;
 }
+
+export async function findPaymentOrderByChargeId(chargeId: string) {
   return prisma.paymentOrder.findUnique({
     where: { telegramPaymentChargeId: chargeId },
     include: { subscription: true },
