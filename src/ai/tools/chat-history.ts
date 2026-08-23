@@ -360,10 +360,9 @@ async function loadReplyGraphs(
   const rowsByRoot = new Map<string, HistoryRow[]>();
 
   for (const row of rows) {
-    const rootId = row.replyToMessageId?.toString() ?? row.id.toString();
-    const rootRows = rowsByRoot.get(rootId) ?? [];
+    const rootRows = rowsByRoot.get(row.id.toString()) ?? [];
     rootRows.push(row);
-    rowsByRoot.set(rootId, rootRows);
+    rowsByRoot.set(row.id.toString(), rootRows);
   }
 
   const incompleteByRoot = new Map<string, boolean>();

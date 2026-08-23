@@ -378,6 +378,7 @@ describe('searchChatHistory', () => {
         exactMatch: true,
       },
     ]);
+    searchChatMessages.mockResolvedValue([]);
     
     // First call to findChatHistoryReplyRootsRepo returns incomplete=true
     // Second call to fetchChatHistoryReplyGraphRepo returns the graph
