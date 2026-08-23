@@ -172,3 +172,10 @@ export async function findFirstMessageRepo(
     ...options,
   });
 }
+export async function deleteOldPrivateMessagesRepo(): Promise<number> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const result = await prisma.message.deleteMany({
+    where: { private: true, sentAt: { lt: sevenDaysAgo } },
+  });
+  return result.count;
+}

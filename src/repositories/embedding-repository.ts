@@ -408,3 +408,6 @@ export async function fetchReplyGraphRepo(
     SELECT * FROM reply_tree
   `);
 }
+export async function healthCheckRepo(): Promise<void> {
+  await prisma.$queryRaw`SELECT 1`;
+}

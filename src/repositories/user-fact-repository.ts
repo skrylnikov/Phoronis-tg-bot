@@ -132,3 +132,13 @@ export async function findAllUserFactsRepo(userId: bigint) {
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
   });
 }
+export async function updateUserFactsWeightRepo(): Promise<number> {
+  const result = await prisma.userFact.updateMany({
+    where: {
+      updatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      weight: { gte: 2 },
+    },
+    data: { weight: { decrement: 1 } },
+  });
+  return result.count;
+}
