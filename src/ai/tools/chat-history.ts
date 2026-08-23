@@ -94,11 +94,6 @@ type HistoryRow = {
   };
 };
 
-type ReplyGraphRow = HistoryRow & {
-  rootMessageId: bigint;
-  depth: number;
-};
-
 type SearchCandidate = {
   row: HistoryRow;
   score: number;
@@ -300,11 +295,13 @@ async function resolveReplyRoots(
 async function loadReplyGraphRows(
   chatId: bigint,
   rootIds: bigint[],
+  currentMessageId: bigint,
 ): Promise<Array<HistoryRow & { rootMessageId: bigint; depth: number }>> {
   if (rootIds.length === 0) return [];
   const rows: ChatHistoryReplyGraphRow[] = await fetchChatHistoryReplyGraphRepo(
     chatId,
     rootIds,
+    currentMessageId,
   );
   return rows.map(
     (r: ChatHistoryReplyGraphRow) =>
@@ -315,12 +312,12 @@ async function loadReplyGraphRows(
         messageType: r.messageType,
         text: r.text,
         summary: r.summary,
-        searchText: null,
+        searchText: r.searchText,
         sentAt: r.sentAt,
         sender: {
-          firstName: null,
-          lastName: null,
-          userName: null,
+          firstName: r.senderFirstName,
+          lastName: r.senderLastName,
+          userName: r.senderUserName,
         },
         rootMessageId: r.rootMessageId,
         depth: r.depth,
@@ -358,7 +355,7 @@ async function loadReplyGraphs(
       roots.map((root) => [root.rootMessageId.toString(), root.rootMessageId]),
     ).values(),
   ];
-  const rows = await loadReplyGraphRows(chatId, rootIds);
+  const rows = await loadReplyGraphRows(chatId, rootIds, currentMessageId);
   const rowsByRoot = new Map<string, HistoryRow[]>();
 
   for (const row of rows) {

@@ -11,6 +11,44 @@ const cache = new LRUCache<string, true>({
   updateAgeOnHas: false,
 });
 
+async function checkMessageExistsRepo(
+  chatId: bigint,
+  messageId: bigint,
+): Promise<boolean> {
+  try {
+    const message = await prisma.message.findUnique({
+      where: {
+        chatId_id: {
+          chatId,
+          id: messageId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    return message !== null;
+  } catch (error) {
+    handleError(error, `Error checking message existence ${chatId}_${messageId}`);
+    return false;
+  }
+}
+
+async function findReplyIdRepo(
+  chatId: bigint,
+  replyToMessageId: bigint | undefined,
+): Promise<bigint | null> {
+  if (!replyToMessageId) return null;
+
+  try {
+    const exists = await checkMessageExistsRepo(chatId, replyToMessageId);
+    return exists ? replyToMessageId : null;
+  } catch (error) {
+    handleError(error, `Error finding reply ID for ${chatId}_${replyToMessageId}`);
+    return null;
+  }
+}
+
 export interface SaveMessageParams {
   id: bigint;
   chatId: bigint;
@@ -32,6 +70,8 @@ export const saveMessage = async (message: SaveMessageParams) => {
       return;
     }
 
+    const replyId = await findReplyIdRepo(message.chatId, message.replyToMessageId);
+
     await prisma.message.upsert({
       create: {
         id: message.id,
@@ -42,7 +82,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         summary: message.summary ?? null,
         private: message.private ?? false,
         media: message.media ?? null,
-        replyToMessageId: message.replyToMessageId ?? null,
+        replyToMessageId: replyId,
         messageType: (message.messageType as any) ?? 'TEXT',
       },
       update: {
@@ -52,7 +92,7 @@ export const saveMessage = async (message: SaveMessageParams) => {
         summary: message.summary ?? null,
         private: message.private ?? false,
         media: message.media ?? null,
-        replyToMessageId: message.replyToMessageId ?? null,
+        replyToMessageId: replyId,
         messageType: (message.messageType as any) ?? 'TEXT',
       },
       where: {

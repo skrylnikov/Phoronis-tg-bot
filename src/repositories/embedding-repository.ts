@@ -386,14 +386,64 @@ export async function findChatHistoryReplyRootsRepo(
       WHERE a."replyToMessageId" IS NOT NULL
         AND NOT (parent."id" = ANY(a.path))
         AND array_length(a.path, 1) < 50
+    ),
+    root_candidates AS (
+      SELECT
+        a."candidateId",
+        a."id" AS "rootMessageId",
+        (
+          a."replyToMessageId" IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "Message" parent
+            WHERE parent."chatId" = a."chatId"
+              AND parent."id" = a."replyToMessageId"
+              AND parent."private" = FALSE
+              AND parent."id" < ${currentMessageId}
+          )
+        ) AS incomplete,
+        cardinality(a.path) AS depth
+      FROM ancestors a
+      WHERE a."replyToMessageId" IS NULL
+         OR NOT EXISTS (
+              SELECT 1
+              FROM "Message" parent
+              WHERE parent."chatId" = a."chatId"
+                AND parent."id" = a."replyToMessageId"
+                AND parent."private" = FALSE
+                AND parent."id" < ${currentMessageId}
+            )
+    ),
+    ranked_roots AS (
+      SELECT
+        r."candidateId",
+        r."rootMessageId",
+        r.incomplete,
+        row_number() OVER (
+          PARTITION BY r."candidateId"
+          ORDER BY r.depth DESC
+        ) AS root_rank
+      FROM root_candidates r
+    ),
+    fallback_roots AS (
+      SELECT DISTINCT ON (a."candidateId")
+        a."candidateId",
+        a."id" AS "rootMessageId",
+        TRUE AS incomplete
+      FROM ancestors a
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM root_candidates r
+        WHERE r."candidateId" = a."candidateId"
+      )
+      ORDER BY a."candidateId", cardinality(a.path) DESC
     )
-    SELECT DISTINCT ON ("candidateId")
-      "candidateId",
-      COALESCE("id", "candidateId") AS "rootMessageId",
-      incomplete
-    FROM ancestors
-    WHERE "replyToMessageId" IS NULL
-    ORDER BY "candidateId"
+    SELECT "candidateId", "rootMessageId", incomplete
+    FROM ranked_roots
+    WHERE root_rank = 1
+    UNION ALL
+    SELECT "candidateId", "rootMessageId", incomplete
+    FROM fallback_roots
   `;
 }
 
@@ -451,15 +501,20 @@ export type ChatHistoryReplyGraphRow = {
   text: string | null;
   media: string | null;
   summary: string | null;
+  searchText: string | null;
   private: boolean;
   sentAt: Date;
   rootMessageId: bigint;
   depth: number;
+  senderFirstName: string | null;
+  senderLastName: string | null;
+  senderUserName: string | null;
 };
 
 export async function fetchChatHistoryReplyGraphRepo(
   chatId: bigint,
   rootIds: bigint[],
+  currentMessageId: bigint,
 ): Promise<ChatHistoryReplyGraphRow[]> {
   if (rootIds.length === 0) return [];
 
@@ -484,6 +539,7 @@ export async function fetchChatHistoryReplyGraphRepo(
       FROM "Message" m
       WHERE m."chatId" = ${chatId}
         AND m."private" = FALSE
+        AND m."id" < ${currentMessageId}
         AND m."id" = ANY(${rootIds})
 
       UNION ALL
@@ -509,25 +565,31 @@ export async function fetchChatHistoryReplyGraphRepo(
         ON child."chatId" = rt."chatId"
         AND child."replyToMessageId" = rt."id"
         AND child."private" = FALSE
+        AND child."id" < ${currentMessageId}
         AND NOT (child."id" = ANY(rt.path))
         AND rt.depth < 50
     )
     SELECT
-      id,
-      "chatId",
-      "senderId",
-      "sessionId",
-      "replyToMessageId",
-      "messageType",
-      text,
-      summary,
-      private,
-      media,
-      "sentAt",
-      "rootMessageId",
-      depth
-    FROM reply_tree
-    ORDER BY "rootMessageId", depth, "sentAt"
+      rt.id,
+      rt."chatId",
+      rt."senderId",
+      rt."sessionId",
+      rt."replyToMessageId",
+      rt."messageType",
+      rt.text,
+      rt.summary,
+      rt."searchText",
+      rt.private,
+      rt.media,
+      rt."sentAt",
+      rt."rootMessageId",
+      rt.depth,
+      u."firstName" AS "senderFirstName",
+      u."lastName" AS "senderLastName",
+      u."userName" AS "senderUserName"
+    FROM reply_tree rt
+    LEFT JOIN "User" u ON u."id" = rt."senderId"
+    ORDER BY rt."rootMessageId", rt.depth, rt."sentAt"
   `;
 }
 
