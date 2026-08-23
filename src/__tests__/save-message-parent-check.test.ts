@@ -1,12 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { prismaMessageFindUnique, prismaMessageUpsert, handleError } = vi.hoisted(
+const { prismaMessageFindUnique, prismaMessageUpsert, handleError, lruCacheGet, lruCacheHas, lruCacheSet } = vi.hoisted(
   () => ({
     prismaMessageFindUnique: vi.fn(),
     prismaMessageUpsert: vi.fn(),
     handleError: vi.fn(),
+    lruCacheGet: vi.fn(),
+    lruCacheHas: vi.fn(),
+    lruCacheSet: vi.fn(),
   }),
 );
+
+vi.mock('lru-cache', () => ({
+  LRUCache: class {
+    get = lruCacheGet;
+    has = lruCacheHas;
+    set = lruCacheSet;
+  },
+}));
 
 vi.mock('../db', () => ({
   prisma: {
@@ -26,6 +37,8 @@ import { saveMessage } from '../repositories/message-repository';
 describe('saveMessage parent check', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    lruCacheHas.mockReturnValue(false);
+    lruCacheSet.mockReturnValue(undefined);
   });
 
   it('sets replyToMessageId to null when parent does not exist', async () => {
@@ -53,16 +66,9 @@ describe('saveMessage parent check', () => {
       },
     });
 
-    expect(prismaMessageUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          replyToMessageId: null,
-        }),
-        update: expect.objectContaining({
-          replyToMessageId: null,
-        }),
-      }),
-    );
+    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
+    expect(upsertCall.create.replyToMessageId).toBe(null);
+    expect(upsertCall.update.replyToMessageId).toBe(null);
   });
 
   it('preserves replyToMessageId when parent exists', async () => {
@@ -78,16 +84,9 @@ describe('saveMessage parent check', () => {
       text: 'Reply to existing message',
     });
 
-    expect(prismaMessageUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          replyToMessageId: 99n,
-        }),
-        update: expect.objectContaining({
-          replyToMessageId: 99n,
-        }),
-      }),
-    );
+    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
+    expect(upsertCall.create.replyToMessageId).toBe(99n);
+    expect(upsertCall.update.replyToMessageId).toBe(99n);
   });
 
   it('handles undefined replyToMessageId', async () => {
@@ -102,15 +101,8 @@ describe('saveMessage parent check', () => {
     });
 
     expect(prismaMessageFindUnique).not.toHaveBeenCalled();
-    expect(prismaMessageUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          replyToMessageId: null,
-        }),
-        update: expect.objectContaining({
-          replyToMessageId: null,
-        }),
-      }),
-    );
+    const upsertCall = prismaMessageUpsert.mock.calls[0][0];
+    expect(upsertCall.create.replyToMessageId).toBe(null);
+    expect(upsertCall.update.replyToMessageId).toBe(null);
   });
 });
