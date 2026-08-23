@@ -1,9 +1,13 @@
 import { prisma } from '../db';
 import type { FactType, Prisma } from '../generated/prisma/client';
 
-export async function findUserByIdRepo(userId: bigint) {
+export async function findUserMetaByIdRepo<T extends Prisma.UserSelect>(
+  userId: bigint,
+  select?: T,
+) {
   return prisma.user.findUnique({
     where: { id: userId },
+    select: select as any,
   });
 }
 

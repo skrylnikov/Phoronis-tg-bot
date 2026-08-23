@@ -1,5 +1,6 @@
 export * from './analytics-repository';
 export * from './chat-repository';
+export * from './embedding-repository';
 export * from './fact-impact-repository';
 export * from './guest-interaction-repository';
 export * from './memory-repository';

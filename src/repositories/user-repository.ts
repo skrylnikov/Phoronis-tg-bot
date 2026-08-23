@@ -2,6 +2,7 @@ import type { User } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import type { Prisma } from '../generated/prisma/client';
 import { logger } from '../logger';
 import { handleError } from '../utils/error-handler';
 
@@ -58,4 +59,40 @@ export async function findUserIdByUsername(
     );
     return null;
   }
+}
+
+export async function findManyUsersRepo(
+  where: Prisma.UserWhereInput,
+  options?: {
+    select?: Prisma.UserSelect;
+    include?: Prisma.UserInclude;
+  },
+) {
+  return prisma.user.findMany({
+    where,
+    ...options,
+  });
+}
+
+export async function findUserByIdRepo<T extends Prisma.UserSelect>(
+  userId: bigint,
+  select?: T,
+) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: select as any,
+  });
+}
+
+export async function findFirstUserRepo(
+  where: Prisma.UserWhereInput,
+  options?: {
+    select?: Prisma.UserSelect;
+    include?: Prisma.UserInclude;
+  },
+) {
+  return prisma.user.findFirst({
+    where,
+    ...options,
+  });
 }

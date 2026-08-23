@@ -4,7 +4,6 @@ import { generateGuestResponse } from '../ai/guest-generation';
 import { describeTelegramPhoto } from '../ai/image-description';
 import { createRichMessageIfNeeded, toMarkdownV2 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
-import { prisma } from '../db';
 import {
   claimGuestInteraction,
   markGuestInteractionAnswered,
@@ -17,6 +16,11 @@ import {
 } from '../domain';
 import { analyzeUserMessages } from '../domain/user/message-analyzer';
 import { logger } from '../logger';
+import {
+  findChatByIdRepo,
+  findMessageByIdRepo,
+  updateMessageManyRepo,
+} from '../repositories';
 
 const guestAnswerId = 'phoronis-guest-answer';
 const guestAnswerTitle = 'Ответ Ио';
@@ -89,12 +93,10 @@ async function persistObservedMessage(
 ): Promise<boolean> {
   if (!message.from || message.message_id <= 0) return false;
 
-  const existing = await prisma.message.findUnique({
-    where: {
-      chatId_id: { chatId: BigInt(chatId), id: BigInt(message.message_id) },
-    },
-    select: { id: true },
-  });
+  const existing = await findMessageByIdRepo(
+    BigInt(chatId),
+    BigInt(message.message_id),
+  );
   if (existing) return true;
 
   await saveUser(message.from);
@@ -118,12 +120,10 @@ async function persistObservedMessage(
       private: privateMode,
     });
   } catch (error) {
-    const concurrent = await prisma.message.findUnique({
-      where: {
-        chatId_id: { chatId: BigInt(chatId), id: BigInt(message.message_id) },
-      },
-      select: { id: true },
-    });
+    const concurrent = await findMessageByIdRepo(
+      BigInt(chatId),
+      BigInt(message.message_id),
+    );
     if (!concurrent) throw error;
   }
   return true;
@@ -150,13 +150,13 @@ async function describeGuestPhoto(
   try {
     const description = await describeTelegramPhoto(ctx, photo);
     if (message.message_id > 0 && ctx.chatId) {
-      await prisma.message.updateMany({
-        where: {
+      await updateMessageManyRepo(
+        {
           chatId: BigInt(ctx.chatId),
           id: BigInt(message.message_id),
         },
-        data: { summary: description },
-      });
+        { summary: description },
+      );
     }
     return description;
   } catch (error) {
@@ -184,9 +184,8 @@ export async function handleGuestMessage(ctx: BotContext): Promise<void> {
     saveUser(ctx.from),
     saveUser(ctx.me),
   ]);
-  const chat = await prisma.chat.findUnique({
-    where: { id: BigInt(ctx.chatId) },
-    select: { privateModeEnabled: true },
+  const chat = await findChatByIdRepo(BigInt(ctx.chatId), {
+    privateModeEnabled: true,
   });
   const privateMode = chat?.privateModeEnabled ?? false;
   const query = extractGuestQuery(getMessageText(message), botUsername);

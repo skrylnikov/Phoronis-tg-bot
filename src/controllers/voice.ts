@@ -10,7 +10,6 @@ import {
 import type { BotContext } from '../bot';
 import { token } from '../config.js';
 
-import { prisma } from '../db';
 import {
   releaseQuota,
   reserveQuota,
@@ -19,6 +18,10 @@ import {
   saveUser,
 } from '../domain';
 import { logger } from '../logger';
+import {
+  findFirstMessageRepo,
+  updateMessageFieldsRepo,
+} from '../repositories';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
 
@@ -36,15 +39,15 @@ export const voiceController = async (ctx: BotContext) => {
     const chatId = ctx.chatId;
 
     await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
-    const existingVoiceMessage = await prisma.message.findUnique({
-      where: {
-        chatId_id: {
-          chatId,
-          id: ctx.message.message_id,
-        },
+    const existingVoiceMessage = await findFirstMessageRepo(
+      {
+        chatId,
+        id: BigInt(ctx.message.message_id),
       },
-      select: { id: true },
-    });
+      {
+        select: { id: true },
+      },
+    );
     if (existingVoiceMessage) {
       logger.info(
         { event: 'message.duplicate_skipped', messageType: 'VOICE' },
@@ -233,29 +236,13 @@ export const voiceController = async (ctx: BotContext) => {
 
     await Promise.all([
       updateVoiceMessage(),
-      prisma.message.update({
-        where: {
-          chatId_id: {
-            chatId: BigInt(ctx.chatId),
-            id: BigInt(voiceMessageId),
-          },
-        },
-        data: {
-          summary: summarizedResult?.text,
-          text: beautifiedResult.text,
-        },
+      updateMessageFieldsRepo(BigInt(ctx.chatId), BigInt(voiceMessageId), {
+        summary: summarizedResult?.text,
+        text: beautifiedResult.text,
       }),
-      prisma.message.update({
-        where: {
-          chatId_id: {
-            chatId: BigInt(ctx.chatId),
-            id: BigInt(reply.message_id),
-          },
-        },
-        data: {
-          summary: summarizedResult?.text,
-          text: beautifiedResult.text,
-        },
+      updateMessageFieldsRepo(BigInt(ctx.chatId), BigInt(reply.message_id), {
+        summary: summarizedResult?.text,
+        text: beautifiedResult.text,
       }),
     ]);
     completed = true;

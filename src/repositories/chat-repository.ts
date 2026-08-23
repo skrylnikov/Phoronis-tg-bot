@@ -2,6 +2,7 @@ import type { Chat } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import type { Prisma } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<number, true>({
@@ -50,3 +51,52 @@ export const saveChat = async (
     handleError(error, `Error saving chat ${chat.id}`);
   }
 };
+
+export async function findChatByIdRepo<T extends Prisma.ChatSelect>(
+  chatId: bigint,
+  select?: T,
+) {
+  return prisma.chat.findUnique({
+    where: { id: chatId },
+    select: select as any,
+  });
+}
+
+export async function findGroupChatsRepo() {
+  return prisma.chat.findMany({
+    where: { chatType: 'GROUP' },
+    select: { id: true, title: true },
+  });
+}
+
+export async function updateChatRepo(
+  chatId: bigint,
+  data: Prisma.ChatUpdateInput,
+) {
+  return prisma.chat.update({
+    where: { id: chatId },
+    data,
+  });
+}
+
+export async function upsertChatFeatureRepo(
+  chatId: bigint,
+  feature: 'selfieSaturday' | 'inktober',
+  enabled: boolean,
+) {
+  const data =
+    feature === 'selfieSaturday'
+      ? { selfieSaturdayEnabled: enabled }
+      : { inktoberEnabled: enabled };
+
+  return prisma.chat.upsert({
+    where: { id: chatId },
+    update: data,
+    create: {
+      id: chatId,
+      title: chatId.toString(),
+      chatType: 'GROUP',
+      ...data,
+    },
+  });
+}

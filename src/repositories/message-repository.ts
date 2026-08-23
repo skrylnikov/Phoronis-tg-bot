@@ -2,6 +2,7 @@ import type { Message as GrammyMessage } from '@grammyjs/types';
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
+import type { Prisma } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, true>({
@@ -95,5 +96,79 @@ export async function findMessageByIdRepo(chatId: bigint, messageId: bigint) {
     where: {
       chatId_id: { chatId, id: messageId },
     },
+  });
+}
+
+export async function findMessageWithSelectRepo<T extends Prisma.MessageSelect>(
+  chatId: bigint,
+  messageId: bigint,
+  select: T,
+) {
+  return prisma.message.findUnique({
+    where: { chatId_id: { chatId, id: messageId } },
+    select,
+  });
+}
+
+export async function updateMessageSummaryRepo(
+  chatId: bigint,
+  messageId: bigint,
+  summary: string,
+) {
+  return prisma.message.update({
+    where: { chatId_id: { chatId, id: messageId } },
+    data: { summary },
+  });
+}
+
+export async function updateMessageFieldsRepo(
+  chatId: bigint,
+  messageId: bigint,
+  data: Prisma.MessageUpdateInput,
+) {
+  return prisma.message.update({
+    where: { chatId_id: { chatId, id: messageId } },
+    data,
+  });
+}
+
+export async function updateMessageManyRepo(
+  where: Prisma.MessageWhereInput,
+  data: Prisma.MessageUpdateManyMutationInput,
+) {
+  return prisma.message.updateMany({ where, data });
+}
+
+export async function countMessagesWithWhereRepo(where: Prisma.MessageWhereInput) {
+  return prisma.message.count({ where });
+}
+
+export async function findManyMessagesRepo(
+  where: Prisma.MessageWhereInput,
+  options?: {
+    include?: Prisma.MessageInclude;
+    select?: Prisma.MessageSelect;
+    orderBy?: Prisma.MessageOrderByWithRelationInput | Prisma.MessageOrderByWithRelationInput[];
+    take?: number;
+    skip?: number;
+  },
+) {
+  return prisma.message.findMany({
+    where,
+    ...options,
+  });
+}
+
+export async function findFirstMessageRepo(
+  where: Prisma.MessageWhereInput,
+  options?: {
+    include?: Prisma.MessageInclude;
+    select?: Prisma.MessageSelect;
+    orderBy?: Prisma.MessageOrderByWithRelationInput | Prisma.MessageOrderByWithRelationInput[];
+  },
+) {
+  return prisma.message.findFirst({
+    where,
+    ...options,
   });
 }

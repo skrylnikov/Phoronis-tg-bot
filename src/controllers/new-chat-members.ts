@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
 
-import { prisma } from '../db';
 import { saveMessage } from '../domain';
+import { findChatByIdRepo } from '../repositories';
 import { logger } from '../logger';
 
 export const newChatMembersDelayMs = 3000;
@@ -18,10 +18,10 @@ const isCurrentMember = (
   (member.status === 'restricted' && member.is_member);
 
 export const newChatMembersController = async (ctx: Context) => {
-  const chat = await prisma.chat.findUnique({
-    where: {
-      id: ctx.chat?.id,
-    },
+  const chat = await findChatByIdRepo(BigInt(ctx.chat?.id ?? 0), {
+    id: true,
+    greeting: true,
+    greetingEnabled: true,
   });
 
   const message = ctx.message;
@@ -64,6 +64,6 @@ export const newChatMembersController = async (ctx: Context) => {
     replyToMessageId: BigInt(messageId),
     sentAt: new Date(reply.date * 1000),
     messageType: 'TEXT',
-    text: chat.greeting,
+    text: chat?.greeting ?? '',
   });
 };
