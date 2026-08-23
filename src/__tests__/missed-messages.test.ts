@@ -52,8 +52,10 @@ vi.mock('../repositories/chat-repository', () => ({
 
 vi.mock('../repositories/message-repository', () => ({
   countMessagesRepo: (where: any) => messageCount(where),
-  findFirstMessageRepo: (where: any, options?: any) => messageFindFirst(options || { where }),
-  findManyMessagesRepo: (where: any, options?: any) => messageFindMany({ where, ...options }),
+  findFirstMessageRepo: (where: any, options?: any) =>
+    messageFindFirst(options || { where }),
+  findManyMessagesRepo: (where: any, options?: any) =>
+    messageFindMany({ where, ...options }),
   findMessageWithSelectRepo: vi.fn(),
   saveMessage: vi.fn(),
   updateMessageSummaryRepo: vi.fn(),
@@ -256,7 +258,11 @@ describe('searchChatHistory', () => {
       },
     ]);
     searchChatMessages.mockResolvedValue([
-      { ...message(101, 'Обсуждали релиз'), similarity: 0.89, searchText: null },
+      {
+        ...message(101, 'Обсуждали релиз'),
+        similarity: 0.89,
+        searchText: null,
+      },
       { ...message(102, 'Похожая тема'), similarity: 0.91, searchText: null },
     ]);
     messageQueryRaw
@@ -379,7 +385,7 @@ describe('searchChatHistory', () => {
       },
     ]);
     searchChatMessages.mockResolvedValue([]);
-    
+
     // First call to findChatHistoryReplyRootsRepo returns incomplete=true
     // Second call to fetchChatHistoryReplyGraphRepo returns the graph
     messageQueryRaw
