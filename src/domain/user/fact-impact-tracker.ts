@@ -1,15 +1,15 @@
 import { logger } from '../../logger';
 import {
+  findMessageByIdRepo,
+  findUserFactsWithImpactsRepo,
+  updateManyUserFactsRepo,
+  updateUserFactRepo,
+} from '../../repositories';
+import {
   createManyFactImpactsRepo,
   findFactImpactsRepo,
   updateManyFactImpactsRepo,
 } from '../../repositories/fact-impact-repository';
-import {
-  findMessageByIdRepo,
-  findUserFactsWithImpactsRepo,
-  updateUserFactRepo,
-  updateManyUserFactsRepo,
-} from '../../repositories';
 
 export interface TelegramReaction {
   type: string;
@@ -212,8 +212,12 @@ export async function recalculateFactImpactScores() {
 }
 
 export async function getFactImpactStats(userId: number) {
-  const { findTopUserFactsByScoreRepo, countUserFactsRepo, countUserFactsWithConditionRepo } = await import('../../repositories');
-  
+  const {
+    findTopUserFactsByScoreRepo,
+    countUserFactsRepo,
+    countUserFactsWithConditionRepo,
+  } = await import('../../repositories');
+
   const facts = await findTopUserFactsByScoreRepo(BigInt(userId), 10);
 
   const total = await countUserFactsRepo(BigInt(userId));

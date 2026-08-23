@@ -66,7 +66,11 @@ export async function findUserFactsRepo(
   options: {
     orderBy?: { updatedAt: 'desc' | 'asc' };
     take?: number;
-    where?: { type?: { in: Array<'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST'> } };
+    where?: {
+      type?: {
+        in: Array<'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST'>;
+      };
+    };
   } = {},
 ) {
   return prisma.userFact.findMany({

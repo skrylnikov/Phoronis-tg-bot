@@ -275,8 +275,11 @@ export async function getRecentMemoriesForUsers(
     result.set(id, []);
   });
 
-  const { userMemories, chatMemories } =
-    await findRecentMemoriesForUsersRepo(userIds, BigInt(chatId), limit);
+  const { userMemories, chatMemories } = await findRecentMemoriesForUsersRepo(
+    userIds,
+    BigInt(chatId),
+    limit,
+  );
 
   userMemories.forEach((memory) => {
     const userId = Number(memory.userId);

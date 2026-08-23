@@ -58,10 +58,10 @@ export const newChatMembersController = async (ctx: Context) => {
     reply_to_message_id: messageId,
   });
   await saveMessage({
-    id: reply.message_id,
-    chatId: ctx.chat.id,
-    senderId: reply.from?.id ?? 0,
-    replyToMessageId: messageId,
+    id: BigInt(reply.message_id),
+    chatId: BigInt(ctx.chat.id),
+    senderId: BigInt(reply.from?.id ?? 0),
+    replyToMessageId: BigInt(messageId),
     sentAt: new Date(reply.date * 1000),
     messageType: 'TEXT',
     text: chat.greeting,

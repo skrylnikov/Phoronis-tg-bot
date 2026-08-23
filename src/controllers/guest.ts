@@ -100,12 +100,14 @@ async function persistObservedMessage(
   await saveUser(message.from);
   try {
     await saveMessage({
-      id: message.message_id,
-      chatId,
-      senderId: message.from.id,
-      replyToMessageId: message.reply_to_message?.message_id,
+      id: BigInt(message.message_id),
+      chatId: BigInt(chatId),
+      senderId: BigInt(message.from.id),
+      replyToMessageId: message.reply_to_message?.message_id
+        ? BigInt(message.reply_to_message.message_id)
+        : undefined,
       sentAt: new Date(message.date * 1000),
-      text: getMessageText(message) || null,
+      text: getMessageText(message) ?? undefined,
       messageType: message.photo ? 'MEDIA' : 'TEXT',
       media: message.photo
         ? JSON.stringify({

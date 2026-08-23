@@ -138,26 +138,31 @@ export const voiceController = async (ctx: BotContext) => {
           ? langfuse.getPrompt('voice-summarize')
           : null,
         saveMessage({
-          id: ctx.msg?.message_id ?? 0,
-          chatId: ctx.chatId,
-          senderId: ctx.from.id,
+          id: BigInt(ctx.msg?.message_id ?? 0),
+          chatId: BigInt(ctx.chatId),
+          senderId: BigInt(ctx.from.id),
           sentAt: ctx.msg?.date ? new Date(ctx.msg.date * 1000) : new Date(),
           messageType: 'VOICE',
           text: recognizedResult,
-          replyToMessageId: ctx.msg?.reply_to_message?.message_id,
+          replyToMessageId: ctx.msg?.reply_to_message?.message_id
+            ? BigInt(ctx.msg.reply_to_message.message_id)
+            : undefined,
         }),
       ]);
 
-    const [savedBotMessage, beautifiedResult, summarizedResult] =
+    const voiceMessageId = ctx.msg?.message_id ?? 0;
+    const [_savedBotMessage, beautifiedResult, summarizedResult] =
       await Promise.all([
         saveMessage({
-          id: reply.message_id,
-          chatId: ctx.chatId,
-          senderId: reply.from?.id ?? 0,
+          id: BigInt(reply.message_id),
+          chatId: BigInt(ctx.chatId),
+          senderId: BigInt(reply.from?.id ?? 0),
           sentAt: new Date(reply.date * 1000),
           messageType: 'VOICE',
           text: reply.text,
-          replyToMessageId: ctx.message?.message_id,
+          replyToMessageId: ctx.message?.message_id
+            ? BigInt(ctx.message.message_id)
+            : undefined,
         }),
         generateText({
           model: utilityModel,
@@ -231,8 +236,8 @@ export const voiceController = async (ctx: BotContext) => {
       prisma.message.update({
         where: {
           chatId_id: {
-            chatId: savedVoiceMessage.chatId,
-            id: savedVoiceMessage.id,
+            chatId: BigInt(ctx.chatId),
+            id: BigInt(voiceMessageId),
           },
         },
         data: {
@@ -243,8 +248,8 @@ export const voiceController = async (ctx: BotContext) => {
       prisma.message.update({
         where: {
           chatId_id: {
-            chatId: savedBotMessage.chatId,
-            id: savedBotMessage.id,
+            chatId: BigInt(ctx.chatId),
+            id: BigInt(reply.message_id),
           },
         },
         data: {

@@ -281,7 +281,7 @@ export async function activatePayment(input: {
 
   const details = planDetails[pendingOrder.plan];
   if (!details) return null;
-  
+
   return activatePaymentWithSubscription({
     orderId: pendingOrder.id,
     userId: pendingOrder.userId,
@@ -298,8 +298,7 @@ export async function activatePayment(input: {
 export async function refundPayment(chargeId: string, now = new Date()) {
   const order = await findPaymentOrderByChargeId(chargeId);
   if (!order?.plan) return null;
-  
-  const durationMs =
-    planDetails[order.plan].durationDays * 24 * 60 * 60 * 1000;
+
+  const durationMs = planDetails[order.plan].durationDays * 24 * 60 * 60 * 1000;
   return refundPaymentWithSubscription(chargeId, now, durationMs);
 }

@@ -2,12 +2,12 @@ import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
 import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from '../../advisory-lock';
 import { logger } from '../../logger';
+import { findUserFactsRepo } from '../../repositories/user-fact-repository';
 import {
   createUserFactForMigrationRepo,
   findUsersForMigrationRepo,
   updateUserMetaInfoRepo,
 } from '../../repositories/user-meta-repository';
-import { findUserFactsRepo } from '../../repositories/user-fact-repository';
 
 const userMetaInfoSchema = z.object({
   interests: z

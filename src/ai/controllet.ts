@@ -523,10 +523,12 @@ export const aiController = async (
 
       try {
         await saveMessage({
-          id: reply.message_id,
-          chatId: ctx.chatId ?? 0,
-          senderId: reply.from?.id ?? 0,
-          replyToMessageId: ctx.msg?.message_id,
+          id: BigInt(reply.message_id),
+          chatId: BigInt(ctx.chatId ?? 0),
+          senderId: BigInt(reply.from?.id ?? 0),
+          replyToMessageId: ctx.msg?.message_id
+            ? BigInt(ctx.msg.message_id)
+            : undefined,
           sentAt: new Date(reply.date * 1000),
           messageType: 'TEXT',
           text: result.toString(),

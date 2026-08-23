@@ -12,7 +12,7 @@ import {
   releaseQuota,
   reserveQuota,
   saveChat,
-  saveMessageIfAbsent,
+  saveMessage,
   saveUser,
 } from '../domain';
 import { recordUserReaction } from '../domain/user/fact-impact-tracker';
@@ -186,23 +186,19 @@ processMessageController.on(':text', async (ctx) => {
       select: { privateModeEnabled: true },
     });
     const isPrivateMode = chat?.privateModeEnabled ?? false;
-    const savedMessage = await saveMessageIfAbsent({
-      id: ctx.msg.message_id,
-      chatId: ctx.chatId,
-      senderId: ctx.from.id,
-      replyToMessageId: ctx.msg.reply_to_message?.message_id,
+    await saveMessage({
+      id: BigInt(ctx.msg.message_id),
+      chatId: BigInt(ctx.chatId),
+      senderId: BigInt(ctx.from.id),
+      replyToMessageId: ctx.msg.reply_to_message?.message_id
+        ? BigInt(ctx.msg.reply_to_message.message_id)
+        : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.text,
       messageType: 'TEXT',
       private: isPrivateMode,
     });
-    if (!savedMessage.created) {
-      logger.info(
-        { event: 'message.duplicate_skipped', messageType: 'TEXT' },
-        'Duplicate text message skipped before AI processing',
-      );
-      return;
-    }
+
     if (!isPrivateMode) {
       void analyzeUserMessages(ctx).catch((error) =>
         logger.error(
@@ -319,24 +315,19 @@ processMessageController.on(':photo', async (ctx) => {
     const isPrivateMode = chat?.privateModeEnabled ?? false;
     const photo = selectOptimalPhoto(ctx.msg.photo);
     if (!photo) return;
-    const savedMessage = await saveMessageIfAbsent({
-      id: ctx.msg.message_id,
-      chatId: ctx.chatId,
-      senderId: ctx.from.id,
-      replyToMessageId: ctx.msg.reply_to_message?.message_id,
+    await saveMessage({
+      id: BigInt(ctx.msg.message_id),
+      chatId: BigInt(ctx.chatId),
+      senderId: BigInt(ctx.from.id),
+      replyToMessageId: ctx.msg.reply_to_message?.message_id
+        ? BigInt(ctx.msg.reply_to_message.message_id)
+        : undefined,
       sentAt: new Date(ctx.msg.date * 1000),
       text: ctx.msg.caption,
       messageType: 'MEDIA',
       media: JSON.stringify({ fileId: photo.file_id, mimeType: 'image/jpeg' }),
       private: isPrivateMode,
     });
-    if (!savedMessage.created) {
-      logger.info(
-        { event: 'message.duplicate_skipped', messageType: 'MEDIA' },
-        'Duplicate media message skipped before AI processing',
-      );
-      return;
-    }
 
     const shouldRespond =
       ctx.msg.caption?.toLowerCase().startsWith('ио') ||
@@ -367,8 +358,8 @@ processMessageController.on(':photo', async (ctx) => {
       await prisma.message.update({
         where: {
           chatId_id: {
-            chatId: savedMessage.message.chatId,
-            id: savedMessage.message.id,
+            chatId: BigInt(ctx.chatId),
+            id: BigInt(ctx.msg.message_id),
           },
         },
         data: { summary: imageDescription },

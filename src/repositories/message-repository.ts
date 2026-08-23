@@ -90,10 +90,7 @@ export async function findMessagesRepo(where: {
   });
 }
 
-export async function findMessageByIdRepo(
-  chatId: bigint,
-  messageId: bigint,
-) {
+export async function findMessageByIdRepo(chatId: bigint, messageId: bigint) {
   return prisma.message.findUnique({
     where: {
       chatId_id: { chatId, id: messageId },

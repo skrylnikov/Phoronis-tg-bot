@@ -71,7 +71,7 @@ describe('Message Repository', () => {
     });
 
     await saveMessage({
-      id: messageId,
+      id: BigInt(messageId),
       senderId: userId,
       chatId,
       sentAt: new Date(),

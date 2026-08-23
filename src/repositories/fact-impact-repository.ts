@@ -1,8 +1,6 @@
 import { prisma } from '../db';
 
-export async function findFactImpactsRepo(where: {
-  usedInMessageId: bigint;
-}) {
+export async function findFactImpactsRepo(where: { usedInMessageId: bigint }) {
   return prisma.factImpact.findMany({ where });
 }
 
@@ -20,7 +18,12 @@ export async function updateManyFactImpactsRepo(
   where: { id: { in: bigint[] } },
   data: {
     userReaction?: 'positive' | 'negative' | 'neutral' | 'correction';
-    messageReaction?: 'question' | 'clarification' | 'continue' | 'ignore' | 'none';
+    messageReaction?:
+      | 'question'
+      | 'clarification'
+      | 'continue'
+      | 'ignore'
+      | 'none';
   },
 ) {
   return prisma.factImpact.updateMany({

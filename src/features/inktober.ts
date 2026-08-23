@@ -107,9 +107,9 @@ export async function sendInktoberMessage(
     );
 
     await saveMessage({
-      id: reply.message_id,
-      chatId,
-      senderId: reply.from?.id ?? 0,
+      id: BigInt(reply.message_id),
+      chatId: BigInt(chatId),
+      senderId: BigInt(reply.from?.id ?? 0),
       sentAt: new Date(reply.date * 1000),
       messageType: 'TEXT',
       text: message,

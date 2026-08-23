@@ -1,11 +1,11 @@
 import {
   createGuestInteraction,
   findGuestInteraction,
+  getRecentGuestInteractionsRepo,
   markGuestInteractionAnsweredRepo,
   markGuestInteractionFailedRepo,
-  getRecentGuestInteractionsRepo,
-  updateGuestInteraction,
   staleProcessingMs,
+  updateGuestInteraction,
 } from '../repositories/guest-interaction-repository';
 
 export type GuestInteractionClaim =
