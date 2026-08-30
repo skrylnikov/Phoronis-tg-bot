@@ -9,47 +9,17 @@ import {
   updateUserMetaInfoRepo,
 } from '../../repositories/user-meta-repository';
 
+const userMetaItemSchema = z.union([
+  z.string().transform((value) => ({ value, weight: 1 })),
+  z.object({ value: z.string(), weight: z.number().default(1) }),
+]);
+
 const userMetaInfoSchema = z.object({
-  interests: z
-    .array(
-      z.object({
-        value: z.string(),
-        weight: z.number().default(1),
-      }),
-    )
-    .optional(),
-  communication_style: z
-    .array(
-      z.object({
-        value: z.string(),
-        weight: z.number().default(1),
-      }),
-    )
-    .optional(),
-  notable_traits: z
-    .array(
-      z.object({
-        value: z.string(),
-        weight: z.number().default(1),
-      }),
-    )
-    .optional(),
-  topics: z
-    .array(
-      z.object({
-        value: z.string(),
-        weight: z.number().default(1),
-      }),
-    )
-    .optional(),
-  notes: z
-    .array(
-      z.object({
-        value: z.string(),
-        weight: z.number().default(1),
-      }),
-    )
-    .optional(),
+  interests: z.array(userMetaItemSchema).optional(),
+  communication_style: z.array(userMetaItemSchema).optional(),
+  notable_traits: z.array(userMetaItemSchema).optional(),
+  topics: z.array(userMetaItemSchema).optional(),
+  notes: z.array(userMetaItemSchema).optional(),
 });
 
 type UserMetaInfo = z.infer<typeof userMetaInfoSchema>;

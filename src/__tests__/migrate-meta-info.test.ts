@@ -56,6 +56,29 @@ describe('legacy User.metaInfo migration', () => {
     ]);
   });
 
+  it('accepts the historical string-only category format', async () => {
+    mocks.findUsersForMigrationRepo.mockResolvedValue([
+      {
+        id: 42n,
+        metaInfo: { interests: ['Rust'], notes: ['Старый профиль'] },
+      },
+    ]);
+    mocks.findUserFactsRepo.mockResolvedValue([]);
+
+    await expect(migrateNextBatchOfUsers()).resolves.toBe(1);
+
+    expect(mocks.createUserFactForMigrationRepo).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'Rust', type: 'INTEREST', weight: 1 }),
+    );
+    expect(mocks.createUserFactForMigrationRepo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Старый профиль',
+        type: 'FACT',
+        weight: 1,
+      }),
+    );
+  });
+
   it('clears legacy payload when every target fact already exists after restart', async () => {
     const user = {
       id: 42n,
