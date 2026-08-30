@@ -193,6 +193,7 @@ let isMigrationRunning = false;
 
 export async function migrateNextBatchOfUsers() {
   let totalMigrated = 0;
+  let processedPayloads = 0;
   let lastProcessedUserId: bigint | null = null;
 
   while (true) {
@@ -210,7 +211,7 @@ export async function migrateNextBatchOfUsers() {
         { event: 'user_meta.migration_completed', totalMigrated },
         'User meta info migration caught up',
       );
-      return totalMigrated;
+      return processedPayloads;
     }
 
     const users = allUsers.filter(
@@ -243,6 +244,7 @@ export async function migrateNextBatchOfUsers() {
 
       if (!result.hadErrors && result.convergedCount === result.totalCount) {
         await updateUserMetaInfoRepo(user.id, {});
+        processedPayloads++;
       } else if (result.hadErrors) {
         logger.error(
           {
@@ -256,7 +258,7 @@ export async function migrateNextBatchOfUsers() {
       }
     }
 
-    return totalMigrated;
+    return processedPayloads;
   }
 }
 
@@ -280,12 +282,12 @@ export function startMetaInfoMigration() {
           isMigrationRunning = true;
 
           try {
-            const migrated = await migrateNextBatchOfUsers();
-            if (migrated > 0) {
+            const processedCount = await migrateNextBatchOfUsers();
+            if (processedCount > 0) {
               logger.info(
                 {
                   event: 'user_meta.migration_batch_completed',
-                  migratedCount: migrated,
+                  processedCount,
                 },
                 'User meta info migration batch completed',
               );

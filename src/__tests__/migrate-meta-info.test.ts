@@ -64,20 +64,34 @@ describe('legacy User.metaInfo migration', () => {
         topics: [{ value: 'Фильмы', weight: 1 }],
       },
     };
-    mocks.findUsersForMigrationRepo.mockResolvedValue([user]);
+    mocks.findUsersForMigrationRepo
+      .mockResolvedValueOnce([user])
+      .mockResolvedValueOnce([]);
     mocks.findUserFactsRepo.mockResolvedValue([
       { content: 'Rust' },
       { content: 'Фильмы' },
     ]);
 
-    await expect(migrateNextBatchOfUsers()).resolves.toBe(0);
+    await expect(migrateNextBatchOfUsers()).resolves.toBe(1);
     await expect(migrateNextBatchOfUsers()).resolves.toBe(0);
 
     expect(
       mocks.findUsersForMigrationRepo.mock.calls[1]?.[0],
     ).not.toHaveProperty('cursor');
     expect(mocks.createUserFactForMigrationRepo).not.toHaveBeenCalled();
-    expect(mocks.updateUserMetaInfoRepo).toHaveBeenCalledTimes(2);
+    expect(mocks.updateUserMetaInfoRepo).toHaveBeenCalledOnce();
+    expect(mocks.updateUserMetaInfoRepo).toHaveBeenCalledWith(42n, {});
+  });
+
+  it('reports an empty legacy payload as processed so the scheduler continues', async () => {
+    mocks.findUsersForMigrationRepo.mockResolvedValue([
+      { id: 42n, metaInfo: { interests: [] } },
+    ]);
+    mocks.findUserFactsRepo.mockResolvedValue([]);
+
+    await expect(migrateNextBatchOfUsers()).resolves.toBe(1);
+
+    expect(mocks.createUserFactForMigrationRepo).not.toHaveBeenCalled();
     expect(mocks.updateUserMetaInfoRepo).toHaveBeenCalledWith(42n, {});
   });
 
