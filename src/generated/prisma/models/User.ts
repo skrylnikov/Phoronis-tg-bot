@@ -53,7 +53,6 @@ export type UserCountAggregateOutputType = {
   firstName: number
   lastName: number
   userName: number
-  metaInfo: number
   _all: number
 }
 
@@ -85,7 +84,6 @@ export type UserCountAggregateInputType = {
   firstName?: true
   lastName?: true
   userName?: true
-  metaInfo?: true
   _all?: true
 }
 
@@ -180,7 +178,6 @@ export type UserGroupByOutputType = {
   firstName: string | null
   lastName: string | null
   userName: string | null
-  metaInfo: runtime.JsonValue | null
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -211,7 +208,6 @@ export type UserWhereInput = {
   firstName?: Prisma.StringNullableFilter<"User"> | string | null
   lastName?: Prisma.StringNullableFilter<"User"> | string | null
   userName?: Prisma.StringNullableFilter<"User"> | string | null
-  metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
   GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
@@ -227,7 +223,6 @@ export type UserOrderByWithRelationInput = {
   firstName?: Prisma.SortOrderInput | Prisma.SortOrder
   lastName?: Prisma.SortOrderInput | Prisma.SortOrder
   userName?: Prisma.SortOrderInput | Prisma.SortOrder
-  metaInfo?: Prisma.SortOrderInput | Prisma.SortOrder
   Message?: Prisma.MessageOrderByRelationAggregateInput
   GuestInteraction?: Prisma.GuestInteractionOrderByRelationAggregateInput
   Memory?: Prisma.MemoryOrderByRelationAggregateInput
@@ -246,7 +241,6 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   firstName?: Prisma.StringNullableFilter<"User"> | string | null
   lastName?: Prisma.StringNullableFilter<"User"> | string | null
   userName?: Prisma.StringNullableFilter<"User"> | string | null
-  metaInfo?: Prisma.JsonNullableFilter<"User">
   Message?: Prisma.MessageListRelationFilter
   GuestInteraction?: Prisma.GuestInteractionListRelationFilter
   Memory?: Prisma.MemoryListRelationFilter
@@ -262,7 +256,6 @@ export type UserOrderByWithAggregationInput = {
   firstName?: Prisma.SortOrderInput | Prisma.SortOrder
   lastName?: Prisma.SortOrderInput | Prisma.SortOrder
   userName?: Prisma.SortOrderInput | Prisma.SortOrder
-  metaInfo?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -278,7 +271,6 @@ export type UserScalarWhereWithAggregatesInput = {
   firstName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   lastName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   userName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  metaInfo?: Prisma.JsonNullableWithAggregatesFilter<"User">
 }
 
 export type UserCreateInput = {
@@ -286,7 +278,6 @@ export type UserCreateInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -302,7 +293,6 @@ export type UserUncheckedCreateInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -318,7 +308,6 @@ export type UserUpdateInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -334,7 +323,6 @@ export type UserUncheckedUpdateInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -350,7 +338,6 @@ export type UserCreateManyInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserUpdateManyMutationInput = {
@@ -358,7 +345,6 @@ export type UserUpdateManyMutationInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -366,7 +352,6 @@ export type UserUncheckedUpdateManyInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -374,7 +359,6 @@ export type UserCountOrderByAggregateInput = {
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrder
   userName?: Prisma.SortOrder
-  metaInfo?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
@@ -533,7 +517,6 @@ export type UserCreateWithoutSubscriptionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -548,7 +531,6 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -579,7 +561,6 @@ export type UserUpdateWithoutSubscriptionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -594,7 +575,6 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -609,7 +589,6 @@ export type UserCreateWithoutPaymentOrderInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -624,7 +603,6 @@ export type UserUncheckedCreateWithoutPaymentOrderInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -655,7 +633,6 @@ export type UserUpdateWithoutPaymentOrderInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -670,7 +647,6 @@ export type UserUncheckedUpdateWithoutPaymentOrderInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -685,7 +661,6 @@ export type UserCreateWithoutPurchaseSessionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -700,7 +675,6 @@ export type UserUncheckedCreateWithoutPurchaseSessionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -731,7 +705,6 @@ export type UserUpdateWithoutPurchaseSessionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -746,7 +719,6 @@ export type UserUncheckedUpdateWithoutPurchaseSessionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -761,7 +733,6 @@ export type UserCreateWithoutLimitNoticeInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -776,7 +747,6 @@ export type UserUncheckedCreateWithoutLimitNoticeInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -807,7 +777,6 @@ export type UserUpdateWithoutLimitNoticeInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -822,7 +791,6 @@ export type UserUncheckedUpdateWithoutLimitNoticeInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -837,7 +805,6 @@ export type UserCreateWithoutMessageInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
@@ -852,7 +819,6 @@ export type UserUncheckedCreateWithoutMessageInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
@@ -883,7 +849,6 @@ export type UserUpdateWithoutMessageInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
@@ -898,7 +863,6 @@ export type UserUncheckedUpdateWithoutMessageInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
@@ -913,7 +877,6 @@ export type UserCreateWithoutGuestInteractionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
@@ -928,7 +891,6 @@ export type UserUncheckedCreateWithoutGuestInteractionInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
@@ -959,7 +921,6 @@ export type UserUpdateWithoutGuestInteractionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
@@ -974,7 +935,6 @@ export type UserUncheckedUpdateWithoutGuestInteractionInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
@@ -989,7 +949,6 @@ export type UserCreateWithoutMemoryInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactCreateNestedManyWithoutUserInput
@@ -1004,7 +963,6 @@ export type UserUncheckedCreateWithoutMemoryInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   UserFact?: Prisma.UserFactUncheckedCreateNestedManyWithoutUserInput
@@ -1035,7 +993,6 @@ export type UserUpdateWithoutMemoryInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUpdateManyWithoutUserNestedInput
@@ -1050,7 +1007,6 @@ export type UserUncheckedUpdateWithoutMemoryInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   UserFact?: Prisma.UserFactUncheckedUpdateManyWithoutUserNestedInput
@@ -1065,7 +1021,6 @@ export type UserCreateWithoutUserFactInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryCreateNestedManyWithoutUserInput
@@ -1080,7 +1035,6 @@ export type UserUncheckedCreateWithoutUserFactInput = {
   firstName?: string | null
   lastName?: string | null
   userName?: string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutUserInput
   Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutUserInput
@@ -1111,7 +1065,6 @@ export type UserUpdateWithoutUserFactInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUpdateManyWithoutUserNestedInput
@@ -1126,7 +1079,6 @@ export type UserUncheckedUpdateWithoutUserFactInput = {
   firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  metaInfo?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   Message?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutUserNestedInput
   Memory?: Prisma.MemoryUncheckedUpdateManyWithoutUserNestedInput
@@ -1235,7 +1187,6 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   firstName?: boolean
   lastName?: boolean
   userName?: boolean
-  metaInfo?: boolean
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
   GuestInteraction?: boolean | Prisma.User$GuestInteractionArgs<ExtArgs>
   Memory?: boolean | Prisma.User$MemoryArgs<ExtArgs>
@@ -1252,7 +1203,6 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   firstName?: boolean
   lastName?: boolean
   userName?: boolean
-  metaInfo?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1260,7 +1210,6 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   firstName?: boolean
   lastName?: boolean
   userName?: boolean
-  metaInfo?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1268,10 +1217,9 @@ export type UserSelectScalar = {
   firstName?: boolean
   lastName?: boolean
   userName?: boolean
-  metaInfo?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "userName" | "metaInfo", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "userName", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Message?: boolean | Prisma.User$MessageArgs<ExtArgs>
   GuestInteraction?: boolean | Prisma.User$GuestInteractionArgs<ExtArgs>
@@ -1303,7 +1251,6 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     firstName: string | null
     lastName: string | null
     userName: string | null
-    metaInfo: runtime.JsonValue | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1739,7 +1686,6 @@ export interface UserFieldRefs {
   readonly firstName: Prisma.FieldRef<"User", 'String'>
   readonly lastName: Prisma.FieldRef<"User", 'String'>
   readonly userName: Prisma.FieldRef<"User", 'String'>
-  readonly metaInfo: Prisma.FieldRef<"User", 'Json'>
 }
     
 

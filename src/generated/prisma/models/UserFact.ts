@@ -31,10 +31,6 @@ export type UserFactAvgAggregateOutputType = {
   userId: number | null
   weight: number | null
   confidence: number | null
-  sourceChatId: number | null
-  sourceMessageId: number | null
-  usageCount: number | null
-  impactScore: number | null
   embeddingVersion: number | null
 }
 
@@ -43,10 +39,6 @@ export type UserFactSumAggregateOutputType = {
   userId: bigint | null
   weight: number | null
   confidence: number | null
-  sourceChatId: bigint | null
-  sourceMessageId: bigint | null
-  usageCount: number | null
-  impactScore: number | null
   embeddingVersion: number | null
 }
 
@@ -57,12 +49,7 @@ export type UserFactMinAggregateOutputType = {
   type: $Enums.FactType | null
   weight: number | null
   confidence: number | null
-  sourceChatId: bigint | null
-  sourceMessageId: bigint | null
   expiresAt: Date | null
-  usageCount: number | null
-  lastUsedAt: Date | null
-  impactScore: number | null
   embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -75,12 +62,7 @@ export type UserFactMaxAggregateOutputType = {
   type: $Enums.FactType | null
   weight: number | null
   confidence: number | null
-  sourceChatId: bigint | null
-  sourceMessageId: bigint | null
   expiresAt: Date | null
-  usageCount: number | null
-  lastUsedAt: Date | null
-  impactScore: number | null
   embeddingVersion: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -93,12 +75,7 @@ export type UserFactCountAggregateOutputType = {
   type: number
   weight: number
   confidence: number
-  sourceChatId: number
-  sourceMessageId: number
   expiresAt: number
-  usageCount: number
-  lastUsedAt: number
-  impactScore: number
   embeddingVersion: number
   createdAt: number
   updatedAt: number
@@ -111,10 +88,6 @@ export type UserFactAvgAggregateInputType = {
   userId?: true
   weight?: true
   confidence?: true
-  sourceChatId?: true
-  sourceMessageId?: true
-  usageCount?: true
-  impactScore?: true
   embeddingVersion?: true
 }
 
@@ -123,10 +96,6 @@ export type UserFactSumAggregateInputType = {
   userId?: true
   weight?: true
   confidence?: true
-  sourceChatId?: true
-  sourceMessageId?: true
-  usageCount?: true
-  impactScore?: true
   embeddingVersion?: true
 }
 
@@ -137,12 +106,7 @@ export type UserFactMinAggregateInputType = {
   type?: true
   weight?: true
   confidence?: true
-  sourceChatId?: true
-  sourceMessageId?: true
   expiresAt?: true
-  usageCount?: true
-  lastUsedAt?: true
-  impactScore?: true
   embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
@@ -155,12 +119,7 @@ export type UserFactMaxAggregateInputType = {
   type?: true
   weight?: true
   confidence?: true
-  sourceChatId?: true
-  sourceMessageId?: true
   expiresAt?: true
-  usageCount?: true
-  lastUsedAt?: true
-  impactScore?: true
   embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
@@ -173,12 +132,7 @@ export type UserFactCountAggregateInputType = {
   type?: true
   weight?: true
   confidence?: true
-  sourceChatId?: true
-  sourceMessageId?: true
   expiresAt?: true
-  usageCount?: true
-  lastUsedAt?: true
-  impactScore?: true
   embeddingVersion?: true
   createdAt?: true
   updatedAt?: true
@@ -278,12 +232,7 @@ export type UserFactGroupByOutputType = {
   type: $Enums.FactType
   weight: number
   confidence: number
-  sourceChatId: bigint | null
-  sourceMessageId: bigint | null
   expiresAt: Date | null
-  usageCount: number
-  lastUsedAt: Date | null
-  impactScore: number
   embeddingVersion: number | null
   createdAt: Date
   updatedAt: Date
@@ -319,18 +268,11 @@ export type UserFactWhereInput = {
   type?: Prisma.EnumFactTypeFilter<"UserFact"> | $Enums.FactType
   weight?: Prisma.IntFilter<"UserFact"> | number
   confidence?: Prisma.FloatFilter<"UserFact"> | number
-  sourceChatId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
-  sourceMessageId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
   expiresAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  usageCount?: Prisma.IntFilter<"UserFact"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  impactScore?: Prisma.FloatFilter<"UserFact"> | number
   embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  sourceMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
-  FactImpact?: Prisma.FactImpactListRelationFilter
   FactHistory?: Prisma.FactHistoryListRelationFilter
   evidence?: Prisma.UserFactEvidenceListRelationFilter
 }
@@ -342,18 +284,11 @@ export type UserFactOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
-  sourceMessage?: Prisma.MessageOrderByWithRelationInput
-  FactImpact?: Prisma.FactImpactOrderByRelationAggregateInput
   FactHistory?: Prisma.FactHistoryOrderByRelationAggregateInput
   evidence?: Prisma.UserFactEvidenceOrderByRelationAggregateInput
 }
@@ -368,18 +303,11 @@ export type UserFactWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.EnumFactTypeFilter<"UserFact"> | $Enums.FactType
   weight?: Prisma.IntFilter<"UserFact"> | number
   confidence?: Prisma.FloatFilter<"UserFact"> | number
-  sourceChatId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
-  sourceMessageId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
   expiresAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  usageCount?: Prisma.IntFilter<"UserFact"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  impactScore?: Prisma.FloatFilter<"UserFact"> | number
   embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  sourceMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
-  FactImpact?: Prisma.FactImpactListRelationFilter
   FactHistory?: Prisma.FactHistoryListRelationFilter
   evidence?: Prisma.UserFactEvidenceListRelationFilter
 }, "id">
@@ -391,12 +319,7 @@ export type UserFactOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -417,12 +340,7 @@ export type UserFactScalarWhereWithAggregatesInput = {
   type?: Prisma.EnumFactTypeWithAggregatesFilter<"UserFact"> | $Enums.FactType
   weight?: Prisma.IntWithAggregatesFilter<"UserFact"> | number
   confidence?: Prisma.FloatWithAggregatesFilter<"UserFact"> | number
-  sourceChatId?: Prisma.BigIntNullableWithAggregatesFilter<"UserFact"> | bigint | number | null
-  sourceMessageId?: Prisma.BigIntNullableWithAggregatesFilter<"UserFact"> | bigint | number | null
   expiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserFact"> | Date | string | null
-  usageCount?: Prisma.IntWithAggregatesFilter<"UserFact"> | number
-  lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserFact"> | Date | string | null
-  impactScore?: Prisma.FloatWithAggregatesFilter<"UserFact"> | number
   embeddingVersion?: Prisma.IntNullableWithAggregatesFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"UserFact"> | Date | string
@@ -435,15 +353,10 @@ export type UserFactCreateInput = {
   weight?: number
   confidence?: number
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
-  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
-  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
@@ -455,16 +368,10 @@ export type UserFactUncheckedCreateInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
@@ -476,15 +383,10 @@ export type UserFactUpdateInput = {
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
-  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
-  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
@@ -496,16 +398,10 @@ export type UserFactUncheckedUpdateInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
@@ -517,12 +413,7 @@ export type UserFactCreateManyInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -535,9 +426,6 @@ export type UserFactUpdateManyMutationInput = {
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -550,12 +438,7 @@ export type UserFactUncheckedUpdateManyInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -578,12 +461,7 @@ export type UserFactCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -594,10 +472,6 @@ export type UserFactAvgOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrder
 }
 
@@ -608,12 +482,7 @@ export type UserFactMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -626,12 +495,7 @@ export type UserFactMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -642,10 +506,6 @@ export type UserFactSumOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   weight?: Prisma.SortOrder
   confidence?: Prisma.SortOrder
-  sourceChatId?: Prisma.SortOrder
-  sourceMessageId?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  impactScore?: Prisma.SortOrder
   embeddingVersion?: Prisma.SortOrder
 }
 
@@ -696,48 +556,6 @@ export type UserFactUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.UserFactScalarWhereInput | Prisma.UserFactScalarWhereInput[]
 }
 
-export type UserFactCreateNestedManyWithoutSourceMessageInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput> | Prisma.UserFactCreateWithoutSourceMessageInput[] | Prisma.UserFactUncheckedCreateWithoutSourceMessageInput[]
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutSourceMessageInput | Prisma.UserFactCreateOrConnectWithoutSourceMessageInput[]
-  createMany?: Prisma.UserFactCreateManySourceMessageInputEnvelope
-  connect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-}
-
-export type UserFactUncheckedCreateNestedManyWithoutSourceMessageInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput> | Prisma.UserFactCreateWithoutSourceMessageInput[] | Prisma.UserFactUncheckedCreateWithoutSourceMessageInput[]
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutSourceMessageInput | Prisma.UserFactCreateOrConnectWithoutSourceMessageInput[]
-  createMany?: Prisma.UserFactCreateManySourceMessageInputEnvelope
-  connect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-}
-
-export type UserFactUpdateManyWithoutSourceMessageNestedInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput> | Prisma.UserFactCreateWithoutSourceMessageInput[] | Prisma.UserFactUncheckedCreateWithoutSourceMessageInput[]
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutSourceMessageInput | Prisma.UserFactCreateOrConnectWithoutSourceMessageInput[]
-  upsert?: Prisma.UserFactUpsertWithWhereUniqueWithoutSourceMessageInput | Prisma.UserFactUpsertWithWhereUniqueWithoutSourceMessageInput[]
-  createMany?: Prisma.UserFactCreateManySourceMessageInputEnvelope
-  set?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  disconnect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  delete?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  connect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  update?: Prisma.UserFactUpdateWithWhereUniqueWithoutSourceMessageInput | Prisma.UserFactUpdateWithWhereUniqueWithoutSourceMessageInput[]
-  updateMany?: Prisma.UserFactUpdateManyWithWhereWithoutSourceMessageInput | Prisma.UserFactUpdateManyWithWhereWithoutSourceMessageInput[]
-  deleteMany?: Prisma.UserFactScalarWhereInput | Prisma.UserFactScalarWhereInput[]
-}
-
-export type UserFactUncheckedUpdateManyWithoutSourceMessageNestedInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput> | Prisma.UserFactCreateWithoutSourceMessageInput[] | Prisma.UserFactUncheckedCreateWithoutSourceMessageInput[]
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutSourceMessageInput | Prisma.UserFactCreateOrConnectWithoutSourceMessageInput[]
-  upsert?: Prisma.UserFactUpsertWithWhereUniqueWithoutSourceMessageInput | Prisma.UserFactUpsertWithWhereUniqueWithoutSourceMessageInput[]
-  createMany?: Prisma.UserFactCreateManySourceMessageInputEnvelope
-  set?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  disconnect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  delete?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  connect?: Prisma.UserFactWhereUniqueInput | Prisma.UserFactWhereUniqueInput[]
-  update?: Prisma.UserFactUpdateWithWhereUniqueWithoutSourceMessageInput | Prisma.UserFactUpdateWithWhereUniqueWithoutSourceMessageInput[]
-  updateMany?: Prisma.UserFactUpdateManyWithWhereWithoutSourceMessageInput | Prisma.UserFactUpdateManyWithWhereWithoutSourceMessageInput[]
-  deleteMany?: Prisma.UserFactScalarWhereInput | Prisma.UserFactScalarWhereInput[]
-}
-
 export type EnumFactTypeFieldUpdateOperationsInput = {
   set?: $Enums.FactType
 }
@@ -764,20 +582,6 @@ export type UserFactUpdateOneRequiredWithoutEvidenceNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserFactUpdateToOneWithWhereWithoutEvidenceInput, Prisma.UserFactUpdateWithoutEvidenceInput>, Prisma.UserFactUncheckedUpdateWithoutEvidenceInput>
 }
 
-export type UserFactCreateNestedOneWithoutFactImpactInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutFactImpactInput, Prisma.UserFactUncheckedCreateWithoutFactImpactInput>
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutFactImpactInput
-  connect?: Prisma.UserFactWhereUniqueInput
-}
-
-export type UserFactUpdateOneRequiredWithoutFactImpactNestedInput = {
-  create?: Prisma.XOR<Prisma.UserFactCreateWithoutFactImpactInput, Prisma.UserFactUncheckedCreateWithoutFactImpactInput>
-  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutFactImpactInput
-  upsert?: Prisma.UserFactUpsertWithoutFactImpactInput
-  connect?: Prisma.UserFactWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserFactUpdateToOneWithWhereWithoutFactImpactInput, Prisma.UserFactUpdateWithoutFactImpactInput>, Prisma.UserFactUncheckedUpdateWithoutFactImpactInput>
-}
-
 export type UserFactCreateNestedOneWithoutFactHistoryInput = {
   create?: Prisma.XOR<Prisma.UserFactCreateWithoutFactHistoryInput, Prisma.UserFactUncheckedCreateWithoutFactHistoryInput>
   connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutFactHistoryInput
@@ -799,14 +603,9 @@ export type UserFactCreateWithoutUserInput = {
   weight?: number
   confidence?: number
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
-  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
@@ -817,16 +616,10 @@ export type UserFactUncheckedCreateWithoutUserInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
@@ -867,79 +660,10 @@ export type UserFactScalarWhereInput = {
   type?: Prisma.EnumFactTypeFilter<"UserFact"> | $Enums.FactType
   weight?: Prisma.IntFilter<"UserFact"> | number
   confidence?: Prisma.FloatFilter<"UserFact"> | number
-  sourceChatId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
-  sourceMessageId?: Prisma.BigIntNullableFilter<"UserFact"> | bigint | number | null
   expiresAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  usageCount?: Prisma.IntFilter<"UserFact"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"UserFact"> | Date | string | null
-  impactScore?: Prisma.FloatFilter<"UserFact"> | number
   embeddingVersion?: Prisma.IntNullableFilter<"UserFact"> | number | null
   createdAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserFact"> | Date | string
-}
-
-export type UserFactCreateWithoutSourceMessageInput = {
-  id?: bigint | number
-  content: string
-  type: $Enums.FactType
-  weight?: number
-  confidence?: number
-  expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
-  embeddingVersion?: number | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutUserFactInput
-  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
-  FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
-  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
-}
-
-export type UserFactUncheckedCreateWithoutSourceMessageInput = {
-  id?: bigint | number
-  userId: bigint | number
-  content: string
-  type: $Enums.FactType
-  weight?: number
-  confidence?: number
-  expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
-  embeddingVersion?: number | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
-  FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
-  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
-}
-
-export type UserFactCreateOrConnectWithoutSourceMessageInput = {
-  where: Prisma.UserFactWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput>
-}
-
-export type UserFactCreateManySourceMessageInputEnvelope = {
-  data: Prisma.UserFactCreateManySourceMessageInput | Prisma.UserFactCreateManySourceMessageInput[]
-  skipDuplicates?: boolean
-}
-
-export type UserFactUpsertWithWhereUniqueWithoutSourceMessageInput = {
-  where: Prisma.UserFactWhereUniqueInput
-  update: Prisma.XOR<Prisma.UserFactUpdateWithoutSourceMessageInput, Prisma.UserFactUncheckedUpdateWithoutSourceMessageInput>
-  create: Prisma.XOR<Prisma.UserFactCreateWithoutSourceMessageInput, Prisma.UserFactUncheckedCreateWithoutSourceMessageInput>
-}
-
-export type UserFactUpdateWithWhereUniqueWithoutSourceMessageInput = {
-  where: Prisma.UserFactWhereUniqueInput
-  data: Prisma.XOR<Prisma.UserFactUpdateWithoutSourceMessageInput, Prisma.UserFactUncheckedUpdateWithoutSourceMessageInput>
-}
-
-export type UserFactUpdateManyWithWhereWithoutSourceMessageInput = {
-  where: Prisma.UserFactScalarWhereInput
-  data: Prisma.XOR<Prisma.UserFactUpdateManyMutationInput, Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageInput>
 }
 
 export type UserFactCreateWithoutEvidenceInput = {
@@ -949,15 +673,10 @@ export type UserFactCreateWithoutEvidenceInput = {
   weight?: number
   confidence?: number
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
-  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
-  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
 }
 
@@ -968,16 +687,10 @@ export type UserFactUncheckedCreateWithoutEvidenceInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
 }
 
@@ -1004,15 +717,10 @@ export type UserFactUpdateWithoutEvidenceInput = {
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
-  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
-  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
 }
 
@@ -1023,111 +731,11 @@ export type UserFactUncheckedUpdateWithoutEvidenceInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
-  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
-  FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
-}
-
-export type UserFactCreateWithoutFactImpactInput = {
-  id?: bigint | number
-  content: string
-  type: $Enums.FactType
-  weight?: number
-  confidence?: number
-  expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
-  embeddingVersion?: number | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutUserFactInput
-  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
-  FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
-  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
-}
-
-export type UserFactUncheckedCreateWithoutFactImpactInput = {
-  id?: bigint | number
-  userId: bigint | number
-  content: string
-  type: $Enums.FactType
-  weight?: number
-  confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
-  expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
-  embeddingVersion?: number | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
-  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
-}
-
-export type UserFactCreateOrConnectWithoutFactImpactInput = {
-  where: Prisma.UserFactWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserFactCreateWithoutFactImpactInput, Prisma.UserFactUncheckedCreateWithoutFactImpactInput>
-}
-
-export type UserFactUpsertWithoutFactImpactInput = {
-  update: Prisma.XOR<Prisma.UserFactUpdateWithoutFactImpactInput, Prisma.UserFactUncheckedUpdateWithoutFactImpactInput>
-  create: Prisma.XOR<Prisma.UserFactCreateWithoutFactImpactInput, Prisma.UserFactUncheckedCreateWithoutFactImpactInput>
-  where?: Prisma.UserFactWhereInput
-}
-
-export type UserFactUpdateToOneWithWhereWithoutFactImpactInput = {
-  where?: Prisma.UserFactWhereInput
-  data: Prisma.XOR<Prisma.UserFactUpdateWithoutFactImpactInput, Prisma.UserFactUncheckedUpdateWithoutFactImpactInput>
-}
-
-export type UserFactUpdateWithoutFactImpactInput = {
-  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
-  weight?: Prisma.IntFieldUpdateOperationsInput | number
-  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
-  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
-  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
-  FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
-  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
-}
-
-export type UserFactUncheckedUpdateWithoutFactImpactInput = {
-  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
-  weight?: Prisma.IntFieldUpdateOperationsInput | number
-  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
-  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactCreateWithoutFactHistoryInput = {
@@ -1137,15 +745,10 @@ export type UserFactCreateWithoutFactHistoryInput = {
   weight?: number
   confidence?: number
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
-  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
-  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
@@ -1156,16 +759,10 @@ export type UserFactUncheckedCreateWithoutFactHistoryInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
@@ -1192,15 +789,10 @@ export type UserFactUpdateWithoutFactHistoryInput = {
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
-  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
-  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
@@ -1211,16 +803,10 @@ export type UserFactUncheckedUpdateWithoutFactHistoryInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
@@ -1230,12 +816,7 @@ export type UserFactCreateManyUserInput = {
   type: $Enums.FactType
   weight?: number
   confidence?: number
-  sourceChatId?: bigint | number | null
-  sourceMessageId?: bigint | number | null
   expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
   embeddingVersion?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1248,14 +829,9 @@ export type UserFactUpdateWithoutUserInput = {
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
-  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
@@ -1266,16 +842,10 @@ export type UserFactUncheckedUpdateWithoutUserInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
   evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
@@ -1286,82 +856,7 @@ export type UserFactUncheckedUpdateManyWithoutUserInput = {
   type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
   weight?: Prisma.IntFieldUpdateOperationsInput | number
   confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
-  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type UserFactCreateManySourceMessageInput = {
-  id?: bigint | number
-  userId: bigint | number
-  content: string
-  type: $Enums.FactType
-  weight?: number
-  confidence?: number
-  expiresAt?: Date | string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
-  impactScore?: number
-  embeddingVersion?: number | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type UserFactUpdateWithoutSourceMessageInput = {
-  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
-  weight?: Prisma.IntFieldUpdateOperationsInput | number
-  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
-  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
-  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
-  FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
-  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
-}
-
-export type UserFactUncheckedUpdateWithoutSourceMessageInput = {
-  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
-  weight?: Prisma.IntFieldUpdateOperationsInput | number
-  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
-  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
-  FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
-  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
-}
-
-export type UserFactUncheckedUpdateManyWithoutSourceMessageInput = {
-  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
-  weight?: Prisma.IntFieldUpdateOperationsInput | number
-  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
-  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
   embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1373,13 +868,11 @@ export type UserFactUncheckedUpdateManyWithoutSourceMessageInput = {
  */
 
 export type UserFactCountOutputType = {
-  FactImpact: number
   FactHistory: number
   evidence: number
 }
 
 export type UserFactCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  FactImpact?: boolean | UserFactCountOutputTypeCountFactImpactArgs
   FactHistory?: boolean | UserFactCountOutputTypeCountFactHistoryArgs
   evidence?: boolean | UserFactCountOutputTypeCountEvidenceArgs
 }
@@ -1392,13 +885,6 @@ export type UserFactCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Ext
    * Select specific fields to fetch from the UserFactCountOutputType
    */
   select?: Prisma.UserFactCountOutputTypeSelect<ExtArgs> | null
-}
-
-/**
- * UserFactCountOutputType without action
- */
-export type UserFactCountOutputTypeCountFactImpactArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.FactImpactWhereInput
 }
 
 /**
@@ -1423,18 +909,11 @@ export type UserFactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   type?: boolean
   weight?: boolean
   confidence?: boolean
-  sourceChatId?: boolean
-  sourceMessageId?: boolean
   expiresAt?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
-  impactScore?: boolean
   embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
-  FactImpact?: boolean | Prisma.UserFact$FactImpactArgs<ExtArgs>
   FactHistory?: boolean | Prisma.UserFact$FactHistoryArgs<ExtArgs>
   evidence?: boolean | Prisma.UserFact$evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserFactCountOutputTypeDefaultArgs<ExtArgs>
@@ -1447,17 +926,11 @@ export type UserFactSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   type?: boolean
   weight?: boolean
   confidence?: boolean
-  sourceChatId?: boolean
-  sourceMessageId?: boolean
   expiresAt?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
-  impactScore?: boolean
   embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
 }, ExtArgs["result"]["userFact"]>
 
 export type UserFactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1467,17 +940,11 @@ export type UserFactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   type?: boolean
   weight?: boolean
   confidence?: boolean
-  sourceChatId?: boolean
-  sourceMessageId?: boolean
   expiresAt?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
-  impactScore?: boolean
   embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
 }, ExtArgs["result"]["userFact"]>
 
 export type UserFactSelectScalar = {
@@ -1487,41 +954,30 @@ export type UserFactSelectScalar = {
   type?: boolean
   weight?: boolean
   confidence?: boolean
-  sourceChatId?: boolean
-  sourceMessageId?: boolean
   expiresAt?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
-  impactScore?: boolean
   embeddingVersion?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserFactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "content" | "type" | "weight" | "confidence" | "sourceChatId" | "sourceMessageId" | "expiresAt" | "usageCount" | "lastUsedAt" | "impactScore" | "embeddingVersion" | "createdAt" | "updatedAt", ExtArgs["result"]["userFact"]>
+export type UserFactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "content" | "type" | "weight" | "confidence" | "expiresAt" | "embeddingVersion" | "createdAt" | "updatedAt", ExtArgs["result"]["userFact"]>
 export type UserFactInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
-  FactImpact?: boolean | Prisma.UserFact$FactImpactArgs<ExtArgs>
   FactHistory?: boolean | Prisma.UserFact$FactHistoryArgs<ExtArgs>
   evidence?: boolean | Prisma.UserFact$evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserFactCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserFactIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
 }
 export type UserFactIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
 }
 
 export type $UserFactPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "UserFact"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
-    sourceMessage: Prisma.$MessagePayload<ExtArgs> | null
-    FactImpact: Prisma.$FactImpactPayload<ExtArgs>[]
     FactHistory: Prisma.$FactHistoryPayload<ExtArgs>[]
     evidence: Prisma.$UserFactEvidencePayload<ExtArgs>[]
   }
@@ -1532,12 +988,7 @@ export type $UserFactPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     type: $Enums.FactType
     weight: number
     confidence: number
-    sourceChatId: bigint | null
-    sourceMessageId: bigint | null
     expiresAt: Date | null
-    usageCount: number
-    lastUsedAt: Date | null
-    impactScore: number
     embeddingVersion: number | null
     createdAt: Date
     updatedAt: Date
@@ -1936,8 +1387,6 @@ readonly fields: UserFactFieldRefs;
 export interface Prisma__UserFactClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  sourceMessage<T extends Prisma.UserFact$sourceMessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$sourceMessageArgs<ExtArgs>>): Prisma.Prisma__MessageClient<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  FactImpact<T extends Prisma.UserFact$FactImpactArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$FactImpactArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FactImpactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   FactHistory<T extends Prisma.UserFact$FactHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$FactHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FactHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   evidence<T extends Prisma.UserFact$evidenceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$evidenceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserFactEvidencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1975,12 +1424,7 @@ export interface UserFactFieldRefs {
   readonly type: Prisma.FieldRef<"UserFact", 'FactType'>
   readonly weight: Prisma.FieldRef<"UserFact", 'Int'>
   readonly confidence: Prisma.FieldRef<"UserFact", 'Float'>
-  readonly sourceChatId: Prisma.FieldRef<"UserFact", 'BigInt'>
-  readonly sourceMessageId: Prisma.FieldRef<"UserFact", 'BigInt'>
   readonly expiresAt: Prisma.FieldRef<"UserFact", 'DateTime'>
-  readonly usageCount: Prisma.FieldRef<"UserFact", 'Int'>
-  readonly lastUsedAt: Prisma.FieldRef<"UserFact", 'DateTime'>
-  readonly impactScore: Prisma.FieldRef<"UserFact", 'Float'>
   readonly embeddingVersion: Prisma.FieldRef<"UserFact", 'Int'>
   readonly createdAt: Prisma.FieldRef<"UserFact", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"UserFact", 'DateTime'>
@@ -2382,49 +1826,6 @@ export type UserFactDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many UserFacts to delete.
    */
   limit?: number
-}
-
-/**
- * UserFact.sourceMessage
- */
-export type UserFact$sourceMessageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Message
-   */
-  select?: Prisma.MessageSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Message
-   */
-  omit?: Prisma.MessageOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.MessageInclude<ExtArgs> | null
-  where?: Prisma.MessageWhereInput
-}
-
-/**
- * UserFact.FactImpact
- */
-export type UserFact$FactImpactArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the FactImpact
-   */
-  select?: Prisma.FactImpactSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the FactImpact
-   */
-  omit?: Prisma.FactImpactOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FactImpactInclude<ExtArgs> | null
-  where?: Prisma.FactImpactWhereInput
-  orderBy?: Prisma.FactImpactOrderByWithRelationInput | Prisma.FactImpactOrderByWithRelationInput[]
-  cursor?: Prisma.FactImpactWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.FactImpactScalarFieldEnum | Prisma.FactImpactScalarFieldEnum[]
 }
 
 /**

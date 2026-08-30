@@ -414,7 +414,6 @@ export const ModelName = {
   Memory: 'Memory',
   UserFact: 'UserFact',
   UserFactEvidence: 'UserFactEvidence',
-  FactImpact: 'FactImpact',
   FactHistory: 'FactHistory'
 } as const
 
@@ -431,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "factImpact" | "factHistory"
+    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "factHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1693,80 +1692,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    FactImpact: {
-      payload: Prisma.$FactImpactPayload<ExtArgs>
-      fields: Prisma.FactImpactFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.FactImpactFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.FactImpactFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        findFirst: {
-          args: Prisma.FactImpactFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.FactImpactFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        findMany: {
-          args: Prisma.FactImpactFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
-        }
-        create: {
-          args: Prisma.FactImpactCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        createMany: {
-          args: Prisma.FactImpactCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.FactImpactCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
-        }
-        delete: {
-          args: Prisma.FactImpactDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        update: {
-          args: Prisma.FactImpactUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        deleteMany: {
-          args: Prisma.FactImpactDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.FactImpactUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.FactImpactUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>[]
-        }
-        upsert: {
-          args: Prisma.FactImpactUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FactImpactPayload>
-        }
-        aggregate: {
-          args: Prisma.FactImpactAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateFactImpact>
-        }
-        groupBy: {
-          args: Prisma.FactImpactGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FactImpactGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.FactImpactCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FactImpactCountAggregateOutputType> | number
-        }
-      }
-    }
     FactHistory: {
       payload: Prisma.$FactHistoryPayload<ExtArgs>
       fields: Prisma.FactHistoryFieldRefs
@@ -1884,8 +1809,7 @@ export const UserScalarFieldEnum = {
   id: 'id',
   firstName: 'firstName',
   lastName: 'lastName',
-  userName: 'userName',
-  metaInfo: 'metaInfo'
+  userName: 'userName'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -2119,12 +2043,7 @@ export const UserFactScalarFieldEnum = {
   type: 'type',
   weight: 'weight',
   confidence: 'confidence',
-  sourceChatId: 'sourceChatId',
-  sourceMessageId: 'sourceMessageId',
   expiresAt: 'expiresAt',
-  usageCount: 'usageCount',
-  lastUsedAt: 'lastUsedAt',
-  impactScore: 'impactScore',
   embeddingVersion: 'embeddingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2142,18 +2061,6 @@ export const UserFactEvidenceScalarFieldEnum = {
 } as const
 
 export type UserFactEvidenceScalarFieldEnum = (typeof UserFactEvidenceScalarFieldEnum)[keyof typeof UserFactEvidenceScalarFieldEnum]
-
-
-export const FactImpactScalarFieldEnum = {
-  id: 'id',
-  factId: 'factId',
-  usedInMessageId: 'usedInMessageId',
-  timestamp: 'timestamp',
-  userReaction: 'userReaction',
-  messageReaction: 'messageReaction'
-} as const
-
-export type FactImpactScalarFieldEnum = (typeof FactImpactScalarFieldEnum)[keyof typeof FactImpactScalarFieldEnum]
 
 
 export const FactHistoryScalarFieldEnum = {
@@ -2177,19 +2084,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2200,6 +2107,14 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -2207,14 +2122,6 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -2248,20 +2155,6 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2381,6 +2274,20 @@ export type EnumLimitNoticeKindFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'LimitNoticeKind[]'
  */
 export type ListEnumLimitNoticeKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LimitNoticeKind[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2677,7 +2584,6 @@ export type GlobalOmitConfig = {
   memory?: Prisma.MemoryOmit
   userFact?: Prisma.UserFactOmit
   userFactEvidence?: Prisma.UserFactEvidenceOmit
-  factImpact?: Prisma.FactImpactOmit
   factHistory?: Prisma.FactHistoryOmit
 }
 

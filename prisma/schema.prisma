@@ -20,7 +20,6 @@ model User {
   firstName String?
   lastName  String?
   userName  String?
-  metaInfo  Json?   @default("{}")
 
   Message         Message[]
   GuestInteraction GuestInteraction[]
@@ -281,7 +280,6 @@ model Message {
   sentAt           DateTime
   private          Boolean?                    @default(false)
   Replies          Message[]                   @relation("replies")
-  sourceFacts      UserFact[]                  @relation("UserFactSourceMessage")
   factEvidence     UserFactEvidence[]          @relation("UserFactEvidenceSourceMessage")
   aiThreadEvents   AiThreadContextEvent[]
 
@@ -395,33 +393,23 @@ model UserFact {
   userId BigInt
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  content         String
-  type            FactType
-  weight          Int       @default(1)
-  confidence      Float     @default(0.5)
-  sourceChatId    BigInt?
-  sourceMessageId BigInt?
-  sourceMessage   Message?  @relation("UserFactSourceMessage", fields: [sourceChatId, sourceMessageId], references: [chatId, id], onDelete: SetNull)
-  expiresAt       DateTime?
-
-  usageCount       Int                         @default(0)
-  lastUsedAt       DateTime?
-  impactScore      Float                       @default(0)
+  content          String
+  type             FactType
+  weight           Int                         @default(1)
+  confidence       Float                       @default(0.5)
+  expiresAt        DateTime?
   embedding        Unsupported("vector(384)")?
   embeddingVersion Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  FactImpact  FactImpact[]
   FactHistory FactHistory[]
   evidence    UserFactEvidence[]
 
   @@index([userId, type])
   @@index([userId, updatedAt])
-  @@index([sourceChatId, sourceMessageId])
   @@index([expiresAt])
-  @@index([impactScore])
 }
 
 model UserFactEvidence {
@@ -438,22 +426,6 @@ model UserFactEvidence {
 
   @@unique([factId, sourceChatId, sourceMessageId])
   @@index([sourceChatId, sourceMessageId])
-}
-
-model FactImpact {
-  id     BigInt   @id @default(autoincrement())
-  factId BigInt
-  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
-
-  usedInMessageId BigInt
-  timestamp       DateTime @default(now())
-
-  userReaction    String?
-  messageReaction String?
-
-  @@index([factId])
-  @@index([usedInMessageId])
-  @@index([timestamp])
 }
 
 model FactHistory {

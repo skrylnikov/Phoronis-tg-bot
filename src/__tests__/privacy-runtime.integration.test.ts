@@ -38,46 +38,6 @@ describe('privacy and runtime migration contracts', () => {
     ).resolves.toEqual({ id: chatId, greeting: 'Добро пожаловать!' });
   });
 
-  test('backfills fact evidence idempotently', async () => {
-    const { userId, chatId } = await createChatFixture();
-    const messageId = uniqueId();
-    await prisma.message.create({
-      data: {
-        id: messageId,
-        chatId,
-        senderId: userId,
-        messageType: 'TEXT',
-        text: 'Я люблю Rust',
-        sentAt: new Date(),
-      },
-    });
-    const fact = await prisma.userFact.create({
-      data: {
-        userId,
-        content: 'Пользователь любит Rust',
-        type: 'INTEREST',
-        sourceChatId: chatId,
-        sourceMessageId: messageId,
-      },
-    });
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      await prisma.$executeRaw`
-        INSERT INTO "UserFactEvidence" ("factId", "sourceChatId", "sourceMessageId")
-        SELECT "id", "sourceChatId", "sourceMessageId"
-        FROM "UserFact"
-        WHERE "id" = ${fact.id}
-          AND "sourceChatId" IS NOT NULL
-          AND "sourceMessageId" IS NOT NULL
-        ON CONFLICT ("factId", "sourceChatId", "sourceMessageId") DO NOTHING
-      `;
-    }
-
-    expect(
-      await prisma.userFactEvidence.count({ where: { factId: fact.id } }),
-    ).toBe(1);
-  });
-
   test('updates a fact only with a new source and rolls back partial failures', async () => {
     const { userId, chatId } = await createChatFixture();
     const firstMessageId = uniqueId();
@@ -96,8 +56,6 @@ describe('privacy and runtime migration contracts', () => {
         userId,
         content: 'Факт',
         type: 'FACT',
-        sourceChatId: chatId,
-        sourceMessageId: firstMessageId,
         evidence: {
           create: { sourceChatId: chatId, sourceMessageId: firstMessageId },
         },
@@ -142,7 +100,7 @@ describe('privacy and runtime migration contracts', () => {
     ).toBe(0);
     expect(
       await prisma.userFact.findUnique({ where: { id: fact.id } }),
-    ).toMatchObject({ weight: 1, sourceMessageId: firstMessageId });
+    ).toMatchObject({ weight: 1 });
 
     expect(
       await applyUserFactEvidenceRepo({
@@ -164,7 +122,10 @@ describe('privacy and runtime migration contracts', () => {
     ).toBe(false);
     expect(
       await prisma.userFact.findUnique({ where: { id: fact.id } }),
-    ).toMatchObject({ weight: 2, sourceMessageId: firstMessageId });
+    ).toMatchObject({ weight: 2 });
+    expect(
+      await prisma.userFactEvidence.count({ where: { factId: fact.id } }),
+    ).toBe(2);
   });
 
   test('deleting an expired parent preserves its reply', async () => {

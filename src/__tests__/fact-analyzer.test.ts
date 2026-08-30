@@ -239,8 +239,6 @@ describe('analyzeUserMetaInfo source messages', () => {
       id: 200n,
       content: 'Тот же факт',
       weight: 2,
-      sourceChatId: null,
-      sourceMessageId: null,
     });
     mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
       id: 200n,
@@ -281,8 +279,6 @@ describe('analyzeUserMetaInfo source messages', () => {
       id: 200n,
       content: 'Тот же факт',
       weight: 2,
-      sourceChatId: 7n,
-      sourceMessageId: 100n,
     });
     mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
       id: 200n,
@@ -309,7 +305,7 @@ describe('analyzeUserMetaInfo source messages', () => {
     expect(mocks.prisma.factHistory.create).toHaveBeenCalledTimes(1);
   });
 
-  it('updates the source when a fact is contradicted', async () => {
+  it('updates a contradicted fact with new evidence', async () => {
     mocks.generateObject.mockResolvedValue({
       object: {
         facts: [
@@ -331,8 +327,6 @@ describe('analyzeUserMetaInfo source messages', () => {
       id: 200n,
       content: 'Старый факт',
       weight: 2,
-      sourceChatId: 7n,
-      sourceMessageId: 101n,
     });
     mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
       id: 200n,
@@ -348,7 +342,7 @@ describe('analyzeUserMetaInfo source messages', () => {
     expect(mocks.prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('ranks facts without legacy impact scores', async () => {
+  it('ranks facts by expiry, type, weight, confidence, and freshness', async () => {
     const now = new Date('2026-08-31T12:00:00.000Z');
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -358,7 +352,6 @@ describe('analyzeUserMetaInfo source messages', () => {
         type: 'FACT',
         weight: 1,
         confidence: 0,
-        impactScore: 0,
         updatedAt: now,
         expiresAt: new Date('2026-09-01T12:00:00.000Z'),
       },
@@ -367,7 +360,6 @@ describe('analyzeUserMetaInfo source messages', () => {
         type: 'INTEREST',
         weight: 2,
         confidence: 1,
-        impactScore: 0,
         updatedAt: new Date('2026-08-26T12:00:00.000Z'),
         expiresAt: null,
       },
@@ -376,7 +368,6 @@ describe('analyzeUserMetaInfo source messages', () => {
         type: 'FACT',
         weight: 4,
         confidence: 0.8,
-        impactScore: 0,
         updatedAt: new Date('2026-08-30T12:00:00.000Z'),
         expiresAt: null,
       },
@@ -385,16 +376,14 @@ describe('analyzeUserMetaInfo source messages', () => {
         type: 'FACT',
         weight: 2,
         confidence: 0.5,
-        impactScore: 0,
         updatedAt: now,
         expiresAt: null,
       },
       {
-        content: 'legacy impact',
+        content: 'stale',
         type: 'FACT',
         weight: 2,
         confidence: 0.5,
-        impactScore: 999,
         updatedAt: new Date('2026-08-21T12:00:00.000Z'),
         expiresAt: null,
       },
@@ -405,7 +394,7 @@ describe('analyzeUserMetaInfo source messages', () => {
       expect.objectContaining({ content: 'interest' }),
       expect.objectContaining({ content: 'weight' }),
       expect.objectContaining({ content: 'fresh' }),
-      expect.objectContaining({ content: 'legacy impact' }),
+      expect.objectContaining({ content: 'stale' }),
     ]);
     vi.useRealTimers();
   });

@@ -127,11 +127,6 @@ export type UserFact = Prisma.UserFactModel
  */
 export type UserFactEvidence = Prisma.UserFactEvidenceModel
 /**
- * Model FactImpact
- * 
- */
-export type FactImpact = Prisma.FactImpactModel
-/**
  * Model FactHistory
  * 
  */
