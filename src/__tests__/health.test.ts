@@ -22,8 +22,8 @@ import { RuntimeState } from '../runtime-state';
 
 describe('readiness', () => {
   beforeEach(() => {
-    queryRaw.mockResolvedValue([{ '?column?': 1 }]);
-    checkEmbeddingHealth.mockReset();
+    queryRaw.mockReset().mockResolvedValue([{ '?column?': 1 }]);
+    checkEmbeddingHealth.mockReset().mockResolvedValue(true);
   });
 
   function readyState(): RuntimeState {
@@ -62,9 +62,42 @@ describe('readiness', () => {
     expect(response.status).toBe(503);
   });
 
+  it('recovers after TEI becomes available again', async () => {
+    checkEmbeddingHealth
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const state = readyState();
+
+    expect((await getReadinessResponse(state)).status).toBe(503);
+    expect((await getReadinessResponse(state)).status).toBe(200);
+    expect(checkEmbeddingHealth).toHaveBeenCalledTimes(2);
+  });
+
+  it('recovers after PostgreSQL becomes available again', async () => {
+    queryRaw
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockResolvedValueOnce([{ '?column?': 1 }]);
+    const state = readyState();
+
+    expect((await getReadinessResponse(state)).status).toBe(503);
+    expect((await getReadinessResponse(state)).status).toBe(200);
+    expect(queryRaw).toHaveBeenCalledTimes(2);
+  });
+
   it('is not ready before required runtime components start', async () => {
     const response = await getReadinessResponse(new RuntimeState());
 
     expect(response.status).toBe(503);
+  });
+
+  it('is not ready and skips dependency checks during shutdown', async () => {
+    const state = readyState();
+    state.beginShutdown();
+
+    const response = await getReadinessResponse(state);
+
+    expect(response.status).toBe(503);
+    expect(queryRaw).not.toHaveBeenCalled();
+    expect(checkEmbeddingHealth).not.toHaveBeenCalled();
   });
 });

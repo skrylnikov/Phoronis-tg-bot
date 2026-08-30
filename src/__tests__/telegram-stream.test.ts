@@ -15,6 +15,7 @@ interface TestContext {
   editEphemeralMessageText: ReturnType<typeof vi.fn>;
   editMessageText: ReturnType<typeof vi.fn>;
   reply: ReturnType<typeof vi.fn>;
+  replyWithDocument: ReturnType<typeof vi.fn>;
   replyWithDraft: ReturnType<typeof vi.fn>;
   replyWithRichMessage: ReturnType<typeof vi.fn>;
   replyWithRichMessageDraft: ReturnType<typeof vi.fn>;
@@ -39,6 +40,11 @@ function createContext(
     }),
   );
   const replyWithDraft = vi.fn().mockResolvedValue(true);
+  const replyWithDocument = vi.fn().mockResolvedValue({
+    message_id: 101,
+    date: 10,
+    from: { id: 999 },
+  });
   const editMessageText = vi.fn().mockResolvedValue(true);
   const editEphemeralMessageText = vi.fn().mockResolvedValue(true);
   const deleteMessage = vi.fn().mockResolvedValue(true);
@@ -55,6 +61,7 @@ function createContext(
     },
     update: { update_id: 7 },
     reply,
+    replyWithDocument,
     replyWithDraft,
     replyWithRichMessage,
     replyWithRichMessageDraft,
@@ -73,6 +80,7 @@ function createContext(
     editEphemeralMessageText,
     editMessageText,
     reply,
+    replyWithDocument,
     replyWithDraft,
     replyWithRichMessage,
     replyWithRichMessageDraft,
@@ -184,6 +192,21 @@ describe('TelegramStreamSink', () => {
     expect(testContext.editMessageText).not.toHaveBeenCalled();
   });
 
+  it('rejects an oversized ephemeral result before final Telegram delivery', async () => {
+    const testContext = createContext('supergroup');
+    const sink = await TelegramStreamSink.create(testContext.context, {
+      ephemeralReceiverUserId: 123,
+    });
+    testContext.editEphemeralMessageText.mockClear();
+
+    await expect(sink.finish('я'.repeat(4097))).rejects.toThrow(
+      'Ephemeral response exceeds Telegram message limit',
+    );
+
+    expect(testContext.editEphemeralMessageText).not.toHaveBeenCalled();
+    expect(testContext.replyWithDocument).not.toHaveBeenCalled();
+  });
+
   it('uses MarkdownV2 when rich content contains external media', async () => {
     const testContext = createContext('group');
     const sink = await TelegramStreamSink.create(testContext.context);
@@ -227,6 +250,44 @@ describe('TelegramStreamSink', () => {
       testContext.replyWithRichMessageDraft.mock.calls[0]?.[0].markdown,
     ).toHaveLength(32_768);
   });
+
+  it.each([
+    ['private', false],
+    ['group', false],
+    ['supergroup', true],
+  ] as const)(
+    'delivers private, group and topic replies without loss at transport boundaries: %s',
+    async (type, isTopic) => {
+      for (const length of [4096, 4097, 32_768, 32_769]) {
+        const testContext = createContext(type, isTopic);
+        const sink = await TelegramStreamSink.create(testContext.context);
+        const text = 'я'.repeat(length);
+
+        await sink.finish(text);
+
+        if (length === 4096) {
+          expect(testContext.reply).toHaveBeenCalledWith(
+            expect.stringMatching(/^я{4096}$/u),
+            expect.objectContaining(isTopic ? { message_thread_id: 77 } : {}),
+          );
+        } else if (length <= 32_768) {
+          expect(testContext.replyWithRichMessage).toHaveBeenCalledWith(
+            { markdown: text },
+            expect.objectContaining(isTopic ? { message_thread_id: 77 } : {}),
+          );
+        } else {
+          const document = testContext.replyWithDocument.mock.calls[0]?.[0];
+          expect(document.filename).toBe('answer.txt');
+          expect(Buffer.from(await document.toRaw()).toString('utf8')).toBe(
+            text,
+          );
+          expect(testContext.replyWithDocument.mock.calls[0]?.[1]).toEqual(
+            expect.objectContaining(isTopic ? { message_thread_id: 77 } : {}),
+          );
+        }
+      }
+    },
+  );
 
   it('uses MarkdownV2 for a simple final reply', async () => {
     const testContext = createContext('private');

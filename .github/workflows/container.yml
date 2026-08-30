@@ -12,16 +12,32 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.2-pg18-trixie
+        env:
+          POSTGRES_DB: build
+          POSTGRES_PASSWORD: build
+          POSTGRES_USER: build
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U build -d build"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with: {bun-version: 1.4.0}
       - run: bun install --frozen-lockfile
-        env:
-          DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
+      - run: bun run db:deploy
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run test:unit
+      - run: bun run test:integration
 
   image:
     needs: quality

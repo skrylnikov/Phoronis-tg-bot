@@ -21,7 +21,6 @@ export const newChatMembersController = async (ctx: Context) => {
   const chat = await findChatByIdRepo(BigInt(ctx.chat?.id ?? 0), {
     id: true,
     greeting: true,
-    greetingEnabled: true,
   });
 
   const message = ctx.message;

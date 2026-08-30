@@ -4,6 +4,7 @@ import type { BotContext } from '../../bot';
 import { prisma } from '../../db';
 import { getUserPersonalMemories } from '../../domain/memory';
 import { getAllUserFacts } from '../../domain/user/fact-analyzer';
+import { logger } from '../../logger';
 
 const userInfoInputSchema = z.object({
   userId: z
@@ -22,7 +23,7 @@ function isGroupChat(ctx: BotContext): boolean {
 export const createUserInfoTool = (ctx?: BotContext) =>
   dynamicTool({
     description:
-      'Получение информации о пользователе: все известные факты и личная память.',
+      'Получение информации о текущем пользователе либо публичных фактов участника текущей группы.',
     inputSchema: userInfoInputSchema,
     execute: async (input: unknown) => {
       if (!ctx?.from || ctx.chatId === undefined) {
@@ -46,16 +47,15 @@ export const createUserInfoTool = (ctx?: BotContext) =>
             });
           }
 
-          const participant = await prisma.message.findFirst({
-            where: {
-              chatId,
-              senderId: targetUserId,
-              private: false,
-            },
-            select: { id: true },
-          });
-
-          if (!participant) {
+          const member = await ctx.api.getChatMember(
+            ctx.chatId,
+            Number(targetUserId),
+          );
+          if (
+            member.status === 'left' ||
+            member.status === 'kicked' ||
+            (member.status === 'restricted' && !member.is_member)
+          ) {
             return JSON.stringify({
               error: 'Пользователь не является участником текущего чата',
             });
@@ -77,11 +77,13 @@ export const createUserInfoTool = (ctx?: BotContext) =>
         }
 
         const [facts, personalMemories] = await Promise.all([
-          getAllUserFacts(targetUserId),
-          getUserPersonalMemories(
+          getAllUserFacts(
             targetUserId,
-            isCurrentUser ? { allChats: true } : { chatId },
+            isCurrentUser ? {} : { sourceChatId: chatId },
           ),
+          isCurrentUser
+            ? getUserPersonalMemories(targetUserId, { allChats: true })
+            : [],
         ]);
 
         return JSON.stringify({
@@ -101,9 +103,13 @@ export const createUserInfoTool = (ctx?: BotContext) =>
             createdAt: memory.createdAt.toISOString(),
             updatedAt: memory.updatedAt.toISOString(),
           })),
-          memoryScope: isCurrentUser ? 'all_chats' : 'current_chat',
+          memoryScope: isCurrentUser ? 'all_chats' : 'none',
         });
-      } catch (_error) {
+      } catch (error) {
+        logger.error(
+          { event: 'user_info.access_failed', err: error },
+          'Failed to authorize or load user information',
+        );
         return JSON.stringify({
           error: 'Не удалось получить информацию о пользователе',
         });

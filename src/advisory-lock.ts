@@ -1,8 +1,17 @@
 import { Client } from 'pg';
 import { logger } from './logger';
 
-export const SCHEDULER_LOCK_KEY = 0x5048_0001;
 export const EMBEDDING_BACKFILL_LOCK_KEY = 0x5048_0002;
+export const SCHEDULER_LOCK_KEYS = {
+  dailyAnalytics: 0x5048_0101,
+  chatActivityRecovery: 0x5048_0102,
+  selfieSaturday: 0x5048_0103,
+  inktober: 0x5048_0104,
+  factDecay: 0x5048_0105,
+  factImpact: 0x5048_0106,
+  privateMessageCleanup: 0x5048_0107,
+  metaInfoMigration: 0x5048_0108,
+} as const;
 
 type AdvisoryLockKey = number | bigint;
 

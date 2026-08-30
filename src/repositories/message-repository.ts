@@ -15,26 +15,18 @@ async function checkMessageExistsRepo(
   chatId: bigint,
   messageId: bigint,
 ): Promise<boolean> {
-  try {
-    const message = await prisma.message.findUnique({
-      where: {
-        chatId_id: {
-          chatId,
-          id: messageId,
-        },
+  const message = await prisma.message.findUnique({
+    where: {
+      chatId_id: {
+        chatId,
+        id: messageId,
       },
-      select: {
-        id: true,
-      },
-    });
-    return message !== null;
-  } catch (error) {
-    handleError(
-      error,
-      `Error checking message existence ${chatId}_${messageId}`,
-    );
-    return false;
-  }
+    },
+    select: {
+      id: true,
+    },
+  });
+  return message !== null;
 }
 
 async function findReplyIdRepo(
@@ -43,16 +35,8 @@ async function findReplyIdRepo(
 ): Promise<bigint | null> {
   if (!replyToMessageId) return null;
 
-  try {
-    const exists = await checkMessageExistsRepo(chatId, replyToMessageId);
-    return exists ? replyToMessageId : null;
-  } catch (error) {
-    handleError(
-      error,
-      `Error finding reply ID for ${chatId}_${replyToMessageId}`,
-    );
-    return null;
-  }
+  const exists = await checkMessageExistsRepo(chatId, replyToMessageId);
+  return exists ? replyToMessageId : null;
 }
 
 export interface SaveMessageParams {

@@ -332,6 +332,7 @@ export type UserFactWhereInput = {
   sourceMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
   FactImpact?: Prisma.FactImpactListRelationFilter
   FactHistory?: Prisma.FactHistoryListRelationFilter
+  evidence?: Prisma.UserFactEvidenceListRelationFilter
 }
 
 export type UserFactOrderByWithRelationInput = {
@@ -354,6 +355,7 @@ export type UserFactOrderByWithRelationInput = {
   sourceMessage?: Prisma.MessageOrderByWithRelationInput
   FactImpact?: Prisma.FactImpactOrderByRelationAggregateInput
   FactHistory?: Prisma.FactHistoryOrderByRelationAggregateInput
+  evidence?: Prisma.UserFactEvidenceOrderByRelationAggregateInput
 }
 
 export type UserFactWhereUniqueInput = Prisma.AtLeast<{
@@ -379,6 +381,7 @@ export type UserFactWhereUniqueInput = Prisma.AtLeast<{
   sourceMessage?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
   FactImpact?: Prisma.FactImpactListRelationFilter
   FactHistory?: Prisma.FactHistoryListRelationFilter
+  evidence?: Prisma.UserFactEvidenceListRelationFilter
 }, "id">
 
 export type UserFactOrderByWithAggregationInput = {
@@ -442,6 +445,7 @@ export type UserFactCreateInput = {
   sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
   FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUncheckedCreateInput = {
@@ -462,6 +466,7 @@ export type UserFactUncheckedCreateInput = {
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUpdateInput = {
@@ -481,6 +486,7 @@ export type UserFactUpdateInput = {
   sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
   FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateInput = {
@@ -501,6 +507,7 @@ export type UserFactUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactCreateManyInput = {
@@ -743,6 +750,20 @@ export type FloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type UserFactCreateNestedOneWithoutEvidenceInput = {
+  create?: Prisma.XOR<Prisma.UserFactCreateWithoutEvidenceInput, Prisma.UserFactUncheckedCreateWithoutEvidenceInput>
+  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutEvidenceInput
+  connect?: Prisma.UserFactWhereUniqueInput
+}
+
+export type UserFactUpdateOneRequiredWithoutEvidenceNestedInput = {
+  create?: Prisma.XOR<Prisma.UserFactCreateWithoutEvidenceInput, Prisma.UserFactUncheckedCreateWithoutEvidenceInput>
+  connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutEvidenceInput
+  upsert?: Prisma.UserFactUpsertWithoutEvidenceInput
+  connect?: Prisma.UserFactWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserFactUpdateToOneWithWhereWithoutEvidenceInput, Prisma.UserFactUpdateWithoutEvidenceInput>, Prisma.UserFactUncheckedUpdateWithoutEvidenceInput>
+}
+
 export type UserFactCreateNestedOneWithoutFactImpactInput = {
   create?: Prisma.XOR<Prisma.UserFactCreateWithoutFactImpactInput, Prisma.UserFactUncheckedCreateWithoutFactImpactInput>
   connectOrCreate?: Prisma.UserFactCreateOrConnectWithoutFactImpactInput
@@ -787,6 +808,7 @@ export type UserFactCreateWithoutUserInput = {
   sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
   FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUncheckedCreateWithoutUserInput = {
@@ -806,6 +828,7 @@ export type UserFactUncheckedCreateWithoutUserInput = {
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
 export type UserFactCreateOrConnectWithoutUserInput = {
@@ -871,6 +894,7 @@ export type UserFactCreateWithoutSourceMessageInput = {
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
   FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUncheckedCreateWithoutSourceMessageInput = {
@@ -889,6 +913,7 @@ export type UserFactUncheckedCreateWithoutSourceMessageInput = {
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
 export type UserFactCreateOrConnectWithoutSourceMessageInput = {
@@ -917,6 +942,100 @@ export type UserFactUpdateManyWithWhereWithoutSourceMessageInput = {
   data: Prisma.XOR<Prisma.UserFactUpdateManyMutationInput, Prisma.UserFactUncheckedUpdateManyWithoutSourceMessageInput>
 }
 
+export type UserFactCreateWithoutEvidenceInput = {
+  id?: bigint | number
+  content: string
+  type: $Enums.FactType
+  weight?: number
+  confidence?: number
+  expiresAt?: Date | string | null
+  usageCount?: number
+  lastUsedAt?: Date | string | null
+  impactScore?: number
+  embeddingVersion?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutUserFactInput
+  sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
+  FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
+  FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
+}
+
+export type UserFactUncheckedCreateWithoutEvidenceInput = {
+  id?: bigint | number
+  userId: bigint | number
+  content: string
+  type: $Enums.FactType
+  weight?: number
+  confidence?: number
+  sourceChatId?: bigint | number | null
+  sourceMessageId?: bigint | number | null
+  expiresAt?: Date | string | null
+  usageCount?: number
+  lastUsedAt?: Date | string | null
+  impactScore?: number
+  embeddingVersion?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
+  FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
+}
+
+export type UserFactCreateOrConnectWithoutEvidenceInput = {
+  where: Prisma.UserFactWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserFactCreateWithoutEvidenceInput, Prisma.UserFactUncheckedCreateWithoutEvidenceInput>
+}
+
+export type UserFactUpsertWithoutEvidenceInput = {
+  update: Prisma.XOR<Prisma.UserFactUpdateWithoutEvidenceInput, Prisma.UserFactUncheckedUpdateWithoutEvidenceInput>
+  create: Prisma.XOR<Prisma.UserFactCreateWithoutEvidenceInput, Prisma.UserFactUncheckedCreateWithoutEvidenceInput>
+  where?: Prisma.UserFactWhereInput
+}
+
+export type UserFactUpdateToOneWithWhereWithoutEvidenceInput = {
+  where?: Prisma.UserFactWhereInput
+  data: Prisma.XOR<Prisma.UserFactUpdateWithoutEvidenceInput, Prisma.UserFactUncheckedUpdateWithoutEvidenceInput>
+}
+
+export type UserFactUpdateWithoutEvidenceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
+  weight?: Prisma.IntFieldUpdateOperationsInput | number
+  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
+  sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
+  FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
+  FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
+}
+
+export type UserFactUncheckedUpdateWithoutEvidenceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumFactTypeFieldUpdateOperationsInput | $Enums.FactType
+  weight?: Prisma.IntFieldUpdateOperationsInput | number
+  confidence?: Prisma.FloatFieldUpdateOperationsInput | number
+  sourceChatId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  sourceMessageId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  impactScore?: Prisma.FloatFieldUpdateOperationsInput | number
+  embeddingVersion?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
+  FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
+}
+
 export type UserFactCreateWithoutFactImpactInput = {
   id?: bigint | number
   content: string
@@ -933,6 +1052,7 @@ export type UserFactCreateWithoutFactImpactInput = {
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
   sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
   FactHistory?: Prisma.FactHistoryCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUncheckedCreateWithoutFactImpactInput = {
@@ -952,6 +1072,7 @@ export type UserFactUncheckedCreateWithoutFactImpactInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   FactHistory?: Prisma.FactHistoryUncheckedCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
 export type UserFactCreateOrConnectWithoutFactImpactInput = {
@@ -986,6 +1107,7 @@ export type UserFactUpdateWithoutFactImpactInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
   sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateWithoutFactImpactInput = {
@@ -1005,6 +1127,7 @@ export type UserFactUncheckedUpdateWithoutFactImpactInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactCreateWithoutFactHistoryInput = {
@@ -1023,6 +1146,7 @@ export type UserFactCreateWithoutFactHistoryInput = {
   user: Prisma.UserCreateNestedOneWithoutUserFactInput
   sourceMessage?: Prisma.MessageCreateNestedOneWithoutSourceFactsInput
   FactImpact?: Prisma.FactImpactCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceCreateNestedManyWithoutFactInput
 }
 
 export type UserFactUncheckedCreateWithoutFactHistoryInput = {
@@ -1042,6 +1166,7 @@ export type UserFactUncheckedCreateWithoutFactHistoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   FactImpact?: Prisma.FactImpactUncheckedCreateNestedManyWithoutFactInput
+  evidence?: Prisma.UserFactEvidenceUncheckedCreateNestedManyWithoutFactInput
 }
 
 export type UserFactCreateOrConnectWithoutFactHistoryInput = {
@@ -1076,6 +1201,7 @@ export type UserFactUpdateWithoutFactHistoryInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
   sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
   FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateWithoutFactHistoryInput = {
@@ -1095,6 +1221,7 @@ export type UserFactUncheckedUpdateWithoutFactHistoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactCreateManyUserInput = {
@@ -1130,6 +1257,7 @@ export type UserFactUpdateWithoutUserInput = {
   sourceMessage?: Prisma.MessageUpdateOneWithoutSourceFactsNestedInput
   FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateWithoutUserInput = {
@@ -1149,6 +1277,7 @@ export type UserFactUncheckedUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateManyWithoutUserInput = {
@@ -1200,6 +1329,7 @@ export type UserFactUpdateWithoutSourceMessageInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutUserFactNestedInput
   FactImpact?: Prisma.FactImpactUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateWithoutSourceMessageInput = {
@@ -1218,6 +1348,7 @@ export type UserFactUncheckedUpdateWithoutSourceMessageInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   FactImpact?: Prisma.FactImpactUncheckedUpdateManyWithoutFactNestedInput
   FactHistory?: Prisma.FactHistoryUncheckedUpdateManyWithoutFactNestedInput
+  evidence?: Prisma.UserFactEvidenceUncheckedUpdateManyWithoutFactNestedInput
 }
 
 export type UserFactUncheckedUpdateManyWithoutSourceMessageInput = {
@@ -1244,11 +1375,13 @@ export type UserFactUncheckedUpdateManyWithoutSourceMessageInput = {
 export type UserFactCountOutputType = {
   FactImpact: number
   FactHistory: number
+  evidence: number
 }
 
 export type UserFactCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   FactImpact?: boolean | UserFactCountOutputTypeCountFactImpactArgs
   FactHistory?: boolean | UserFactCountOutputTypeCountFactHistoryArgs
+  evidence?: boolean | UserFactCountOutputTypeCountEvidenceArgs
 }
 
 /**
@@ -1275,6 +1408,13 @@ export type UserFactCountOutputTypeCountFactHistoryArgs<ExtArgs extends runtime.
   where?: Prisma.FactHistoryWhereInput
 }
 
+/**
+ * UserFactCountOutputType without action
+ */
+export type UserFactCountOutputTypeCountEvidenceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserFactEvidenceWhereInput
+}
+
 
 export type UserFactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1296,6 +1436,7 @@ export type UserFactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
   FactImpact?: boolean | Prisma.UserFact$FactImpactArgs<ExtArgs>
   FactHistory?: boolean | Prisma.UserFact$FactHistoryArgs<ExtArgs>
+  evidence?: boolean | Prisma.UserFact$evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserFactCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["userFact"]>
 
@@ -1363,6 +1504,7 @@ export type UserFactInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   sourceMessage?: boolean | Prisma.UserFact$sourceMessageArgs<ExtArgs>
   FactImpact?: boolean | Prisma.UserFact$FactImpactArgs<ExtArgs>
   FactHistory?: boolean | Prisma.UserFact$FactHistoryArgs<ExtArgs>
+  evidence?: boolean | Prisma.UserFact$evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserFactCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserFactIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1381,6 +1523,7 @@ export type $UserFactPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     sourceMessage: Prisma.$MessagePayload<ExtArgs> | null
     FactImpact: Prisma.$FactImpactPayload<ExtArgs>[]
     FactHistory: Prisma.$FactHistoryPayload<ExtArgs>[]
+    evidence: Prisma.$UserFactEvidencePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -1796,6 +1939,7 @@ export interface Prisma__UserFactClient<T, Null = never, ExtArgs extends runtime
   sourceMessage<T extends Prisma.UserFact$sourceMessageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$sourceMessageArgs<ExtArgs>>): Prisma.Prisma__MessageClient<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   FactImpact<T extends Prisma.UserFact$FactImpactArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$FactImpactArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FactImpactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   FactHistory<T extends Prisma.UserFact$FactHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$FactHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FactHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  evidence<T extends Prisma.UserFact$evidenceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserFact$evidenceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserFactEvidencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2305,6 +2449,30 @@ export type UserFact$FactHistoryArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.FactHistoryScalarFieldEnum | Prisma.FactHistoryScalarFieldEnum[]
+}
+
+/**
+ * UserFact.evidence
+ */
+export type UserFact$evidenceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserFactEvidence
+   */
+  select?: Prisma.UserFactEvidenceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserFactEvidence
+   */
+  omit?: Prisma.UserFactEvidenceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserFactEvidenceInclude<ExtArgs> | null
+  where?: Prisma.UserFactEvidenceWhereInput
+  orderBy?: Prisma.UserFactEvidenceOrderByWithRelationInput | Prisma.UserFactEvidenceOrderByWithRelationInput[]
+  cursor?: Prisma.UserFactEvidenceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserFactEvidenceScalarFieldEnum | Prisma.UserFactEvidenceScalarFieldEnum[]
 }
 
 /**

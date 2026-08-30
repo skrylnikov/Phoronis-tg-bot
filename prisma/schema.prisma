@@ -268,7 +268,7 @@ model Message {
   sessionId        String?
   modelId          String?
   replyToMessageId BigInt?
-  replyToMessage   Message? @relation("replies", fields: [replyToMessageId, chatId], references: [id, chatId])
+  replyToMessage   Message? @relation("replies", fields: [replyToMessageId, chatId], references: [id, chatId], onDelete: SetNull)
 
   messageType MessageType
 
@@ -282,10 +282,12 @@ model Message {
   private          Boolean?                    @default(false)
   Replies          Message[]                   @relation("replies")
   sourceFacts      UserFact[]                  @relation("UserFactSourceMessage")
+  factEvidence     UserFactEvidence[]          @relation("UserFactEvidenceSourceMessage")
   aiThreadEvents   AiThreadContextEvent[]
 
   @@id([chatId, id])
   @@index([chatId, sentAt])
+  @@index([private, sentAt])
   @@index([sessionId])
   @@index([senderId])
 }
@@ -351,7 +353,7 @@ model AiThreadContextEvent {
   eventKind      AiThreadContextEventKind
   messageChatId  BigInt?
   messageId      BigInt?
-  message        Message?                  @relation(fields: [messageChatId, messageId], references: [chatId, id], onDelete: SetNull)
+  message        Message?                  @relation(fields: [messageChatId, messageId], references: [chatId, id], onDelete: Cascade)
   payload        Json?
   createdAt      DateTime                  @default(now())
 
@@ -413,12 +415,29 @@ model UserFact {
 
   FactImpact  FactImpact[]
   FactHistory FactHistory[]
+  evidence    UserFactEvidence[]
 
   @@index([userId, type])
   @@index([userId, updatedAt])
   @@index([sourceChatId, sourceMessageId])
   @@index([expiresAt])
   @@index([impactScore])
+}
+
+model UserFactEvidence {
+  id BigInt @id @default(autoincrement())
+
+  factId BigInt
+  fact   UserFact @relation(fields: [factId], references: [id], onDelete: Cascade)
+
+  sourceChatId    BigInt
+  sourceMessageId BigInt
+  sourceMessage   Message @relation("UserFactEvidenceSourceMessage", fields: [sourceChatId, sourceMessageId], references: [chatId, id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([factId, sourceChatId, sourceMessageId])
+  @@index([sourceChatId, sourceMessageId])
 }
 
 model FactImpact {

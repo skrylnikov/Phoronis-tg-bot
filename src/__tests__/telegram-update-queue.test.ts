@@ -25,6 +25,7 @@ import {
   classifyTelegramUpdate,
   createTelegramUpdateQueue,
   isTelegramUpdate,
+  mapTelegramUpdateError,
 } from '../telegram-update-queue';
 
 const bot = {} as Bot<BotContext>;
@@ -35,6 +36,11 @@ beforeEach(() => {
 });
 
 describe('Telegram update inbox routing', () => {
+  it('keeps repository failures retryable', () => {
+    const error = new Error('temporary database failure');
+    expect(mapTelegramUpdateError(error)).toEqual({ kind: 'retryable', error });
+  });
+
   it('validates update_id before enqueueing', () => {
     expect(isTelegramUpdate({ update_id: 1 })).toBe(true);
     expect(isTelegramUpdate({ update_id: -1 })).toBe(false);

@@ -1,13 +1,12 @@
 import { logger } from '../../logger';
 import {
   findMessageByIdRepo,
-  findUserFactsWithImpactsRepo,
   updateManyUserFactsRepo,
-  updateUserFactRepo,
 } from '../../repositories';
 import {
   createManyFactImpactsRepo,
   findFactImpactsRepo,
+  recalculateFactImpactScoresRepo,
   updateManyFactImpactsRepo,
 } from '../../repositories/fact-impact-repository';
 
@@ -149,64 +148,10 @@ export async function trackFactUsage(
 }
 
 export async function recalculateFactImpactScores() {
-  const facts = await findUserFactsWithImpactsRepo({
-    usageCount: { gt: 0 },
-  });
-
-  for (const fact of facts) {
-    const impacts = fact.FactImpact;
-
-    if (impacts.length === 0) {
-      continue;
-    }
-
-    let score = 0;
-
-    for (const impact of impacts) {
-      let deltaScore = 0;
-
-      switch (impact.userReaction) {
-        case 'positive':
-          deltaScore += 2;
-          break;
-        case 'negative':
-          deltaScore -= 2;
-          break;
-        case 'correction':
-          deltaScore -= 1;
-          break;
-      }
-
-      switch (impact.messageReaction) {
-        case 'question':
-          deltaScore += 1.5;
-          break;
-        case 'clarification':
-          deltaScore += 1.5;
-          break;
-        case 'continue':
-          deltaScore += 1;
-          break;
-        case 'ignore':
-          deltaScore -= 0.5;
-          break;
-      }
-
-      const daysSince =
-        (Date.now() - impact.timestamp.getTime()) / (1000 * 60 * 60 * 24);
-      const timeDecay = Math.exp(-daysSince / 30);
-      score += deltaScore * timeDecay;
-    }
-
-    const normalizedScore = score / Math.sqrt(impacts.length);
-
-    await updateUserFactRepo(fact.id, {
-      impactScore: normalizedScore,
-    });
-  }
+  const factCount = await recalculateFactImpactScoresRepo();
 
   logger.info(
-    { event: 'user_fact.impact_scores_recalculated', factCount: facts.length },
+    { event: 'user_fact.impact_scores_recalculated', factCount },
     'User fact impact scores recalculated',
   );
 }

@@ -86,6 +86,25 @@ describe('saveMessage parent check', () => {
     expect(createCall.data.replyToMessageId).toBe(99n);
   });
 
+  it('rethrows a temporary parent lookup failure', async () => {
+    const error = new Error('temporary database failure');
+    prismaMessageFindUnique.mockRejectedValueOnce(error);
+
+    await expect(
+      saveMessage({
+        id: 123n,
+        chatId: 456n,
+        senderId: 789n,
+        sentAt: new Date('2026-08-23T10:00:00Z'),
+        text: 'Retryable reply',
+        replyToMessageId: 99n,
+      }),
+    ).rejects.toThrow('temporary database failure');
+
+    expect(prismaMessageCreate).not.toHaveBeenCalled();
+    expect(lruCacheSet).not.toHaveBeenCalled();
+  });
+
   it('does not check parent when no replyToMessageId', async () => {
     prismaMessageCreate.mockResolvedValueOnce({});
 

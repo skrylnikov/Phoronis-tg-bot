@@ -51,7 +51,7 @@ export function createRichMessageIfNeeded(
 }
 
 export function toMarkdownV2(markdown: string): string {
-  return MD(markdown, 'remove');
+  return MD(markdown, 'remove').trimEnd();
 }
 
 export async function sendWithRichFallback(

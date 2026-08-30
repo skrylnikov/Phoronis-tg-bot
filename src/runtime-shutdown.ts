@@ -7,6 +7,7 @@ export interface RuntimeShutdownDependencies {
   stopTransport: () => Promise<void>;
   stopJobRunner: () => Promise<void>;
   stopEmbeddings: () => Promise<void>;
+  stopScheduler: () => Promise<void>;
   disconnectDatabase: () => Promise<void>;
   shutdownTelemetry: () => Promise<void>;
 }
@@ -40,6 +41,7 @@ export function createRuntimeShutdown(
       await dependencies.stopTransport();
       await waitForDrain(dependencies.stopJobRunner(), dependencies.drainMs);
       await dependencies.stopEmbeddings();
+      await dependencies.stopScheduler();
       await dependencies.disconnectDatabase();
       try {
         const completed = await waitForDrain(

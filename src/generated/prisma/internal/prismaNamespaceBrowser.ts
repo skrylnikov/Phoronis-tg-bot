@@ -67,6 +67,7 @@ export const ModelName = {
   AiThreadContextEvent: 'AiThreadContextEvent',
   Memory: 'Memory',
   UserFact: 'UserFact',
+  UserFactEvidence: 'UserFactEvidence',
   FactImpact: 'FactImpact',
   FactHistory: 'FactHistory'
 } as const
@@ -338,6 +339,17 @@ export const UserFactScalarFieldEnum = {
 } as const
 
 export type UserFactScalarFieldEnum = (typeof UserFactScalarFieldEnum)[keyof typeof UserFactScalarFieldEnum]
+
+
+export const UserFactEvidenceScalarFieldEnum = {
+  id: 'id',
+  factId: 'factId',
+  sourceChatId: 'sourceChatId',
+  sourceMessageId: 'sourceMessageId',
+  createdAt: 'createdAt'
+} as const
+
+export type UserFactEvidenceScalarFieldEnum = (typeof UserFactEvidenceScalarFieldEnum)[keyof typeof UserFactEvidenceScalarFieldEnum]
 
 
 export const FactImpactScalarFieldEnum = {

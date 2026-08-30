@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { S3mini } from 's3mini';
 import z from 'zod';
 
@@ -23,7 +24,6 @@ const recognizeSync = async (file: Buffer, signal?: AbortSignal) => {
       method: 'POST',
       headers: {
         Authorization: `Api-Key ${yandexCloudToken}`,
-        'x-data-logging-enabled': 'true',
       },
       body: file,
       signal,
@@ -53,76 +53,85 @@ const checkSchema = z.object({
 type Check = z.infer<typeof checkSchema>;
 
 const recognizeAsync = async (
-  fileName: string,
   file: Buffer,
   duration: number,
   signal?: AbortSignal,
 ) => {
   signal?.throwIfAborted();
-  await s3client.putObject(`bot-voic/phoronis/${fileName}`, file);
-  signal?.throwIfAborted();
+  const objectKey = `bot-voic/phoronis/${randomUUID()}`;
+  await s3client.putObject(objectKey, file);
 
-  const taskResponse = await fetch(
-    'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Api-Key ${yandexCloudToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        config: {
-          specification: {
-            languageCode: 'ru-RU',
-          },
-        },
-        audio: {
-          uri: `https://storage.yandexcloud.net/bot-voic/phoronis/${fileName}`,
-        },
-      }),
-      signal,
-    },
-  );
-
-  const task = checkSchema.parse(await taskResponse.json());
-  await wait((duration / 60) * 6 * 1000, signal);
-
-  const id = task.id;
-
-  let result = task;
-  let counter = 0;
-  while (!result.done) {
-    const operationResponse = await fetch(
-      `https://operation.api.cloud.yandex.net/operations/${id}`,
+  try {
+    signal?.throwIfAborted();
+    const taskResponse = await fetch(
+      'https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize',
       {
-        method: 'GET',
+        method: 'POST',
         headers: {
           Authorization: `Api-Key ${yandexCloudToken}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          config: {
+            specification: {
+              languageCode: 'ru-RU',
+            },
+          },
+          audio: {
+            uri: `https://storage.yandexcloud.net/${objectKey}`,
+          },
+        }),
         signal,
       },
     );
 
-    const data = checkSchema.parse(await operationResponse.json());
+    const task = checkSchema.parse(await taskResponse.json());
+    await wait((duration / 60) * 6 * 1000, signal);
 
-    result = data;
+    const id = task.id;
 
-    await wait(200, signal);
-    if (counter++ > 300) {
-      break;
+    let result = task;
+    let counter = 0;
+    while (!result.done) {
+      const operationResponse = await fetch(
+        `https://operation.api.cloud.yandex.net/operations/${id}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Api-Key ${yandexCloudToken}`,
+          },
+          signal,
+        },
+      );
+
+      const data = checkSchema.parse(await operationResponse.json());
+
+      result = data;
+
+      await wait(200, signal);
+      if (counter++ > 300) {
+        break;
+      }
+    }
+
+    return (
+      result?.response?.chunks
+        ?.map(({ alternatives }) => alternatives?.[0]?.text)
+        .join('. ') || null
+    );
+  } finally {
+    try {
+      await s3client.deleteObject(objectKey);
+    } catch (err) {
+      logger.error(
+        { event: 'speech.s3_cleanup_failed', err, objectKey },
+        'Failed to delete speech recognition object',
+      );
     }
   }
-
-  const text =
-    result?.response?.chunks
-      ?.map(({ alternatives }) => alternatives?.[0]?.text)
-      .join('. ') || null;
-
-  return text;
 };
 
 interface RecognizeProps {
-  fileId: string;
   file: Buffer;
   duration: number;
 }
@@ -146,13 +155,13 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-const recognize = async ({ fileId, file, duration }: RecognizeProps) => {
+const recognize = async ({ file, duration }: RecognizeProps) => {
   const signal = currentUpdateAbortSignal();
   try {
     if (file.length < 1024 * 1024 && duration < 30) {
       return await recognizeSync(file, signal);
     } else {
-      return await recognizeAsync(fileId, file, duration, signal);
+      return await recognizeAsync(file, duration, signal);
     }
   } catch (err) {
     if (signal?.aborted) throw err;

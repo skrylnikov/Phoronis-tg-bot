@@ -69,6 +69,7 @@ const getThread = async (chatId: number, messageId: bigint | null) => {
     const messages = (await findManyMessagesRepo(
       {
         chatId,
+        private: false,
         id: {
           gte: messageId,
         },
@@ -114,6 +115,7 @@ const getThreadBySessionId = async (
     {
       chatId,
       sessionId,
+      private: false,
     },
     {
       include: {
@@ -164,6 +166,8 @@ export const aiController = async (
   }
 
   if (!ctx.from || !ctx.chatId) return;
+  const senderId = ctx.from.id;
+  const currentChatId = ctx.chatId;
 
   const startedAt = performance.now();
   await Promise.all([saveChat(chat), saveUser(ctx.from), saveUser(ctx.me)]);
@@ -410,23 +414,30 @@ export const aiController = async (
       findManyUsersRepo({
         id: { in: allUserIds.map(BigInt) },
       }),
-      getRecentMemoriesForUsers(allUserIds, ctx.chatId ?? 0, 10).catch(
-        () => new Map(),
+      getRecentMemoriesForUsers([senderId], currentChatId, 10).catch(
+        () => new Map<number, string[]>(),
       ),
     ]);
 
-    const userFactsPromises = userList.map((user) => getTopUserFacts(user.id));
+    const userFactsPromises = userList.map((user) =>
+      getTopUserFacts(
+        user.id,
+        user.id === BigInt(senderId)
+          ? {}
+          : { sourceChatId: BigInt(currentChatId) },
+      ),
+    );
     const userFactsResults = await Promise.all(userFactsPromises);
 
     const recentChatContext =
       options.includeRecentChatContext &&
       !options.readOnlyTools &&
       options.persistResponse !== false &&
-      isGroup &&
       !msg.reply_to_message
         ? await getRecentPublicChatContext(ctx.chatId, msg.message_id)
         : null;
     const memoriesByUser = userList
+      .filter((user) => user.id === BigInt(senderId))
       .map((user) => {
         const userMemories = allMemories.get(Number(user.id)) || [];
         if (userMemories.length === 0) return null;
@@ -491,6 +502,7 @@ export const aiController = async (
           currentUserMessage,
           legacyHistory: rawMessages.slice(0, -1) as ModelMessage[],
           messageId: BigInt(msg.message_id),
+          privateMode: options.privateMode,
         });
       } catch (error) {
         logger.error(
@@ -530,6 +542,7 @@ export const aiController = async (
           allowChatHistory:
             options.includeRecentChatContext === true &&
             options.persistResponse !== false,
+          maxOutputTokens: options.ephemeralReceiverUserId ? 4096 : undefined,
           model,
         },
       );
@@ -597,6 +610,10 @@ export const aiController = async (
             sessionId,
             String(msg.message_id),
             result.toString(),
+            {
+              chatId: BigInt(ctx.chatId ?? 0),
+              messageId: BigInt(reply.message_id),
+            },
           );
         } catch (err) {
           logger.error(

@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   ensure: vi.fn(),
   get: vi.fn(),
   append: vi.fn(),
-  updateBoundary: vi.fn(),
+  commitBoundary: vi.fn(),
   generateText: vi.fn(),
 }));
 
@@ -17,7 +17,7 @@ vi.mock('../repositories/ai-thread-context-repository', () => ({
   ensureAiThreadContextRepo: mocks.ensure,
   getAiThreadContextRepo: mocks.get,
   appendAiThreadEventsRepo: mocks.append,
-  updateAiThreadCacheBoundaryRepo: mocks.updateBoundary,
+  commitAiThreadCacheBoundaryRepo: mocks.commitBoundary,
 }));
 
 import { buildAiThreadContext } from '../ai/thread-context';
@@ -42,6 +42,14 @@ describe('AI thread context builder', () => {
       events.push(...pending);
       return pending;
     });
+    mocks.commitBoundary.mockImplementation(
+      async (_threadId, _cacheBoundary, summarizedThroughSequence, payload) => {
+        events.splice(0, summarizedThroughSequence, {
+          eventKind: 'CACHE_BOUNDARY',
+          payload,
+        });
+      },
+    );
   });
 
   it('persists rules once and replays the same prefix after a restart', async () => {
@@ -117,7 +125,12 @@ describe('AI thread context builder', () => {
       messageId: 10n,
     });
 
-    expect(mocks.updateBoundary).toHaveBeenCalledWith('thread-1', 1);
+    expect(mocks.commitBoundary).toHaveBeenCalledWith(
+      'thread-1',
+      1,
+      expect.any(Number),
+      expect.any(Object),
+    );
     expect(events.some((event) => event.eventKind === 'CACHE_BOUNDARY')).toBe(
       true,
     );
@@ -203,11 +216,49 @@ describe('AI thread context builder', () => {
       messageId: 10n,
     });
 
-    expect(mocks.updateBoundary).not.toHaveBeenCalled();
+    expect(mocks.commitBoundary).not.toHaveBeenCalled();
     expect(events.some((event) => event.eventKind === 'CACHE_BOUNDARY')).toBe(
       false,
     );
     expect(JSON.stringify(result.messages)).toContain('x'.repeat(50_000));
+  });
+
+  it('links every private-turn event and skips compaction', async () => {
+    await buildAiThreadContext({
+      threadId: 'thread-1',
+      chatId: 1n,
+      rootMessageId: 10n,
+      turnId: 'private-turn',
+      rules: 'persisted rules',
+      userContext: { users: [] },
+      retrievalContext: { results: ['public result'] },
+      time: '23.08.2026 10:00:00',
+      currentUserMessage: { role: 'user', content: 'x'.repeat(50_000) },
+      messageId: 10n,
+      privateMode: true,
+    });
+
+    expect(mocks.get).toHaveBeenCalledWith('thread-1', {
+      chatId: 1n,
+      messageId: 10n,
+    });
+    expect(events).not.toHaveLength(0);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventKind: 'INITIAL_CONTEXT',
+          messageChatId: 1n,
+          messageId: 10n,
+        }),
+        expect.objectContaining({
+          eventKind: 'USER_MESSAGE',
+          messageChatId: 1n,
+          messageId: 10n,
+        }),
+      ]),
+    );
+    expect(mocks.generateText).not.toHaveBeenCalled();
+    expect(mocks.commitBoundary).not.toHaveBeenCalled();
   });
 
   it('uses the same first, second and long-turn contract for guest threads', async () => {

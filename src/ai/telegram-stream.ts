@@ -1,6 +1,8 @@
+import { InputFile } from 'grammy';
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
 import {
+  createRichMessage,
   createRichMessageIfNeeded,
   maxRichMessageLength,
   requiresRichMarkdown,
@@ -151,6 +153,17 @@ export class TelegramStreamSink {
     this.clearPending();
     await this.publishPromise;
 
+    if (
+      this.ephemeralReceiverUserId &&
+      toMarkdownV2(rawText).length > maxLegacyMessageLength
+    ) {
+      throw new Error('Ephemeral response exceeds Telegram message limit');
+    }
+
+    if (rawText.length > maxRichMessageLength) {
+      return this.sendTextDocument(rawText);
+    }
+
     if (this.ctx.chat?.type === 'private' || !this.groupMessage) {
       return this.sendFinalReply(rawText);
     }
@@ -168,7 +181,7 @@ export class TelegramStreamSink {
       return this.groupMessage;
     }
 
-    const richMessage = createRichMessageIfNeeded(rawText);
+    const richMessage = this.finalRichMessage(rawText);
     if (richMessage) {
       try {
         await this.ctx.api.editMessageText(
@@ -186,6 +199,10 @@ export class TelegramStreamSink {
           'Failed to finalize rich stream',
         );
       }
+    }
+
+    if (toMarkdownV2(rawText).length > maxLegacyMessageLength) {
+      return this.sendTextDocument(rawText);
     }
 
     return this.finishGroupWithLegacyFallback(chatId, rawText);
@@ -350,7 +367,11 @@ export class TelegramStreamSink {
   }
 
   private async sendFinalReply(rawText: string): Promise<StreamedReply> {
-    const richMessage = createRichMessageIfNeeded(rawText);
+    if (rawText.length > maxRichMessageLength) {
+      return this.sendTextDocument(rawText);
+    }
+
+    const richMessage = this.finalRichMessage(rawText);
     if (richMessage) {
       try {
         return await this.ctx.replyWithRichMessage(richMessage, {
@@ -364,6 +385,9 @@ export class TelegramStreamSink {
           { event: 'telegram.rich_reply_failed', err: error },
           'Failed to send final rich reply',
         );
+        if (toMarkdownV2(rawText).length > maxLegacyMessageLength) {
+          return this.sendTextDocument(rawText);
+        }
       }
     }
 
@@ -478,6 +502,39 @@ export class TelegramStreamSink {
         return this.sendFinalReply(rawText);
       }
     }
+  }
+
+  private finalRichMessage(text: string): { markdown: string } | undefined {
+    return toMarkdownV2(text).length > maxLegacyMessageLength
+      ? createRichMessage(text)
+      : createRichMessageIfNeeded(text);
+  }
+
+  private async sendTextDocument(text: string): Promise<StreamedReply> {
+    const result = await this.ctx.replyWithDocument(
+      new InputFile(Buffer.from(text, 'utf8'), 'answer.txt'),
+      {
+        caption: 'Ответ слишком длинный — полный текст в файле.',
+        reply_parameters: { message_id: this.ctx.msg?.message_id },
+        ...this.threadOptions(),
+      },
+    );
+
+    if (this.groupMessage && this.ctx.chatId) {
+      try {
+        await this.ctx.api.deleteMessage(
+          this.ctx.chatId,
+          this.groupMessage.message_id,
+        );
+      } catch (error) {
+        logger.error(
+          { event: 'telegram.stream_placeholder_remove_failed', err: error },
+          'Failed to remove streaming placeholder',
+        );
+      }
+    }
+
+    return result;
   }
 
   private threadOptions(): { message_thread_id?: number } {

@@ -10,12 +10,11 @@ import { renderLocalPrompt } from '../../ai/local-prompts';
 import type { Message } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import {
-  createFactHistoryRepo,
+  applyUserFactEvidenceRepo,
   createUserFactRepo,
   findAllUserFactsRepo,
   findUserFactRepo,
   findUserFactsRepo,
-  updateUserFactRepo,
 } from '../../repositories/user-fact-repository';
 import {
   currentUpdateAbortSignal,
@@ -176,24 +175,8 @@ ${candidates}
         ? 'Fact similarity check returned no structured output'
         : 'Error checking for similar facts',
     );
-    return { isDuplicate: false, isContradiction: false };
+    throw error;
   }
-}
-
-async function createFactHistory(
-  factId: bigint,
-  previousContent: string,
-  newContent: string,
-  weightChange: number,
-  reason: string,
-) {
-  await createFactHistoryRepo({
-    factId,
-    previousContent,
-    newContent,
-    weightChange,
-    reason,
-  });
 }
 
 async function saveUserFact(
@@ -209,29 +192,14 @@ async function saveUserFact(
     const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
-      if (
-        existingFact.sourceChatId === source.chatId &&
-        existingFact.sourceMessageId === source.messageId
-      ) {
-        return checkResult.similarFactId;
-      }
-
-      await updateUserFactRepo(checkResult.similarFactId, {
-        weight: existingFact.weight + 1,
-        updatedAt: new Date(),
+      const changed = await applyUserFactEvidenceRepo({
+        factId: checkResult.similarFactId,
+        content,
         sourceChatId: source.chatId,
         sourceMessageId: source.messageId,
+        reason: 'duplicate',
       });
-
-      await createFactHistory(
-        checkResult.similarFactId,
-        existingFact.content,
-        content,
-        1,
-        'duplicate',
-      );
-
-      if (checkResult.embedding) {
+      if (changed && checkResult.embedding) {
         await updateFactEmbedding(
           checkResult.similarFactId,
           checkResult.embedding,
@@ -246,30 +214,14 @@ async function saveUserFact(
     const existingFact = await findUserFactRepo(checkResult.similarFactId);
 
     if (existingFact) {
-      if (
-        existingFact.sourceChatId === source.chatId &&
-        existingFact.sourceMessageId === source.messageId
-      ) {
-        return checkResult.similarFactId;
-      }
-
-      await updateUserFactRepo(checkResult.similarFactId, {
+      const changed = await applyUserFactEvidenceRepo({
+        factId: checkResult.similarFactId,
         content,
-        weight: Math.max(existingFact.weight - 1, 1),
         sourceChatId: source.chatId,
         sourceMessageId: source.messageId,
-        updatedAt: new Date(),
+        reason: 'contradiction',
       });
-
-      await createFactHistory(
-        checkResult.similarFactId,
-        existingFact.content,
-        content,
-        -1,
-        'contradiction',
-      );
-
-      if (checkResult.embedding) {
+      if (changed && checkResult.embedding) {
         await updateFactEmbedding(
           checkResult.similarFactId,
           checkResult.embedding,
@@ -452,14 +404,20 @@ export async function getTopUserFacts(
   userId: bigint,
   options: {
     limit?: number;
+    sourceChatId?: bigint;
     types?: FactType[];
   } = {},
 ): Promise<Array<Fact & { weight: number; confidence: number }>> {
-  const { limit = 10, types } = options;
+  const { limit = 10, sourceChatId, types } = options;
 
   const facts = await findUserFactsRepo(userId, {
     orderBy: { updatedAt: 'desc' },
-    where: types ? { type: { in: types } } : undefined,
+    where: {
+      ...(sourceChatId === undefined
+        ? {}
+        : { evidence: { some: { sourceChatId } } }),
+      ...(types ? { type: { in: types } } : {}),
+    },
   });
 
   const now = new Date();
@@ -489,6 +447,9 @@ export async function getTopUserFacts(
   }));
 }
 
-export async function getAllUserFacts(userId: bigint) {
-  return findAllUserFactsRepo(userId);
+export async function getAllUserFacts(
+  userId: bigint,
+  options: { sourceChatId?: bigint } = {},
+) {
+  return findAllUserFactsRepo(userId, options.sourceChatId);
 }

@@ -29,36 +29,48 @@ export const chatGeneration = async (
     readOnlyTools?: boolean;
     allowChatHistory?: boolean;
     allowChatHistoryReadOnly?: boolean;
+    maxOutputTokens?: number;
     model?: typeof chatModel;
   } = {},
 ) => {
   const greetingTool = dynamicTool({
     description: 'Установить приветствие для нового пользователя в чате',
     inputSchema: z.object({
-      chatId: z.number().describe('ID чата'),
-      userId: z
-        .number()
-        .describe('ID пользователя, который устанавливает приветствие'),
-      greeting: z.string().describe('Текст приветствия'),
+      greeting: z
+        .string()
+        .trim()
+        .min(1)
+        .max(4096)
+        .describe('Текст приветствия'),
     }),
     execute: async (input: unknown) => {
-      const { chatId, userId, greeting } = input as {
-        chatId: number;
-        userId: number;
-        greeting: string;
-      };
+      const greeting = (input as { greeting?: unknown }).greeting;
       try {
-        if (!ctx) {
+        if (!ctx?.from || ctx.chatId === undefined) {
           return JSON.stringify({ error: 'Контекст не передан' });
         }
+        const currentUserId = ctx.from.id;
+        const currentChatId = ctx.chatId;
+        if (ctx.chat?.type !== 'group' && ctx.chat?.type !== 'supergroup') {
+          return JSON.stringify({
+            error: 'Приветствие можно установить только в группе',
+          });
+        }
+        const normalizedGreeting =
+          typeof greeting === 'string' ? greeting.trim() : '';
+        if (normalizedGreeting.length < 1 || normalizedGreeting.length > 4096) {
+          return JSON.stringify({
+            error: 'Приветствие должно содержать от 1 до 4096 символов',
+          });
+        }
 
-        const adminList = await ctx.api.getChatAdministrators(chatId);
+        const adminList = await ctx.api.getChatAdministrators(currentChatId);
         if (
           !adminList.some(
             (admin) =>
               (admin.status === 'administrator' ||
                 admin.status === 'creator') &&
-              admin.user.id === userId,
+              admin.user.id === currentUserId,
           )
         ) {
           return JSON.stringify({
@@ -66,10 +78,12 @@ export const chatGeneration = async (
           });
         }
 
-        await updateChatRepo(BigInt(chatId), { greeting });
+        await updateChatRepo(BigInt(currentChatId), {
+          greeting: normalizedGreeting,
+        });
 
         return JSON.stringify({
-          message: `Приветствие установлено: ${greeting}`,
+          message: `Приветствие установлено: ${normalizedGreeting}`,
         });
       } catch (_error) {
         return JSON.stringify({ error: 'Ошибка при установке приветствия' });
@@ -102,6 +116,7 @@ export const chatGeneration = async (
     model: options.model ?? chatModel,
     instructions: prompt.instructions,
     messages: prompt.messages,
+    maxOutputTokens: options.maxOutputTokens,
     stopWhen: stepCountIs(5),
     temperature: 1,
   };

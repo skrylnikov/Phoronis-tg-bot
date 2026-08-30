@@ -1,26 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  prisma: {
+const mocks = vi.hoisted(() => {
+  const prisma = {
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(),
     factHistory: { create: vi.fn() },
+    userFactEvidence: { createMany: vi.fn() },
     userFact: {
       create: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       update: vi.fn(),
     },
-  },
-  generateObject: vi.fn(),
-  generateText: vi.fn(),
-  embedQueryAndPassage: vi.fn(),
-  searchSimilarFacts: vi.fn(),
-  updateFactEmbedding: vi.fn(),
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  },
-}));
+  };
+  prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+  return {
+    prisma,
+    generateObject: vi.fn(),
+    generateText: vi.fn(),
+    embedQueryAndPassage: vi.fn(),
+    searchSimilarFacts: vi.fn(),
+    updateFactEmbedding: vi.fn(),
+    logger: {
+      error: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    },
+  };
+});
 
 vi.mock('ai', () => ({
   Output: { object: vi.fn((value) => value) },
@@ -73,6 +81,7 @@ beforeEach(() => {
   mocks.prisma.userFact.findMany.mockResolvedValue([]);
   mocks.prisma.userFact.create.mockResolvedValue({ id: 100n });
   mocks.prisma.userFact.update.mockResolvedValue({});
+  mocks.prisma.userFactEvidence.createMany.mockResolvedValue({ count: 1 });
   mocks.prisma.factHistory.create.mockResolvedValue({});
   mocks.updateFactEmbedding.mockResolvedValue(undefined);
 });
@@ -94,6 +103,40 @@ describe('analyzeUserMetaInfo source messages', () => {
       expect.any(String),
     );
   });
+
+  it.each(['embedding', 'search', 'model'] as const)(
+    'keeps %s similarity failures retryable',
+    async (stage) => {
+      const error = new Error(`${stage} unavailable`);
+      mocks.generateObject.mockResolvedValue({
+        object: {
+          facts: [
+            {
+              content: 'Проверяемый факт',
+              type: 'FACT',
+              sourceMessageId: '101',
+            },
+          ],
+        },
+      });
+      if (stage === 'embedding') {
+        mocks.embedQueryAndPassage.mockRejectedValue(error);
+      } else {
+        mocks.searchSimilarFacts.mockResolvedValue([
+          { id: 200n, content: 'Похожий факт', similarity: 0.95 },
+        ]);
+        if (stage === 'search')
+          mocks.searchSimilarFacts.mockRejectedValue(error);
+        if (stage === 'model') mocks.generateText.mockRejectedValue(error);
+      }
+
+      await expect(
+        analyzeUserMetaInfo(42n, [createMessage(101n, 'Проверяемый факт')]),
+      ).rejects.toThrow(`${stage} unavailable`);
+
+      expect(mocks.prisma.userFact.create).not.toHaveBeenCalled();
+    },
+  );
 
   it('saves a valid model-selected source message and includes IDs in the prompt', async () => {
     mocks.generateObject.mockResolvedValue({
@@ -124,6 +167,9 @@ describe('analyzeUserMetaInfo source messages', () => {
         weight: 1,
         sourceChatId: 7n,
         sourceMessageId: 101n,
+        evidence: {
+          create: { sourceChatId: 7n, sourceMessageId: 101n },
+        },
       },
     });
   });
@@ -193,13 +239,18 @@ describe('analyzeUserMetaInfo source messages', () => {
       sourceChatId: null,
       sourceMessageId: null,
     });
+    mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
+      id: 200n,
+      content: 'Тот же факт',
+      weight: 2,
+    });
 
     await analyzeUserMetaInfo(42n, [createMessage(101n, 'Тот же факт')]);
 
     expect(mocks.prisma.userFact.update).toHaveBeenCalledWith({
       where: { id: 200n },
       data: {
-        weight: 3,
+        weight: { increment: 1 },
         updatedAt: expect.any(Date),
         sourceChatId: 7n,
         sourceMessageId: 101n,
@@ -225,21 +276,21 @@ describe('analyzeUserMetaInfo source messages', () => {
         reason: 'duplicate',
       },
     });
-    mocks.prisma.userFact.findUnique
-      .mockResolvedValueOnce({
-        id: 200n,
-        content: 'Тот же факт',
-        weight: 2,
-        sourceChatId: 7n,
-        sourceMessageId: 100n,
-      })
-      .mockResolvedValueOnce({
-        id: 200n,
-        content: 'Тот же факт',
-        weight: 3,
-        sourceChatId: 7n,
-        sourceMessageId: 101n,
-      });
+    mocks.prisma.userFact.findUnique.mockResolvedValue({
+      id: 200n,
+      content: 'Тот же факт',
+      weight: 2,
+      sourceChatId: 7n,
+      sourceMessageId: 100n,
+    });
+    mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
+      id: 200n,
+      content: 'Тот же факт',
+      weight: 2,
+    });
+    mocks.prisma.userFactEvidence.createMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
 
     const messages = [createMessage(101n, 'Тот же факт')];
     const savedFactIds = await analyzeUserMetaInfo(42n, messages);
@@ -250,7 +301,7 @@ describe('analyzeUserMetaInfo source messages', () => {
     expect(mocks.prisma.userFact.update).toHaveBeenCalledWith({
       where: { id: 200n },
       data: {
-        weight: 3,
+        weight: { increment: 1 },
         updatedAt: expect.any(Date),
         sourceChatId: 7n,
         sourceMessageId: 101n,
@@ -284,21 +335,17 @@ describe('analyzeUserMetaInfo source messages', () => {
       sourceChatId: 7n,
       sourceMessageId: 101n,
     });
+    mocks.prisma.userFact.findUniqueOrThrow.mockResolvedValue({
+      id: 200n,
+      content: 'Старый факт',
+      weight: 2,
+    });
 
     await analyzeUserMetaInfo(42n, [
       createMessage(101n, 'Старый факт'),
       createMessage(102n, 'Обновлённый факт'),
     ]);
 
-    expect(mocks.prisma.userFact.update).toHaveBeenCalledWith({
-      where: { id: 200n },
-      data: {
-        content: 'Обновлённый факт',
-        weight: 1,
-        sourceChatId: 7n,
-        sourceMessageId: 102n,
-        updatedAt: expect.any(Date),
-      },
-    });
+    expect(mocks.prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 });

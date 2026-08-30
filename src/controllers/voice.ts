@@ -9,7 +9,6 @@ import {
   toMarkdownV2,
 } from '../ai/rich-message';
 import type { BotContext } from '../bot';
-import { token } from '../config.js';
 import {
   releaseQuota,
   reserveQuota,
@@ -23,6 +22,10 @@ import {
   findFirstMessageRepo,
   updateMessageFieldsRepo,
 } from '../repositories';
+import {
+  downloadTelegramFile,
+  TelegramFileTooLargeError,
+} from '../telegram-file';
 import { currentUpdateAbortSignal } from '../update-signal.js';
 import { yandex } from '../yandex';
 import { sendMediaLimitNotice } from './limit-notice';
@@ -75,20 +78,9 @@ export const voiceController = async (ctx: BotContext) => {
 
     const { duration, file_id, file_size = 0 } = info;
     await ctx.replyWithChatAction('typing');
-    const fileLink = await ctx.api.getFile(file_id);
-
-    if (!fileLink.file_path) {
-      return;
-    }
-
-    const response = await fetch(
-      `https://api.telegram.org/file/bot${token}/${fileLink.file_path}`,
-      { signal: currentUpdateAbortSignal() },
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file: ${response.statusText}`);
-    }
-    const rawFile = await response.arrayBuffer();
+    const rawFile = await downloadTelegramFile(ctx, file_id, {
+      declaredSize: file_size,
+    });
 
     logger.debug(
       {
@@ -103,7 +95,7 @@ export const voiceController = async (ctx: BotContext) => {
     let file: Buffer;
     if (ctx.message.video_note) {
       const result = ffmpeg({
-        MEMFS: [{ name: 'test.mp4', data: new Uint8Array(rawFile) }],
+        MEMFS: [{ name: 'test.mp4', data: rawFile }],
         arguments: [
           '-i',
           'test.mp4',
@@ -121,7 +113,6 @@ export const voiceController = async (ctx: BotContext) => {
     }
 
     const recognizedResult = await yandex.speechkit.recognize({
-      fileId: file_id,
       file,
       duration,
     });
@@ -258,6 +249,10 @@ export const voiceController = async (ctx: BotContext) => {
     ]);
     completed = true;
   } catch (err) {
+    if (err instanceof TelegramFileTooLargeError) {
+      await ctx.reply('Не могу обработать файл больше 20 МБ.');
+      return;
+    }
     logger.error(
       { event: 'voice.processing_failed', err },
       'Voice processing failed',

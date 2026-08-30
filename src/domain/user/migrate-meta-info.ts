@@ -1,6 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { z } from 'zod';
-import { SCHEDULER_LOCK_KEY, withAdvisoryLock } from '../../advisory-lock';
+import { SCHEDULER_LOCK_KEYS, withAdvisoryLock } from '../../advisory-lock';
 import { logger } from '../../logger';
 import { findUserFactsRepo } from '../../repositories/user-fact-repository';
 import {
@@ -119,7 +119,12 @@ export function convertMetaInfoToFacts(metaInfo: UserMetaInfo): FactItem[] {
 async function migrateUserMetaInfo(
   userId: bigint,
   metaInfo: UserMetaInfo,
-): Promise<{ migratedCount: number; totalCount: number; hadErrors: boolean }> {
+): Promise<{
+  migratedCount: number;
+  totalCount: number;
+  hadErrors: boolean;
+  convergedCount: number;
+}> {
   const facts = convertMetaInfoToFacts(metaInfo);
   const totalCount = facts.length;
 
@@ -128,11 +133,13 @@ async function migrateUserMetaInfo(
   const existingContents = new Set(existingFacts.map((f) => f.content));
 
   let migratedCount = 0;
+  let convergedCount = 0;
   let hadErrors = false;
   const MIGRATION_DATE = new Date('2026-01-01T00:00:00Z');
 
   for (const fact of facts) {
     if (existingContents.has(fact.content)) {
+      convergedCount++;
       continue;
     }
 
@@ -147,6 +154,8 @@ async function migrateUserMetaInfo(
       });
 
       migratedCount++;
+      convergedCount++;
+      existingContents.add(fact.content);
     } catch (error) {
       hadErrors = true;
       logger.error(
@@ -173,17 +182,18 @@ async function migrateUserMetaInfo(
     );
   }
 
-  return { migratedCount, totalCount, hadErrors };
+  return { migratedCount, totalCount, hadErrors, convergedCount };
 }
 
 const MIGRATION_BATCH_SIZE = 10;
 
 let migrationTask: ScheduledTask | null = null;
+let migrationRun: Promise<unknown> | null = null;
 let isMigrationRunning = false;
-let lastProcessedUserId: bigint | null = null;
 
 export async function migrateNextBatchOfUsers() {
   let totalMigrated = 0;
+  let lastProcessedUserId: bigint | null = null;
 
   while (true) {
     const allUsers = await findUsersForMigrationRepo({
@@ -231,7 +241,7 @@ export async function migrateNextBatchOfUsers() {
       const result = await migrateUserMetaInfo(user.id, metaInfoParse.data);
       totalMigrated += result.migratedCount;
 
-      if (!result.hadErrors && result.migratedCount === result.totalCount) {
+      if (!result.hadErrors && result.convergedCount === result.totalCount) {
         await updateUserMetaInfoRepo(user.id, {});
       } else if (result.hadErrors) {
         logger.error(
@@ -251,6 +261,7 @@ export async function migrateNextBatchOfUsers() {
 }
 
 export function startMetaInfoMigration() {
+  if (migrationTask) return;
   logger.info(
     { event: 'user_meta.migration_started' },
     'User meta info migration scheduler started',
@@ -258,52 +269,60 @@ export function startMetaInfoMigration() {
 
   migrationTask = cron.schedule(
     '*/10 * * * * *',
-    () =>
-      withAdvisoryLock(SCHEDULER_LOCK_KEY, async () => {
-        if (isMigrationRunning) {
-          return;
-        }
-
-        isMigrationRunning = true;
-
-        try {
-          const migrated = await migrateNextBatchOfUsers();
-          if (migrated > 0) {
-            logger.info(
-              {
-                event: 'user_meta.migration_batch_completed',
-                migratedCount: migrated,
-              },
-              'User meta info migration batch completed',
-            );
-          } else {
-            logger.info(
-              { event: 'user_meta.migration_idle' },
-              'No user meta info migration work remains',
-            );
-            stopMetaInfoMigration();
+    () => {
+      const run = withAdvisoryLock(
+        SCHEDULER_LOCK_KEYS.metaInfoMigration,
+        async () => {
+          if (isMigrationRunning) {
+            return;
           }
-        } catch (error) {
-          logger.error(
-            { event: 'user_meta.migration_failed', err: error },
-            'Error in meta info migration',
-          );
-        } finally {
-          isMigrationRunning = false;
-        }
-      }).catch((error) => {
+
+          isMigrationRunning = true;
+
+          try {
+            const migrated = await migrateNextBatchOfUsers();
+            if (migrated > 0) {
+              logger.info(
+                {
+                  event: 'user_meta.migration_batch_completed',
+                  migratedCount: migrated,
+                },
+                'User meta info migration batch completed',
+              );
+            } else {
+              logger.info(
+                { event: 'user_meta.migration_idle' },
+                'No user meta info migration work remains',
+              );
+              stopMetaInfoSchedule();
+            }
+          } catch (error) {
+            logger.error(
+              { event: 'user_meta.migration_failed', err: error },
+              'Error in meta info migration',
+            );
+          } finally {
+            isMigrationRunning = false;
+          }
+        },
+      ).catch((error) => {
         logger.error(
           { event: 'user_meta.migration_lock_failed', err: error },
           'Failed to acquire meta info migration lock',
         );
-      }),
+      });
+      migrationRun = run.finally(() => {
+        migrationRun = null;
+      });
+      return migrationRun;
+    },
     {
       timezone: 'UTC',
     },
   );
 }
 
-export function stopMetaInfoMigration() {
+function stopMetaInfoSchedule(): void {
   if (migrationTask) {
     migrationTask.stop();
     migrationTask = null;
@@ -312,4 +331,9 @@ export function stopMetaInfoMigration() {
       'User meta info migration scheduler stopped',
     );
   }
+}
+
+export async function stopMetaInfoMigration(): Promise<void> {
+  stopMetaInfoSchedule();
+  await migrationRun;
 }

@@ -48,7 +48,75 @@ export async function createUserFactRepo(data: {
   sourceChatId: bigint;
   sourceMessageId: bigint;
 }) {
-  return prisma.userFact.create({ data });
+  return prisma.userFact.create({
+    data: {
+      ...data,
+      evidence: {
+        create: {
+          sourceChatId: data.sourceChatId,
+          sourceMessageId: data.sourceMessageId,
+        },
+      },
+    },
+  });
+}
+
+export async function applyUserFactEvidenceRepo(input: {
+  factId: bigint;
+  content: string;
+  sourceChatId: bigint;
+  sourceMessageId: bigint;
+  reason: 'duplicate' | 'contradiction';
+}): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const evidence = await tx.userFactEvidence.createMany({
+      data: [
+        {
+          factId: input.factId,
+          sourceChatId: input.sourceChatId,
+          sourceMessageId: input.sourceMessageId,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    if (evidence.count === 0) return false;
+
+    const fact = await tx.userFact.findUniqueOrThrow({
+      where: { id: input.factId },
+    });
+    if (input.reason === 'duplicate') {
+      await tx.userFact.update({
+        where: { id: input.factId },
+        data: {
+          weight: { increment: 1 },
+          updatedAt: new Date(),
+          sourceChatId: input.sourceChatId,
+          sourceMessageId: input.sourceMessageId,
+        },
+      });
+    } else {
+      await tx.$executeRaw`
+        UPDATE "UserFact"
+        SET "content" = ${input.content},
+            "weight" = GREATEST("weight" - 1, 1),
+            "sourceChatId" = ${input.sourceChatId},
+            "sourceMessageId" = ${input.sourceMessageId},
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.factId}
+      `;
+    }
+
+    await tx.factHistory.create({
+      data: {
+        factId: input.factId,
+        previousContent: fact.content,
+        newContent: input.content,
+        weightChange: input.reason === 'duplicate' ? 1 : -1,
+        reason: input.reason,
+      },
+    });
+    return true;
+  });
 }
 
 export async function createFactHistoryRepo(data: {
@@ -67,6 +135,7 @@ export async function findUserFactsRepo(
     orderBy?: { updatedAt: 'desc' | 'asc' };
     take?: number;
     where?: {
+      evidence?: { some: { sourceChatId: bigint } };
       type?: {
         in: Array<'TEXT_STYLE' | 'FACT' | 'INTEREST' | 'NEGATIVE_INTEREST'>;
       };
@@ -80,15 +149,6 @@ export async function findUserFactsRepo(
     },
     orderBy: options.orderBy,
     take: options.take,
-  });
-}
-
-export async function findUserFactsWithImpactsRepo(where: {
-  usageCount: { gt: number };
-}) {
-  return prisma.userFact.findMany({
-    where,
-    include: { FactImpact: true },
   });
 }
 
@@ -118,9 +178,17 @@ export async function findTopUserFactsByScoreRepo(
   });
 }
 
-export async function findAllUserFactsRepo(userId: bigint) {
+export async function findAllUserFactsRepo(
+  userId: bigint,
+  sourceChatId?: bigint,
+) {
   return prisma.userFact.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(sourceChatId === undefined
+        ? {}
+        : { evidence: { some: { sourceChatId } } }),
+    },
     select: {
       content: true,
       type: true,

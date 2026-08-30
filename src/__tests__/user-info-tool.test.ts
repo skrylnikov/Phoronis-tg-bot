@@ -1,18 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { prisma, getAllUserFacts, getUserPersonalMemories } = vi.hoisted(() => ({
-  prisma: {
-    message: { findFirst: vi.fn() },
-    user: { findUnique: vi.fn() },
-  },
+const {
+  prisma,
+  getAllUserFacts,
+  getChatMember,
+  getUserPersonalMemories,
+  loggerError,
+} = vi.hoisted(() => ({
+  prisma: { user: { findUnique: vi.fn() } },
   getAllUserFacts: vi.fn(),
+  getChatMember: vi.fn(),
   getUserPersonalMemories: vi.fn(),
+  loggerError: vi.fn(),
 }));
 
 vi.mock('../db', () => ({ prisma }));
 vi.mock('../domain/memory', () => ({ getUserPersonalMemories }));
 vi.mock('../domain/user/fact-analyzer', () => ({ getAllUserFacts }));
+vi.mock('../logger', () => ({ logger: { error: loggerError } }));
 
 import { createUserInfoTool } from '../ai/tools/user-info';
 
@@ -21,6 +27,7 @@ function createContext(): BotContext {
     chat: { id: -100, type: 'supergroup' },
     chatId: -100,
     from: { id: 123 },
+    api: { getChatMember },
   } as unknown as BotContext;
 }
 
@@ -43,7 +50,7 @@ const user = {
 beforeEach(() => {
   vi.clearAllMocks();
   prisma.user.findUnique.mockResolvedValue(user);
-  prisma.message.findFirst.mockResolvedValue({ id: 1n });
+  getChatMember.mockResolvedValue({ status: 'member' });
   getAllUserFacts.mockResolvedValue([
     {
       content: 'Любит чай',
@@ -78,22 +85,23 @@ describe('get_user_info tool', () => {
     });
   });
 
-  it('limits another participant memory to the current chat', async () => {
+  it('returns only current-chat facts for another current member', async () => {
     const context = createContext();
     const result = await runTool(context, { userId: '456' });
 
-    expect(JSON.parse(String(result)).memoryScope).toBe('current_chat');
-    expect(getUserPersonalMemories).toHaveBeenCalledWith(456n, {
-      chatId: -100n,
+    expect(JSON.parse(String(result))).toMatchObject({
+      memoryScope: 'none',
+      personalMemories: [],
     });
-    expect(prisma.message.findFirst).toHaveBeenCalledWith({
-      where: { chatId: -100n, senderId: 456n, private: false },
-      select: { id: true },
+    expect(getChatMember).toHaveBeenCalledWith(-100, 456);
+    expect(getAllUserFacts).toHaveBeenCalledWith(456n, {
+      sourceChatId: -100n,
     });
+    expect(getUserPersonalMemories).not.toHaveBeenCalled();
   });
 
-  it('rejects a user outside the current chat', async () => {
-    prisma.message.findFirst.mockResolvedValue(null);
+  it('rejects a user who left the current chat', async () => {
+    getChatMember.mockResolvedValue({ status: 'left' });
 
     const result = await runTool(createContext(), { userId: '456' });
 
@@ -103,5 +111,24 @@ describe('get_user_info tool', () => {
       }),
     );
     expect(getAllUserFacts).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when Telegram membership cannot be checked', async () => {
+    const error = new Error('Telegram unavailable');
+    getChatMember.mockRejectedValue(error);
+
+    const result = await runTool(createContext(), { userId: '456' });
+
+    expect(result).toBe(
+      JSON.stringify({
+        error: 'Не удалось получить информацию о пользователе',
+      }),
+    );
+    expect(getAllUserFacts).not.toHaveBeenCalled();
+    expect(getUserPersonalMemories).not.toHaveBeenCalled();
+    expect(loggerError).toHaveBeenCalledWith(
+      { event: 'user_info.access_failed', err: error },
+      'Failed to authorize or load user information',
+    );
   });
 });

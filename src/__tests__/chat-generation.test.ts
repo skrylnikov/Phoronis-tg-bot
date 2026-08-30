@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BotContext } from '../bot';
 
-const { createWebTools, streamText } = vi.hoisted(() => ({
-  createWebTools: vi.fn(),
-  streamText: vi.fn(),
-}));
+const { createWebTools, getChatAdministrators, streamText, updateChatRepo } =
+  vi.hoisted(() => ({
+    createWebTools: vi.fn(),
+    getChatAdministrators: vi.fn(),
+    streamText: vi.fn(),
+    updateChatRepo: vi.fn(),
+  }));
 
 vi.mock('ai', () => ({
   dynamicTool: vi.fn((definition: unknown) => definition),
@@ -16,6 +19,7 @@ vi.mock('../logger', () => ({
   logger: { info: vi.fn(), error: vi.fn() },
 }));
 vi.mock('../ai/ai', () => ({ chatModel: {} }));
+vi.mock('../repositories/chat-repository', () => ({ updateChatRepo }));
 vi.mock('../ai/tools', () => ({
   canUseChatHistoryTool: vi.fn(
     (ctx: BotContext | undefined) =>
@@ -45,6 +49,7 @@ function createContext(
     chat: { id: -100, type },
     chatId: -100,
     from: { id: 123 },
+    api: { getChatAdministrators },
     me: { id: 456, username: 'io' },
     msg: {
       message_id: 200,
@@ -58,13 +63,45 @@ function createContext(
 beforeEach(() => {
   vi.clearAllMocks();
   createWebTools.mockReturnValue(undefined);
+  getChatAdministrators.mockResolvedValue([
+    { status: 'administrator', user: { id: 123 } },
+  ]);
   streamText.mockImplementation(() => ({
     textStream: (async function* () {})(),
     text: Promise.resolve('Готово'),
   }));
 });
 
+async function getGreetingTool(
+  context = createContext('Установи приветствие'),
+) {
+  await chatGeneration(
+    [{ role: 'user', content: 'Установи приветствие' }],
+    undefined,
+    context,
+  );
+  return (streamText.mock.calls[0][0] as { tools: Record<string, unknown> })
+    .tools.set_greeting as {
+    inputSchema: { parse: (input: unknown) => unknown };
+    execute: (input: unknown, options: unknown) => Promise<unknown>;
+  };
+}
+
 describe('chat history tool selection', () => {
+  it('passes a conservative output budget to special transports', async () => {
+    await chatGeneration(
+      [{ role: 'user', content: 'Коротко' }],
+      undefined,
+      createContext('Коротко'),
+      undefined,
+      { maxOutputTokens: 4096 },
+    );
+
+    expect(streamText.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ maxOutputTokens: 4096 }),
+    );
+  });
+
   it('records safe generation metrics without raw prompt telemetry', async () => {
     const trace = { update: vi.fn() };
 
@@ -219,5 +256,54 @@ describe('chat history tool selection', () => {
     };
     expect(options.tools).toHaveProperty('search_chat_history');
     expect(options.prepareStep).toBeDefined();
+  });
+});
+
+describe('set_greeting authorization', () => {
+  it('ignores spoofed authority IDs and writes only the current chat', async () => {
+    const tool = await getGreetingTool();
+    expect(
+      tool.inputSchema.parse({
+        greeting: '  Добро пожаловать!  ',
+        chatId: -999,
+        userId: 999,
+      }),
+    ).toEqual({ greeting: 'Добро пожаловать!' });
+
+    await tool.execute(
+      { greeting: '  Добро пожаловать!  ', chatId: -999, userId: 999 },
+      {},
+    );
+
+    expect(getChatAdministrators).toHaveBeenCalledWith(-100);
+    expect(updateChatRepo).toHaveBeenCalledWith(-100n, {
+      greeting: 'Добро пожаловать!',
+    });
+  });
+
+  it('rejects a spoofed admin identity', async () => {
+    getChatAdministrators.mockResolvedValue([
+      { status: 'administrator', user: { id: 999 } },
+    ]);
+    const tool = await getGreetingTool();
+
+    const result = await tool.execute({ greeting: 'Привет', userId: 999 }, {});
+
+    expect(result).toBe(
+      JSON.stringify({ error: 'Не хватает прав для установки приветствия' }),
+    );
+    expect(updateChatRepo).not.toHaveBeenCalled();
+  });
+
+  it('rejects an oversized greeting without changing the chat', async () => {
+    const tool = await getGreetingTool();
+    const result = await tool.execute({ greeting: 'x'.repeat(4097) }, {});
+
+    expect(result).toBe(
+      JSON.stringify({
+        error: 'Приветствие должно содержать от 1 до 4096 символов',
+      }),
+    );
+    expect(updateChatRepo).not.toHaveBeenCalled();
   });
 });

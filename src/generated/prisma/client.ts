@@ -122,6 +122,11 @@ export type Memory = Prisma.MemoryModel
  */
 export type UserFact = Prisma.UserFactModel
 /**
+ * Model UserFactEvidence
+ * 
+ */
+export type UserFactEvidence = Prisma.UserFactEvidenceModel
+/**
  * Model FactImpact
  * 
  */

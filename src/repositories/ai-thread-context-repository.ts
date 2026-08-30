@@ -30,11 +30,40 @@ function isUniqueConstraintError(error: unknown): boolean {
   );
 }
 
-export async function getAiThreadContextRepo(threadId: string) {
-  return prisma.aiThreadContext.findUnique({
-    where: { id: threadId },
-    include: { events: { orderBy: { sequence: 'asc' } } },
+export async function getAiThreadContextRepo(
+  threadId: string,
+  includePrivateMessage?: { chatId: bigint; messageId: bigint },
+) {
+  const [thread, boundary] = await Promise.all([
+    prisma.aiThreadContext.findUnique({ where: { id: threadId } }),
+    prisma.aiThreadContextEvent.findFirst({
+      where: { threadId, eventKind: 'CACHE_BOUNDARY' },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+    }),
+  ]);
+  if (!thread) return null;
+
+  const events = await prisma.aiThreadContextEvent.findMany({
+    where: {
+      threadId,
+      ...(boundary ? { sequence: { gte: boundary.sequence } } : {}),
+      OR: [
+        { messageId: null },
+        { message: { is: { private: false } } },
+        ...(includePrivateMessage
+          ? [
+              {
+                messageChatId: includePrivateMessage.chatId,
+                messageId: includePrivateMessage.messageId,
+              },
+            ]
+          : []),
+      ],
+    },
+    orderBy: { sequence: 'asc' },
   });
+  return { ...thread, events };
 }
 
 export async function ensureAiThreadContextRepo(
@@ -110,12 +139,38 @@ export async function appendAiThreadEventsRepo(
   });
 }
 
-export async function updateAiThreadCacheBoundaryRepo(
+export async function commitAiThreadCacheBoundaryRepo(
   threadId: string,
   cacheBoundary: number,
+  summarizedThroughSequence: number,
+  payload: Prisma.InputJsonValue,
 ) {
-  return prisma.aiThreadContext.update({
-    where: { id: threadId },
-    data: { cacheBoundary },
+  return prisma.$transaction(async (tx) => {
+    await tx.aiThreadContext.update({
+      where: { id: threadId },
+      data: { cacheBoundary, updatedAt: new Date() },
+    });
+    const latest = await tx.aiThreadContextEvent.findFirst({
+      where: { threadId },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+    });
+    if ((latest?.sequence ?? 0) !== summarizedThroughSequence) {
+      throw new Error('AI thread changed during compaction');
+    }
+
+    const boundary = await tx.aiThreadContextEvent.create({
+      data: {
+        threadId,
+        sequence: summarizedThroughSequence + 1,
+        turnId: `cache-boundary:${cacheBoundary}`,
+        eventKind: 'CACHE_BOUNDARY',
+        payload,
+      },
+    });
+    await tx.aiThreadContextEvent.deleteMany({
+      where: { threadId, sequence: { lt: boundary.sequence } },
+    });
+    return boundary;
   });
 }

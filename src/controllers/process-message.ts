@@ -4,6 +4,7 @@ import {
   aiController,
   queueMessageEmbedding,
   searchAndIndexMessage,
+  searchContext,
 } from '../ai';
 import { describeTelegramPhoto } from '../ai/image-description';
 import { startTypingStatus } from '../ai/typing-status';
@@ -262,7 +263,12 @@ processMessageController.on(':text', async (ctx) => {
 
     typingStatus = startTypingStatus(ctx);
     const { userContext, chatContext } = isPrivateMode
-      ? { userContext: null, chatContext: null }
+      ? await searchContext(
+          content,
+          ctx.from.id,
+          ctx.chatId,
+          ctx.chat.type === 'private',
+        )
       : await searchAndIndexMessage(
           { messageId: ctx.msg.message_id, chatId: ctx.chatId },
           content,
@@ -317,7 +323,7 @@ processMessageController.on(':text', async (ctx) => {
     }
 
     await aiController(ctx, imageDescription, userContext, chatContext, {
-      includeRecentChatContext: !isPrivateMode,
+      includeRecentChatContext: true,
       privateMode: isPrivateMode,
       typingStatus,
     });
@@ -418,8 +424,9 @@ processMessageController.on(':photo', async (ctx) => {
       await handleUserReaction(ctx, ctx.msg.caption);
     }
     await aiController(ctx, imageDescription, undefined, undefined, {
-      includeRecentChatContext: !isPrivateMode,
+      includeRecentChatContext: true,
       privateMode: isPrivateMode,
+      resolveContext: true,
       typingStatus,
     });
   } catch (error) {

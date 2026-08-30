@@ -529,14 +529,14 @@ describe('searchChatHistory', () => {
     expect(messageCount).not.toHaveBeenCalled();
   });
 
-  it('rejects history in private mode and filters current messages from auto context', async () => {
+  it('allows public history in private mode and filters private messages from auto context', async () => {
     chatFindUnique.mockResolvedValue({ privateModeEnabled: true });
     const privateResult = JSON.parse(
       await searchChatHistory(createContext(), { mode: 'recent' }),
     );
-    expect(privateResult.error).toContain('приватном режиме');
+    expect(privateResult.mode).toBe('recent');
+    expect(privateResult.error).toBeUndefined();
 
-    chatFindUnique.mockResolvedValue({ privateModeEnabled: false });
     messageFindMany.mockResolvedValue([
       message(199, 'Последнее'),
       message(198, 'Предыдущее'),

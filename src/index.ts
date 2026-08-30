@@ -18,7 +18,7 @@ import { disconnectPrismaRepo } from './repositories';
 import { readRuntimeConfig } from './runtime-config';
 import { createRuntimeShutdown } from './runtime-shutdown';
 import { runtimeState } from './runtime-state';
-import { startScheduler } from './scheduler';
+import { startScheduler, stopScheduler } from './scheduler';
 import { createBotTransport } from './transport';
 import { handleError } from './utils/error-handler';
 
@@ -92,6 +92,7 @@ shutdown = createRuntimeShutdown({
   stopTransport: () => botTransport.stop(),
   stopJobRunner: () => jobRunner.stop(),
   stopEmbeddings: () => stopEmbeddingBackfill(),
+  stopScheduler,
   disconnectDatabase: () => disconnectPrismaRepo(),
   shutdownTelemetry,
 });

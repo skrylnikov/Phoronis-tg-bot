@@ -7,9 +7,9 @@ import type {
 import { logger } from '../logger';
 import {
   appendAiThreadEventsRepo,
+  commitAiThreadCacheBoundaryRepo,
   ensureAiThreadContextRepo,
   getAiThreadContextRepo,
-  updateAiThreadCacheBoundaryRepo,
 } from '../repositories/ai-thread-context-repository';
 import { currentUpdateAbortSignal } from '../update-signal';
 import { utilityModel } from './ai';
@@ -39,6 +39,7 @@ export interface AiThreadContextInput {
   currentUserMessage: ModelMessage;
   legacyHistory?: ModelMessage[];
   messageId?: bigint;
+  privateMode?: boolean;
 }
 
 export interface AiThreadTelemetry {
@@ -341,14 +342,12 @@ async function maybeCompact(
   const nextBoundary = cacheBoundary + 1;
   try {
     const payload = await compactSnapshot(events);
-    await appendAiThreadEventsRepo(threadId, [
-      {
-        turnId: `cache-boundary:${nextBoundary}`,
-        eventKind: 'CACHE_BOUNDARY',
-        payload,
-      },
-    ]);
-    await updateAiThreadCacheBoundaryRepo(threadId, nextBoundary);
+    await commitAiThreadCacheBoundaryRepo(
+      threadId,
+      nextBoundary,
+      events.at(-1)?.sequence ?? 0,
+      payload,
+    );
     const updated = await getAiThreadContextRepo(threadId);
     const payloadRecord: unknown = payload;
     logger.info(
@@ -455,14 +454,28 @@ export async function buildAiThreadContext(
     promptHash: prompt.hash,
     rules: input.rules,
   });
-  let stored = await getAiThreadContextRepo(input.threadId);
+  const currentPrivateMessage =
+    input.privateMode && input.messageId
+      ? { chatId: input.chatId, messageId: input.messageId }
+      : undefined;
+  let stored = await getAiThreadContextRepo(
+    input.threadId,
+    currentPrivateMessage,
+  );
   let events = (stored?.events ?? []) as ContextEvent[];
   const storedRules =
     typeof thread.rules === 'string' ? thread.rules : input.rules;
+  const privateEventLink = currentPrivateMessage
+    ? {
+        messageChatId: currentPrivateMessage.chatId,
+        messageId: currentPrivateMessage.messageId,
+      }
+    : {};
   const pending = [];
 
   if (!events.some((event) => event.eventKind === 'INITIAL_CONTEXT')) {
     pending.push({
+      ...privateEventLink,
       turnId: input.turnId,
       eventKind: 'INITIAL_CONTEXT' as const,
       payload: asJsonValue(input.userContext),
@@ -476,6 +489,7 @@ export async function buildAiThreadContext(
     ) !== stableJson(input.userContext)
   ) {
     pending.push({
+      ...privateEventLink,
       turnId: input.turnId,
       eventKind: hasFactCorrection(
         latestPayload(
@@ -496,6 +510,7 @@ export async function buildAiThreadContext(
       stableJson(input.retrievalContext)
   ) {
     pending.push({
+      ...privateEventLink,
       turnId: input.turnId,
       eventKind: 'RETRIEVAL' as const,
       payload: asJsonValue(input.retrievalContext),
@@ -503,6 +518,7 @@ export async function buildAiThreadContext(
   }
 
   pending.push({
+    ...privateEventLink,
     turnId: input.turnId,
     eventKind: 'TURN_CONTEXT' as const,
     payload: asJsonValue({ time: input.time }),
@@ -510,6 +526,7 @@ export async function buildAiThreadContext(
 
   if (events.length === 0 && input.legacyHistory?.length) {
     pending.push({
+      ...privateEventLink,
       turnId: input.turnId,
       eventKind: 'LEGACY_HISTORY' as const,
       payload: asJsonValue({ messages: input.legacyHistory }),
@@ -525,13 +542,11 @@ export async function buildAiThreadContext(
   });
   await appendAiThreadEventsRepo(input.threadId, pending);
 
-  stored = await getAiThreadContextRepo(input.threadId);
+  stored = await getAiThreadContextRepo(input.threadId, currentPrivateMessage);
   events = (stored?.events ?? []) as ContextEvent[];
-  const compacted = await maybeCompact(
-    input.threadId,
-    stored?.cacheBoundary ?? 0,
-    events,
-  );
+  const compacted = input.privateMode
+    ? { events, cacheBoundary: stored?.cacheBoundary ?? 0 }
+    : await maybeCompact(input.threadId, stored?.cacheBoundary ?? 0, events);
   events = compacted.events;
   const messages = serializeAiThreadEvents(events);
   const instructions = buildChatGenerationInstructions(storedRules);
@@ -558,11 +573,14 @@ export async function appendAiThreadAssistantEvent(
   threadId: string,
   turnId: string,
   content: string,
+  message?: { chatId: bigint; messageId: bigint },
 ): Promise<void> {
   await appendAiThreadEventsRepo(threadId, [
     {
       turnId,
       eventKind: 'ASSISTANT',
+      messageChatId: message?.chatId,
+      messageId: message?.messageId,
       payload: asJsonValue({ content }),
     },
   ]);

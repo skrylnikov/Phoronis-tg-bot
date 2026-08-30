@@ -31,6 +31,9 @@ describe('runtime shutdown', () => {
       stopEmbeddings: async () => {
         order.push('embeddings');
       },
+      stopScheduler: async () => {
+        order.push('scheduler');
+      },
       disconnectDatabase: async () => {
         order.push('database');
       },
@@ -46,6 +49,7 @@ describe('runtime shutdown', () => {
       'transport',
       'jobs',
       'embeddings',
+      'scheduler',
       'database',
       'telemetry',
     ]);
@@ -59,6 +63,7 @@ describe('runtime shutdown', () => {
       stopTransport: vi.fn().mockResolvedValue(undefined),
       stopJobRunner: vi.fn().mockResolvedValue(undefined),
       stopEmbeddings: vi.fn().mockResolvedValue(undefined),
+      stopScheduler: vi.fn().mockResolvedValue(undefined),
       disconnectDatabase: vi.fn().mockResolvedValue(undefined),
       shutdownTelemetry: vi.fn().mockRejectedValue(new Error('flush failed')),
     });
@@ -82,6 +87,7 @@ describe('runtime shutdown', () => {
       stopTransport: vi.fn().mockResolvedValue(undefined),
       stopJobRunner: vi.fn().mockResolvedValue(undefined),
       stopEmbeddings: vi.fn().mockResolvedValue(undefined),
+      stopScheduler: vi.fn().mockResolvedValue(undefined),
       disconnectDatabase: vi.fn().mockResolvedValue(undefined),
       shutdownTelemetry: () => new Promise<void>(() => {}),
     });

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   reserveQuota: vi.fn(),
   saveMessage: vi.fn(),
   searchAndIndexMessage: vi.fn(),
+  searchContext: vi.fn(),
   updateMessageSummaryRepo: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock('../ai', () => ({
   aiController: mocks.aiController,
   queueMessageEmbedding: vi.fn(),
   searchAndIndexMessage: mocks.searchAndIndexMessage,
+  searchContext: mocks.searchContext,
 }));
 vi.mock('../ai/image-description', () => ({
   describeTelegramPhoto: mocks.describeTelegramPhoto,
@@ -94,6 +96,10 @@ beforeEach(() => {
   mocks.saveMessage.mockResolvedValue({ created: true });
   mocks.reserveQuota.mockResolvedValue({ allowed: true });
   mocks.describeTelegramPhoto.mockResolvedValue('Описание фото');
+  mocks.searchContext.mockResolvedValue({
+    userContext: ['контекст'],
+    chatContext: null,
+  });
 });
 
 afterEach(() => vi.useRealTimers());
@@ -207,8 +213,17 @@ describe('private message persistence', () => {
         expect.objectContaining({ private: true }),
       );
       expect(mocks.aiController.mock.calls[0]?.[4]).toMatchObject({
+        includeRecentChatContext: true,
         privateMode: true,
       });
+      if (messageType === 'text') {
+        expect(mocks.searchContext).toHaveBeenCalled();
+        expect(mocks.searchAndIndexMessage).not.toHaveBeenCalled();
+      } else {
+        expect(mocks.aiController.mock.calls[0]?.[4]).toMatchObject({
+          resolveContext: true,
+        });
+      }
     },
   );
 });
