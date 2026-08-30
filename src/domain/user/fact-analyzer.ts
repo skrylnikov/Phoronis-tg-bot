@@ -429,7 +429,6 @@ export async function getTopUserFacts(
       const rankScore =
         fact.weight * 2 +
         fact.confidence * 0.5 +
-        fact.impactScore * 1.5 +
         (fact.type === 'INTEREST' ? 5 : 0) +
         (fact.expiresAt && fact.expiresAt > now ? 10 : 0) -
         daysSinceUpdate * 0.1;

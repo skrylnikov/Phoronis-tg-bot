@@ -59,7 +59,6 @@ vi.mock('../repositories/message-repository', () => ({
   findMessageWithSelectRepo: vi.fn(),
   saveMessage: vi.fn(),
   updateMessageSummaryRepo: vi.fn(),
-  countMessagesWithWhereRepo: vi.fn(),
   deleteOldPrivateMessagesRepo: vi.fn(),
 }));
 

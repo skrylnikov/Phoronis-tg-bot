@@ -18,7 +18,6 @@ import {
   saveMessage,
   saveUser,
 } from '../domain';
-import { recordUserReaction } from '../domain/user/fact-impact-tracker';
 import { logger } from '../logger';
 import {
   findChatByIdRepo,
@@ -27,18 +26,6 @@ import {
 } from '../repositories';
 import { handleError } from '../utils/error-handler';
 import { sendMediaLimitNotice } from './limit-notice';
-
-interface TelegramReactionResult {
-  emoji?: string;
-  type?: string;
-  count?: number;
-}
-
-interface TelegramReactionsMessage {
-  reactions?: {
-    results?: TelegramReactionResult[];
-  };
-}
 
 function isGroupChat(ctx: BotContext): boolean {
   return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
@@ -55,44 +42,6 @@ async function resolveSessionId(
     { sessionId: true },
   );
   return parent?.sessionId || sessionIdGenerator();
-}
-
-function hasTelegramReactions(msg: unknown): msg is TelegramReactionsMessage {
-  if (!msg || typeof msg !== 'object') return false;
-  return Array.isArray((msg as TelegramReactionsMessage).reactions?.results);
-}
-
-async function handleUserReaction(
-  ctx: BotContext,
-  messageText: string,
-): Promise<void> {
-  if (!ctx.msg?.reply_to_message || !ctx.from || !ctx.chatId) return;
-  const botMessageId = ctx.msg.reply_to_message.message_id;
-  if (!botMessageId) return;
-
-  const replyMessage = ctx.msg.reply_to_message;
-  const telegramReactions = hasTelegramReactions(replyMessage)
-    ? (replyMessage.reactions?.results?.map((reaction) => ({
-        type:
-          typeof reaction.emoji === 'string'
-            ? reaction.emoji
-            : (reaction.type ?? ''),
-        count: reaction.count ?? 0,
-      })) ?? [])
-    : undefined;
-
-  await recordUserReaction(
-    botMessageId,
-    ctx.from.id,
-    ctx.chatId,
-    messageText,
-    telegramReactions,
-  ).catch((err) =>
-    logger.error(
-      { event: 'reaction.record_failed', err },
-      'Error recording user reaction',
-    ),
-  );
 }
 
 function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
@@ -276,10 +225,6 @@ processMessageController.on(':text', async (ctx) => {
           ctx.chat.type === 'private',
         );
 
-    if (ctx.msg.reply_to_message?.from?.id === ctx.me.id) {
-      await handleUserReaction(ctx, ctx.msg.text);
-    }
-
     let imageDescription: string | undefined;
     const photoInChain = await findPhotoInReplyChain(
       ctx,
@@ -420,9 +365,6 @@ processMessageController.on(':photo', async (ctx) => {
       throw error;
     }
 
-    if (ctx.msg.reply_to_message?.from?.id === ctx.me.id && ctx.msg.caption) {
-      await handleUserReaction(ctx, ctx.msg.caption);
-    }
     await aiController(ctx, imageDescription, undefined, undefined, {
       includeRecentChatContext: true,
       privateMode: isPrivateMode,

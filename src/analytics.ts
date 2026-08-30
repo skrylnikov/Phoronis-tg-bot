@@ -13,7 +13,6 @@ import {
   aggregatePaidOrders,
   aggregateRefundedOrders,
   countActiveSubscriptions,
-  countFactImpactsInRange,
   countUserFactsInRange,
   findChatById,
   findDailyAnalytics,
@@ -103,7 +102,7 @@ export interface AnalyticsSnapshot {
     primaryResponse: number;
     analysis: number;
   };
-  facts: { created: number; used: number };
+  facts: { created: number };
   purchases: { count: number; amount: number };
   refunds: { count: number; amount: number };
   activeSubscriptions: number;
@@ -151,7 +150,6 @@ export async function buildAnalyticsSnapshot(
     usages,
     modelIds,
     factsCreated,
-    factsUsed,
     paid,
     refunded,
     activeSubscriptions,
@@ -160,7 +158,6 @@ export async function buildAnalyticsSnapshot(
     groupQuotaUsageByKind(date),
     findModelIdsInRange(start, end, BigInt(botUserId)),
     countUserFactsInRange(start, end),
-    countFactImpactsInRange(start, end),
     aggregatePaidOrders(start, end),
     aggregateRefundedOrders(start, end),
     countActiveSubscriptions(now),
@@ -178,7 +175,7 @@ export async function buildAnalyticsSnapshot(
       primaryResponse: getQuotaCount(usages, 'PRIMARY_RESPONSE'),
       analysis: getQuotaCount(usages, 'ANALYSIS'),
     },
-    facts: { created: factsCreated, used: factsUsed },
+    facts: { created: factsCreated },
     purchases: {
       count: paid._count._all,
       amount: paid._sum.amount ?? 0,
@@ -244,7 +241,6 @@ export function formatAnalyticsReport(snapshot: AnalyticsSnapshot): string {
     `• Ответы с другими model ID: ${formatModelCounts(snapshot.models.other)}`,
     `• Пользовательская аналитика: ${snapshot.quota.analysis}`,
     `• Новых фактов: ${snapshot.facts.created}`,
-    `• Использовано фактов: ${snapshot.facts.used}`,
     `• Vector search: ${snapshot.runtime.vectorSearches}, с результатами: ${snapshot.runtime.vectorSearchesWithHits}, добавлено в контекст: ${snapshot.runtime.contextMessagesAdded}${runtimeNote}`,
     `• Успешных AI-ответов: ${snapshot.runtime.aiSuccesses}${runtimeNote}`,
     `• Неуспешных попыток AI: ${snapshot.runtime.aiFailures}${runtimeNote}`,

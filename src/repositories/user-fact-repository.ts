@@ -7,39 +7,6 @@ export async function findUserFactRepo(id: bigint) {
   });
 }
 
-export async function updateUserFactRepo(
-  id: bigint,
-  data: {
-    weight?: number;
-    updatedAt?: Date;
-    sourceChatId?: bigint;
-    sourceMessageId?: bigint;
-    content?: string;
-    usageCount?: { increment: number };
-    lastUsedAt?: Date;
-    impactScore?: number;
-  },
-) {
-  return prisma.userFact.update({
-    where: { id },
-    data,
-  });
-}
-
-export async function updateManyUserFactsRepo(
-  where: { id: { in: bigint[] } },
-  data: {
-    usageCount?: { increment: number };
-    lastUsedAt?: Date;
-    impactScore?: number;
-  },
-) {
-  return prisma.userFact.updateMany({
-    where,
-    data,
-  });
-}
-
 export async function createUserFactRepo(data: {
   userId: bigint;
   content: string;
@@ -50,7 +17,10 @@ export async function createUserFactRepo(data: {
 }) {
   return prisma.userFact.create({
     data: {
-      ...data,
+      userId: data.userId,
+      content: data.content,
+      type: data.type,
+      weight: data.weight,
       evidence: {
         create: {
           sourceChatId: data.sourceChatId,
@@ -90,8 +60,6 @@ export async function applyUserFactEvidenceRepo(input: {
         data: {
           weight: { increment: 1 },
           updatedAt: new Date(),
-          sourceChatId: input.sourceChatId,
-          sourceMessageId: input.sourceMessageId,
         },
       });
     } else {
@@ -99,8 +67,6 @@ export async function applyUserFactEvidenceRepo(input: {
         UPDATE "UserFact"
         SET "content" = ${input.content},
             "weight" = GREATEST("weight" - 1, 1),
-            "sourceChatId" = ${input.sourceChatId},
-            "sourceMessageId" = ${input.sourceMessageId},
             "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = ${input.factId}
       `;
@@ -117,16 +83,6 @@ export async function applyUserFactEvidenceRepo(input: {
     });
     return true;
   });
-}
-
-export async function createFactHistoryRepo(data: {
-  factId: bigint;
-  previousContent: string;
-  newContent: string;
-  weightChange: number;
-  reason: string;
-}) {
-  return prisma.factHistory.create({ data });
 }
 
 export async function findUserFactsRepo(
@@ -149,32 +105,6 @@ export async function findUserFactsRepo(
     },
     orderBy: options.orderBy,
     take: options.take,
-  });
-}
-
-export async function countUserFactsRepo(userId: bigint) {
-  return prisma.userFact.count({
-    where: { userId },
-  });
-}
-
-export async function countUserFactsWithConditionRepo(
-  userId: bigint,
-  condition: { impactScore: { gt: number } },
-) {
-  return prisma.userFact.count({
-    where: { userId, ...condition },
-  });
-}
-
-export async function findTopUserFactsByScoreRepo(
-  userId: bigint,
-  limit: number,
-) {
-  return prisma.userFact.findMany({
-    where: { userId },
-    orderBy: { impactScore: 'desc' },
-    take: limit,
   });
 }
 

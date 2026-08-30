@@ -52,7 +52,10 @@ vi.mock('../ai/embedding/store', () => ({
 vi.mock('../db', () => ({ prisma: mocks.prisma }));
 vi.mock('../logger', () => ({ logger: mocks.logger }));
 
-import { analyzeUserMetaInfo } from '../domain/user/fact-analyzer';
+import {
+  analyzeUserMetaInfo,
+  getTopUserFacts,
+} from '../domain/user/fact-analyzer';
 
 function createMessage(id: bigint, text: string) {
   return {
@@ -165,8 +168,6 @@ describe('analyzeUserMetaInfo source messages', () => {
         content: 'Пользователь любит Rust',
         type: 'INTEREST',
         weight: 1,
-        sourceChatId: 7n,
-        sourceMessageId: 101n,
         evidence: {
           create: { sourceChatId: 7n, sourceMessageId: 101n },
         },
@@ -202,7 +203,9 @@ describe('analyzeUserMetaInfo source messages', () => {
     expect(mocks.prisma.userFact.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         content: 'Подтверждённый факт',
-        sourceMessageId: 102n,
+        evidence: {
+          create: { sourceChatId: 7n, sourceMessageId: 102n },
+        },
       }),
     });
     expect(mocks.logger.warn).toHaveBeenCalledWith(
@@ -214,7 +217,7 @@ describe('analyzeUserMetaInfo source messages', () => {
     );
   });
 
-  it('fills a missing source on a duplicate fact', async () => {
+  it('adds evidence without writing legacy source fields', async () => {
     mocks.generateObject.mockResolvedValue({
       object: {
         facts: [
@@ -252,8 +255,6 @@ describe('analyzeUserMetaInfo source messages', () => {
       data: {
         weight: { increment: 1 },
         updatedAt: expect.any(Date),
-        sourceChatId: 7n,
-        sourceMessageId: 101n,
       },
     });
   });
@@ -303,8 +304,6 @@ describe('analyzeUserMetaInfo source messages', () => {
       data: {
         weight: { increment: 1 },
         updatedAt: expect.any(Date),
-        sourceChatId: 7n,
-        sourceMessageId: 101n,
       },
     });
     expect(mocks.prisma.factHistory.create).toHaveBeenCalledTimes(1);
@@ -347,5 +346,67 @@ describe('analyzeUserMetaInfo source messages', () => {
     ]);
 
     expect(mocks.prisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('ranks facts without legacy impact scores', async () => {
+    const now = new Date('2026-08-31T12:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    mocks.prisma.userFact.findMany.mockResolvedValue([
+      {
+        content: 'expires',
+        type: 'FACT',
+        weight: 1,
+        confidence: 0,
+        impactScore: 0,
+        updatedAt: now,
+        expiresAt: new Date('2026-09-01T12:00:00.000Z'),
+      },
+      {
+        content: 'interest',
+        type: 'INTEREST',
+        weight: 2,
+        confidence: 1,
+        impactScore: 0,
+        updatedAt: new Date('2026-08-26T12:00:00.000Z'),
+        expiresAt: null,
+      },
+      {
+        content: 'weight',
+        type: 'FACT',
+        weight: 4,
+        confidence: 0.8,
+        impactScore: 0,
+        updatedAt: new Date('2026-08-30T12:00:00.000Z'),
+        expiresAt: null,
+      },
+      {
+        content: 'fresh',
+        type: 'FACT',
+        weight: 2,
+        confidence: 0.5,
+        impactScore: 0,
+        updatedAt: now,
+        expiresAt: null,
+      },
+      {
+        content: 'legacy impact',
+        type: 'FACT',
+        weight: 2,
+        confidence: 0.5,
+        impactScore: 999,
+        updatedAt: new Date('2026-08-21T12:00:00.000Z'),
+        expiresAt: null,
+      },
+    ]);
+
+    await expect(getTopUserFacts(42n)).resolves.toEqual([
+      expect.objectContaining({ content: 'expires' }),
+      expect.objectContaining({ content: 'interest' }),
+      expect.objectContaining({ content: 'weight' }),
+      expect.objectContaining({ content: 'fresh' }),
+      expect.objectContaining({ content: 'legacy impact' }),
+    ]);
+    vi.useRealTimers();
   });
 });

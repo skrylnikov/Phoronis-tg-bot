@@ -1,13 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { SCHEDULER_LOCK_KEYS, withAdvisoryLock } from '../advisory-lock';
 import { prisma } from '../db';
-import { migrateNextBatchOfUsers } from '../domain/user/migrate-meta-info';
 import {
   commitAiThreadCacheBoundaryRepo,
   getAiThreadContextRepo,
 } from '../repositories/ai-thread-context-repository';
 import { findChatByIdRepo } from '../repositories/chat-repository';
-import { recalculateFactImpactScoresRepo } from '../repositories/fact-impact-repository';
 import { applyUserFactEvidenceRepo } from '../repositories/user-fact-repository';
 
 let sequence = 0n;
@@ -166,7 +164,7 @@ describe('privacy and runtime migration contracts', () => {
     ).toBe(false);
     expect(
       await prisma.userFact.findUnique({ where: { id: fact.id } }),
-    ).toMatchObject({ weight: 2, sourceMessageId: secondMessageId });
+    ).toMatchObject({ weight: 2, sourceMessageId: firstMessageId });
   });
 
   test('deleting an expired parent preserves its reply', async () => {
@@ -474,43 +472,6 @@ describe('privacy and runtime migration contracts', () => {
     ).toBe(2);
   });
 
-  test('recalculates fact impact scores without loading impact relations', async () => {
-    const { userId } = await createChatFixture();
-    const fact = await prisma.userFact.create({
-      data: {
-        userId,
-        content: 'Set-based score',
-        type: 'FACT',
-        usageCount: 2,
-      },
-    });
-    await prisma.factImpact.createMany({
-      data: [
-        {
-          factId: fact.id,
-          usedInMessageId: uniqueId(),
-          timestamp: new Date(),
-          userReaction: 'positive',
-          messageReaction: 'question',
-        },
-        {
-          factId: fact.id,
-          usedInMessageId: uniqueId(),
-          timestamp: new Date(),
-          userReaction: 'negative',
-          messageReaction: 'ignore',
-        },
-      ],
-    });
-
-    await expect(recalculateFactImpactScoresRepo()).resolves.toBeGreaterThan(0);
-    const updated = await prisma.userFact.findUnique({
-      where: { id: fact.id },
-    });
-    expect(updated?.impactScore).toBeGreaterThan(0.6);
-    expect(updated?.impactScore).toBeLessThan(0.8);
-  });
-
   test('uses independent scheduler locks for different task types', async () => {
     let release: (() => void) | undefined;
     let started: (() => void) | undefined;
@@ -520,7 +481,7 @@ describe('privacy and runtime migration contracts', () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const first = withAdvisoryLock(SCHEDULER_LOCK_KEYS.factImpact, async () => {
+    const first = withAdvisoryLock(SCHEDULER_LOCK_KEYS.factDecay, async () => {
       started?.();
       await gate;
       return 'first';
@@ -528,7 +489,7 @@ describe('privacy and runtime migration contracts', () => {
     await startedPromise;
 
     await expect(
-      withAdvisoryLock(SCHEDULER_LOCK_KEYS.factImpact, async () => 'same'),
+      withAdvisoryLock(SCHEDULER_LOCK_KEYS.factDecay, async () => 'same'),
     ).resolves.toBeUndefined();
     await expect(
       withAdvisoryLock(
@@ -538,26 +499,5 @@ describe('privacy and runtime migration contracts', () => {
     ).resolves.toBe('different');
     release?.();
     await expect(first).resolves.toBe('first');
-  });
-
-  test('converges legacy metaInfo when facts already exist', async () => {
-    const { userId } = await createChatFixture();
-    await prisma.user.update({
-      where: { id: userId },
-      data: { metaInfo: { interests: [{ value: 'Rust', weight: 3 }] } },
-    });
-    await prisma.userFact.create({
-      data: { userId, content: 'Rust', type: 'INTEREST', weight: 3 },
-    });
-
-    await migrateNextBatchOfUsers();
-    await migrateNextBatchOfUsers();
-
-    expect(
-      await prisma.userFact.count({ where: { userId, content: 'Rust' } }),
-    ).toBe(1);
-    expect(
-      await prisma.user.findUnique({ where: { id: userId } }),
-    ).toMatchObject({ metaInfo: {} });
   });
 });

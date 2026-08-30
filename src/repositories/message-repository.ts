@@ -170,12 +170,6 @@ export async function updateMessageManyRepo(
   return prisma.message.updateMany({ where, data });
 }
 
-export async function countMessagesWithWhereRepo(
-  where: Prisma.MessageWhereInput,
-) {
-  return prisma.message.count({ where });
-}
-
 export interface MessageStatsByChat {
   botReplies: number;
   recognizedVoices: number;

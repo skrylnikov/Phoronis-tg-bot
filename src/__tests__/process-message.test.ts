@@ -36,9 +36,6 @@ vi.mock('../domain', () => ({
   saveMessage: mocks.saveMessage,
   saveUser: vi.fn(),
 }));
-vi.mock('../domain/user/fact-impact-tracker', () => ({
-  recordUserReaction: vi.fn(),
-}));
 vi.mock('../logger', () => ({ logger: { debug: vi.fn(), error: vi.fn() } }));
 vi.mock('../repositories', () => ({
   findChatByIdRepo: mocks.findChatByIdRepo,

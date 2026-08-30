@@ -163,12 +163,6 @@ export async function countUserFactsInRange(start: Date, end: Date) {
   });
 }
 
-export async function countFactImpactsInRange(start: Date, end: Date) {
-  return prisma.factImpact.count({
-    where: { timestamp: { gte: start, lt: end } },
-  });
-}
-
 export async function groupQuotaUsageByKind(date: Date) {
   return prisma.quotaUsage.groupBy({
     by: ['kind'],

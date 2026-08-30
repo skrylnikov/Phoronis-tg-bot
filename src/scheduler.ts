@@ -2,11 +2,6 @@ import cron, { type ScheduledTask } from 'node-cron';
 import { SCHEDULER_LOCK_KEYS, withAdvisoryLock } from './advisory-lock';
 import { sendDailyAnalyticsReport } from './analytics';
 import { bot } from './bot';
-import { recalculateFactImpactScores } from './domain/user/fact-impact-tracker';
-import {
-  startMetaInfoMigration,
-  stopMetaInfoMigration,
-} from './domain/user/migrate-meta-info';
 import { cleanOldPrivateMessages } from './features/clean-private-messages';
 import { sendInktoberMessage } from './features/inktober';
 import { sendSelfieSaturdayMessage } from './features/selfie-saturday';
@@ -318,8 +313,6 @@ export function startScheduler() {
     'Scheduler jobs registered',
   );
 
-  startMetaInfoMigration();
-
   scheduleTask(
     '0 3 * * 0',
     'fact decay',
@@ -348,27 +341,6 @@ export function startScheduler() {
     },
     {
       timezone: 'UTC',
-    },
-  );
-
-  scheduleTask(
-    '*/30 * * * *',
-    'fact impact score',
-    SCHEDULER_LOCK_KEYS.factImpact,
-    async () => {
-      logger.info(
-        { event: 'scheduler.fact_impact_started' },
-        'Fact impact task started',
-      );
-      try {
-        await recalculateFactImpactScores();
-      } catch (err) {
-        logger.error(
-          { event: 'scheduler.fact_impact_failed', err },
-          'Fact impact task failed',
-        );
-        throw err;
-      }
     },
   );
 
@@ -409,7 +381,6 @@ export async function stopScheduler(): Promise<void> {
   schedulerStarted = false;
   for (const task of scheduledTasks) task.stop();
   scheduledTasks.clear();
-  await stopMetaInfoMigration();
   await Promise.allSettled([...activeRuns]);
   logger.info({ event: 'scheduler.stopped' }, 'Scheduler stopped');
 }

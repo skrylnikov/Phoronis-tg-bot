@@ -9,7 +9,6 @@ const { prisma } = vi.hoisted(() => ({
     paymentOrder: { aggregate: vi.fn() },
     subscription: { count: vi.fn() },
     userFact: { count: vi.fn() },
-    factImpact: { count: vi.fn() },
   },
 }));
 
@@ -57,7 +56,6 @@ beforeEach(() => {
     .mockResolvedValueOnce({ _count: { _all: 1 }, _sum: { amount: 49 } });
   prisma.subscription.count.mockResolvedValue(7);
   prisma.userFact.count.mockResolvedValue(0);
-  prisma.factImpact.count.mockResolvedValue(0);
   prisma.dailyAnalytics.upsert.mockResolvedValue({});
   prisma.dailyAnalytics.update.mockResolvedValue({});
 });
@@ -139,6 +137,7 @@ describe('analytics notifications', () => {
     expect(report).not.toContain('Привет');
     expect(report).not.toContain('prompt');
     expect(report).toContain('Новых фактов: 0');
+    expect(report).not.toContain('Использовано фактов');
     expect(report).toContain('Vector search: 0');
     expect(report).toContain('Дорогие AI-ответы: 0');
     expect(report).toContain('Дешёвые AI-ответы: 0');
@@ -160,9 +159,6 @@ describe('analytics notifications', () => {
     const end = new Date('2026-07-28T20:00:00.000Z');
     expect(prisma.userFact.count).toHaveBeenCalledWith({
       where: { createdAt: { gte: start, lt: end } },
-    });
-    expect(prisma.factImpact.count).toHaveBeenCalledWith({
-      where: { timestamp: { gte: start, lt: end } },
     });
     expect(prisma.quotaUsage.groupBy).toHaveBeenCalledWith({
       by: ['kind'],

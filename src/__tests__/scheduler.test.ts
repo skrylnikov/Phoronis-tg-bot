@@ -7,17 +7,13 @@ const mocks = vi.hoisted(() => ({
     selfieSaturday: 103,
     inktober: 104,
     factDecay: 105,
-    factImpact: 106,
     privateMessageCleanup: 107,
-    metaInfoMigration: 108,
   },
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   reactivateInactiveGroupChatsRepo: vi.fn(),
-  recalculateFactImpactScores: vi.fn(),
   schedule: vi.fn(),
-  startMetaInfoMigration: vi.fn(),
-  stopMetaInfoMigration: vi.fn(),
+  updateUserFactsWeightRepo: vi.fn(),
   withAdvisoryLock: vi.fn(),
 }));
 
@@ -29,13 +25,6 @@ vi.mock('../advisory-lock', () => ({
 vi.mock('../analytics', () => ({ sendDailyAnalyticsReport: vi.fn() }));
 vi.mock('../bot', () => ({
   bot: { api: { getMe: vi.fn().mockResolvedValue({ id: 999 }) } },
-}));
-vi.mock('../domain/user/fact-impact-tracker', () => ({
-  recalculateFactImpactScores: mocks.recalculateFactImpactScores,
-}));
-vi.mock('../domain/user/migrate-meta-info', () => ({
-  startMetaInfoMigration: mocks.startMetaInfoMigration,
-  stopMetaInfoMigration: mocks.stopMetaInfoMigration,
 }));
 vi.mock('../features/clean-private-messages', () => ({
   cleanOldPrivateMessages: vi.fn(),
@@ -54,7 +43,7 @@ vi.mock('../logger', () => ({
 vi.mock('../repositories', () => ({
   findManyChatsRepo: vi.fn().mockResolvedValue([]),
   reactivateInactiveGroupChatsRepo: mocks.reactivateInactiveGroupChatsRepo,
-  updateUserFactsWeightRepo: vi.fn(),
+  updateUserFactsWeightRepo: mocks.updateUserFactsWeightRepo,
 }));
 
 import { runSchedulerTask, startScheduler, stopScheduler } from '../scheduler';
@@ -63,12 +52,11 @@ beforeEach(async () => {
   await stopScheduler();
   vi.clearAllMocks();
   mocks.schedule.mockImplementation(() => ({ stop: vi.fn() }));
-  mocks.stopMetaInfoMigration.mockResolvedValue(undefined);
   mocks.withAdvisoryLock.mockImplementation(
     async (_key: number, task: () => Promise<unknown>) => task(),
   );
   mocks.reactivateInactiveGroupChatsRepo.mockResolvedValue(2);
-  mocks.recalculateFactImpactScores.mockResolvedValue(undefined);
+  mocks.updateUserFactsWeightRepo.mockResolvedValue(3);
 });
 
 afterEach(async () => {
@@ -80,21 +68,20 @@ describe('scheduler', () => {
     startScheduler();
     startScheduler();
 
-    expect(mocks.schedule).toHaveBeenCalledTimes(7);
-    expect(mocks.startMetaInfoMigration).toHaveBeenCalledOnce();
+    expect(mocks.schedule).toHaveBeenCalledTimes(6);
     const recovery = mocks.schedule.mock.calls.find(
       ([expression]) => expression === '0 1 * * *',
     );
-    const impact = mocks.schedule.mock.calls.find(
-      ([expression]) => expression === '*/30 * * * *',
+    const decay = mocks.schedule.mock.calls.find(
+      ([expression]) => expression === '0 3 * * 0',
     );
     expect(recovery?.[2]).toEqual({ timezone: 'Europe/Moscow' });
 
     recovery?.[1]();
-    impact?.[1]();
+    decay?.[1]();
     await vi.waitFor(() => {
       expect(mocks.reactivateInactiveGroupChatsRepo).toHaveBeenCalledOnce();
-      expect(mocks.recalculateFactImpactScores).toHaveBeenCalledOnce();
+      expect(mocks.updateUserFactsWeightRepo).toHaveBeenCalledOnce();
     });
 
     expect(mocks.withAdvisoryLock).toHaveBeenCalledWith(
@@ -102,7 +89,7 @@ describe('scheduler', () => {
       expect.any(Function),
     );
     expect(mocks.withAdvisoryLock).toHaveBeenCalledWith(
-      mocks.lockKeys.factImpact,
+      mocks.lockKeys.factDecay,
       expect.any(Function),
     );
   });
@@ -127,15 +114,15 @@ describe('scheduler', () => {
 
     const first = runSchedulerTask(
       'first',
-      mocks.lockKeys.factImpact,
+      mocks.lockKeys.factDecay,
       () => firstGate,
     );
     await vi.waitFor(() =>
-      expect(activeKeys.has(mocks.lockKeys.factImpact)).toBe(true),
+      expect(activeKeys.has(mocks.lockKeys.factDecay)).toBe(true),
     );
     const same = runSchedulerTask(
       'same',
-      mocks.lockKeys.factImpact,
+      mocks.lockKeys.factDecay,
       async () => {},
     );
     const different = runSchedulerTask(
@@ -151,22 +138,22 @@ describe('scheduler', () => {
   });
 
   it('stops registered jobs and waits for active runs', async () => {
-    let releaseImpact: (() => void) | undefined;
-    mocks.recalculateFactImpactScores.mockReturnValue(
+    let releaseDecay: (() => void) | undefined;
+    mocks.updateUserFactsWeightRepo.mockReturnValue(
       new Promise<void>((resolve) => {
-        releaseImpact = resolve;
+        releaseDecay = resolve;
       }),
     );
     startScheduler();
     const tasks = mocks.schedule.mock.results.map(
       ({ value }) => value as { stop: ReturnType<typeof vi.fn> },
     );
-    const impact = mocks.schedule.mock.calls.find(
-      ([expression]) => expression === '*/30 * * * *',
+    const decay = mocks.schedule.mock.calls.find(
+      ([expression]) => expression === '0 3 * * 0',
     );
-    impact?.[1]();
+    decay?.[1]();
     await vi.waitFor(() =>
-      expect(mocks.recalculateFactImpactScores).toHaveBeenCalledOnce(),
+      expect(mocks.updateUserFactsWeightRepo).toHaveBeenCalledOnce(),
     );
 
     let stopped = false;
@@ -176,10 +163,9 @@ describe('scheduler', () => {
     await Promise.resolve();
 
     expect(tasks.every((task) => task.stop.mock.calls.length === 1)).toBe(true);
-    expect(mocks.stopMetaInfoMigration).toHaveBeenCalledOnce();
     expect(stopped).toBe(false);
 
-    releaseImpact?.();
+    releaseDecay?.();
     await stopping;
     expect(stopped).toBe(true);
   });

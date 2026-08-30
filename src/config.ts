@@ -58,8 +58,6 @@ if (!Number.isSafeInteger(analyticsChatId)) {
 
 export const langfuseConfig = readLangfuseConfig(process.env);
 
-export const activateWordList = ['ио', 'форонида', 'io'];
-
 export const sessionIdGenerator = customAlphabet(
   '1234567890abcdefghijklmnopqrstuvwxyz',
   10,

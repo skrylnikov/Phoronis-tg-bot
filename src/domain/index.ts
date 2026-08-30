@@ -6,7 +6,6 @@ export {
   saveMessage,
   saveUser,
 } from '../repositories';
-export * from './analysis-limiter';
 export * from './guest-interaction';
 export type {
   NoticeKind,

@@ -4,7 +4,6 @@ import { sendInktoberMessage } from '../features/inktober';
 import { sendSelfieSaturdayMessage } from '../features/selfie-saturday';
 import { logger } from '../logger';
 import {
-  countMessagesWithWhereRepo,
   findChatByIdRepo,
   updateChatRepo,
   upsertChatFeatureRepo,
@@ -198,51 +197,5 @@ featuresController.command('status', async (ctx) => {
       'Feature status lookup failed',
     );
     await ctx.reply('Произошла ошибка при получении статуса функций.');
-  }
-});
-
-featuresController.command('index', async (_ctx) => {
-  try {
-    const _count = await countMessagesWithWhereRepo({});
-    // // const count = 1000;
-    // for (let i = 138800; i < count; i += 100) {
-    //   logger.info({ event: 'feature.index_progress', offset: i, count });
-    //   const messages = await prisma.message.findMany({
-    //     skip: i,
-    //     take: 100,
-    //     include: {
-    //       replyToMessage: true,
-    //     }
-    //   });
-    //   const request = messages
-    //     .map((message) => {
-    //       const replyMessage = message.replyToMessage;
-    //       const replyToMessageText =
-    //       replyMessage?.text?.trim() ||
-    //         replyMessage?.summary?.trim() ||
-    //         null;
-    //       const messageText = (message.text || message.summary || "").trim();
-    //       const content = replyToMessageText
-    //         ? `Q: "${replyToMessageText}" \n\n A: "${messageText}"`
-    //         : messageText;
-    //       if (messageText.length <= 10 && (replyToMessageText === null || replyToMessageText.length <= 10)) {
-    //         return null;
-    //       }
-    //       return {
-    //         id: Number(message.id),
-    //         text: messageText,
-    //         content,
-    //         chatId: Number(message.chatId),
-    //         userId: Number(message.senderId),
-    //       };
-    //     })
-    //     .filter((message) => message);
-    // }
-    // await ctx.reply("Индексация завершена");
-  } catch (error) {
-    logger.error(
-      { event: 'feature.index_failed', err: error },
-      'Feature index failed',
-    );
   }
 });

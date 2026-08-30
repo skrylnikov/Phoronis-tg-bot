@@ -8,9 +8,7 @@ export const SCHEDULER_LOCK_KEYS = {
   selfieSaturday: 0x5048_0103,
   inktober: 0x5048_0104,
   factDecay: 0x5048_0105,
-  factImpact: 0x5048_0106,
   privateMessageCleanup: 0x5048_0107,
-  metaInfoMigration: 0x5048_0108,
 } as const;
 
 type AdvisoryLockKey = number | bigint;
