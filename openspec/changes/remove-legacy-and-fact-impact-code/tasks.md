@@ -23,7 +23,7 @@
 - [x] 3.3 Обновить `schema.prisma`, regenerate Prisma client и удалить оставшиеся generated references; `prisma validate` и `bun run typecheck` подтверждают соответствие финальной схеме.
 - [x] 3.4 Проверить полный migration path на пустой безопасной PostgreSQL БД и upgrade path на production-like snapshot; оба `prisma migrate deploy` завершаются без pending/failed migrations и финальная схема не содержит удалённых объектов.
 - [x] 3.5 Выполнить `bun run lint`, `bun run test` и безопасный PostgreSQL integration suite на финальной схеме; тесты фактов, аналитики, scheduler и runtime lifecycle проходят без legacy mocks.
-- [ ] 3.6 При отдельном разрешении выкатить schema-cleanup релиз и подтвердить migration init-container, новый image/digest, rollout, readiness, AI-ответ с фактами, дневную аналитику и свежие логи без обращений к удалённой схеме.
+- [x] 3.6 При отдельном разрешении выкатить schema-cleanup релиз и подтвердить migration init-container, новый image/digest, rollout, readiness, AI-ответ с фактами, дневную аналитику и свежие логи без обращений к удалённой схеме.
 
 ## 4. Проверка OpenSpec и остаточного legacy-кода
 
