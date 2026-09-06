@@ -264,6 +264,7 @@ export type ChatWhereInput = {
   PurchaseSession?: Prisma.PurchaseSessionListRelationFilter
   LimitNotice?: Prisma.LimitNoticeListRelationFilter
   AiThreadContext?: Prisma.AiThreadContextListRelationFilter
+  aliases?: Prisma.UserAliasListRelationFilter
 }
 
 export type ChatOrderByWithRelationInput = {
@@ -285,6 +286,7 @@ export type ChatOrderByWithRelationInput = {
   PurchaseSession?: Prisma.PurchaseSessionOrderByRelationAggregateInput
   LimitNotice?: Prisma.LimitNoticeOrderByRelationAggregateInput
   AiThreadContext?: Prisma.AiThreadContextOrderByRelationAggregateInput
+  aliases?: Prisma.UserAliasOrderByRelationAggregateInput
 }
 
 export type ChatWhereUniqueInput = Prisma.AtLeast<{
@@ -309,6 +311,7 @@ export type ChatWhereUniqueInput = Prisma.AtLeast<{
   PurchaseSession?: Prisma.PurchaseSessionListRelationFilter
   LimitNotice?: Prisma.LimitNoticeListRelationFilter
   AiThreadContext?: Prisma.AiThreadContextListRelationFilter
+  aliases?: Prisma.UserAliasListRelationFilter
 }, "id">
 
 export type ChatOrderByWithAggregationInput = {
@@ -364,6 +367,7 @@ export type ChatCreateInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateInput = {
@@ -385,6 +389,7 @@ export type ChatUncheckedCreateInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatUpdateInput = {
@@ -406,6 +411,7 @@ export type ChatUpdateInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateInput = {
@@ -427,6 +433,7 @@ export type ChatUncheckedUpdateInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateManyInput = {
@@ -652,6 +659,20 @@ export type ChatUpdateOneRequiredWithoutMemoryNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutMemoryInput, Prisma.ChatUpdateWithoutMemoryInput>, Prisma.ChatUncheckedUpdateWithoutMemoryInput>
 }
 
+export type ChatCreateNestedOneWithoutAliasesInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutAliasesInput, Prisma.ChatUncheckedCreateWithoutAliasesInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutAliasesInput
+  connect?: Prisma.ChatWhereUniqueInput
+}
+
+export type ChatUpdateOneRequiredWithoutAliasesNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatCreateWithoutAliasesInput, Prisma.ChatUncheckedCreateWithoutAliasesInput>
+  connectOrCreate?: Prisma.ChatCreateOrConnectWithoutAliasesInput
+  upsert?: Prisma.ChatUpsertWithoutAliasesInput
+  connect?: Prisma.ChatWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChatUpdateToOneWithWhereWithoutAliasesInput, Prisma.ChatUpdateWithoutAliasesInput>, Prisma.ChatUncheckedUpdateWithoutAliasesInput>
+}
+
 export type ChatCreateWithoutBeneficiarySubscriptionsInput = {
   id: bigint | number
   title: string
@@ -670,6 +691,7 @@ export type ChatCreateWithoutBeneficiarySubscriptionsInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutBeneficiarySubscriptionsInput = {
@@ -690,6 +712,7 @@ export type ChatUncheckedCreateWithoutBeneficiarySubscriptionsInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutBeneficiarySubscriptionsInput = {
@@ -726,6 +749,7 @@ export type ChatUpdateWithoutBeneficiarySubscriptionsInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutBeneficiarySubscriptionsInput = {
@@ -746,6 +770,7 @@ export type ChatUncheckedUpdateWithoutBeneficiarySubscriptionsInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutPaymentOrderInput = {
@@ -766,6 +791,7 @@ export type ChatCreateWithoutPaymentOrderInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutPaymentOrderInput = {
@@ -786,6 +812,7 @@ export type ChatUncheckedCreateWithoutPaymentOrderInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutPaymentOrderInput = {
@@ -822,6 +849,7 @@ export type ChatUpdateWithoutPaymentOrderInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutPaymentOrderInput = {
@@ -842,6 +870,7 @@ export type ChatUncheckedUpdateWithoutPaymentOrderInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutPurchaseSessionInput = {
@@ -862,6 +891,7 @@ export type ChatCreateWithoutPurchaseSessionInput = {
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutPurchaseSessionInput = {
@@ -882,6 +912,7 @@ export type ChatUncheckedCreateWithoutPurchaseSessionInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutPurchaseSessionInput = {
@@ -918,6 +949,7 @@ export type ChatUpdateWithoutPurchaseSessionInput = {
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutPurchaseSessionInput = {
@@ -938,6 +970,7 @@ export type ChatUncheckedUpdateWithoutPurchaseSessionInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutLimitNoticeInput = {
@@ -958,6 +991,7 @@ export type ChatCreateWithoutLimitNoticeInput = {
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutLimitNoticeInput = {
@@ -978,6 +1012,7 @@ export type ChatUncheckedCreateWithoutLimitNoticeInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutLimitNoticeInput = {
@@ -1014,6 +1049,7 @@ export type ChatUpdateWithoutLimitNoticeInput = {
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutLimitNoticeInput = {
@@ -1034,6 +1070,7 @@ export type ChatUncheckedUpdateWithoutLimitNoticeInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutMessageInput = {
@@ -1054,6 +1091,7 @@ export type ChatCreateWithoutMessageInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutMessageInput = {
@@ -1074,6 +1112,7 @@ export type ChatUncheckedCreateWithoutMessageInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutMessageInput = {
@@ -1110,6 +1149,7 @@ export type ChatUpdateWithoutMessageInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutMessageInput = {
@@ -1130,6 +1170,7 @@ export type ChatUncheckedUpdateWithoutMessageInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutGuestInteractionInput = {
@@ -1150,6 +1191,7 @@ export type ChatCreateWithoutGuestInteractionInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutGuestInteractionInput = {
@@ -1170,6 +1212,7 @@ export type ChatUncheckedCreateWithoutGuestInteractionInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutGuestInteractionInput = {
@@ -1206,6 +1249,7 @@ export type ChatUpdateWithoutGuestInteractionInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutGuestInteractionInput = {
@@ -1226,6 +1270,7 @@ export type ChatUncheckedUpdateWithoutGuestInteractionInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutAiThreadContextInput = {
@@ -1246,6 +1291,7 @@ export type ChatCreateWithoutAiThreadContextInput = {
   PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutAiThreadContextInput = {
@@ -1266,6 +1312,7 @@ export type ChatUncheckedCreateWithoutAiThreadContextInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutAiThreadContextInput = {
@@ -1302,6 +1349,7 @@ export type ChatUpdateWithoutAiThreadContextInput = {
   PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutAiThreadContextInput = {
@@ -1322,6 +1370,7 @@ export type ChatUncheckedUpdateWithoutAiThreadContextInput = {
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
 }
 
 export type ChatCreateWithoutMemoryInput = {
@@ -1342,6 +1391,7 @@ export type ChatCreateWithoutMemoryInput = {
   PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasCreateNestedManyWithoutChatInput
 }
 
 export type ChatUncheckedCreateWithoutMemoryInput = {
@@ -1362,6 +1412,7 @@ export type ChatUncheckedCreateWithoutMemoryInput = {
   PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
   LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
   AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+  aliases?: Prisma.UserAliasUncheckedCreateNestedManyWithoutChatInput
 }
 
 export type ChatCreateOrConnectWithoutMemoryInput = {
@@ -1398,6 +1449,7 @@ export type ChatUpdateWithoutMemoryInput = {
   PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
   LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
   AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUpdateManyWithoutChatNestedInput
 }
 
 export type ChatUncheckedUpdateWithoutMemoryInput = {
@@ -1413,6 +1465,107 @@ export type ChatUncheckedUpdateWithoutMemoryInput = {
   privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
   GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedUpdateManyWithoutChatNestedInput
+  AiThreadContext?: Prisma.AiThreadContextUncheckedUpdateManyWithoutChatNestedInput
+  aliases?: Prisma.UserAliasUncheckedUpdateManyWithoutChatNestedInput
+}
+
+export type ChatCreateWithoutAliasesInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  privateModeEnabled?: boolean | null
+  Message?: Prisma.MessageCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryCreateNestedManyWithoutChatInput
+  beneficiarySubscriptions?: Prisma.SubscriptionCreateNestedManyWithoutBeneficiaryChatInput
+  PaymentOrder?: Prisma.PaymentOrderCreateNestedManyWithoutBeneficiaryChatInput
+  PurchaseSession?: Prisma.PurchaseSessionCreateNestedManyWithoutBeneficiaryChatInput
+  LimitNotice?: Prisma.LimitNoticeCreateNestedManyWithoutChatInput
+  AiThreadContext?: Prisma.AiThreadContextCreateNestedManyWithoutChatInput
+}
+
+export type ChatUncheckedCreateWithoutAliasesInput = {
+  id: bigint | number
+  title: string
+  chatType: $Enums.ChatType
+  name?: string | null
+  greeting?: string | null
+  active?: boolean
+  inactiveSince?: Date | string | null
+  selfieSaturdayEnabled?: boolean | null
+  inktoberEnabled?: boolean | null
+  privateModeEnabled?: boolean | null
+  Message?: Prisma.MessageUncheckedCreateNestedManyWithoutChatInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedCreateNestedManyWithoutChatInput
+  Memory?: Prisma.MemoryUncheckedCreateNestedManyWithoutChatInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  PaymentOrder?: Prisma.PaymentOrderUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  PurchaseSession?: Prisma.PurchaseSessionUncheckedCreateNestedManyWithoutBeneficiaryChatInput
+  LimitNotice?: Prisma.LimitNoticeUncheckedCreateNestedManyWithoutChatInput
+  AiThreadContext?: Prisma.AiThreadContextUncheckedCreateNestedManyWithoutChatInput
+}
+
+export type ChatCreateOrConnectWithoutAliasesInput = {
+  where: Prisma.ChatWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChatCreateWithoutAliasesInput, Prisma.ChatUncheckedCreateWithoutAliasesInput>
+}
+
+export type ChatUpsertWithoutAliasesInput = {
+  update: Prisma.XOR<Prisma.ChatUpdateWithoutAliasesInput, Prisma.ChatUncheckedUpdateWithoutAliasesInput>
+  create: Prisma.XOR<Prisma.ChatCreateWithoutAliasesInput, Prisma.ChatUncheckedCreateWithoutAliasesInput>
+  where?: Prisma.ChatWhereInput
+}
+
+export type ChatUpdateToOneWithWhereWithoutAliasesInput = {
+  where?: Prisma.ChatWhereInput
+  data: Prisma.XOR<Prisma.ChatUpdateWithoutAliasesInput, Prisma.ChatUncheckedUpdateWithoutAliasesInput>
+}
+
+export type ChatUpdateWithoutAliasesInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUpdateManyWithoutChatNestedInput
+  beneficiarySubscriptions?: Prisma.SubscriptionUpdateManyWithoutBeneficiaryChatNestedInput
+  PaymentOrder?: Prisma.PaymentOrderUpdateManyWithoutBeneficiaryChatNestedInput
+  PurchaseSession?: Prisma.PurchaseSessionUpdateManyWithoutBeneficiaryChatNestedInput
+  LimitNotice?: Prisma.LimitNoticeUpdateManyWithoutChatNestedInput
+  AiThreadContext?: Prisma.AiThreadContextUpdateManyWithoutChatNestedInput
+}
+
+export type ChatUncheckedUpdateWithoutAliasesInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  chatType?: Prisma.EnumChatTypeFieldUpdateOperationsInput | $Enums.ChatType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  greeting?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inactiveSince?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  selfieSaturdayEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  inktoberEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  privateModeEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  Message?: Prisma.MessageUncheckedUpdateManyWithoutChatNestedInput
+  GuestInteraction?: Prisma.GuestInteractionUncheckedUpdateManyWithoutChatNestedInput
+  Memory?: Prisma.MemoryUncheckedUpdateManyWithoutChatNestedInput
   beneficiarySubscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PaymentOrder?: Prisma.PaymentOrderUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
   PurchaseSession?: Prisma.PurchaseSessionUncheckedUpdateManyWithoutBeneficiaryChatNestedInput
@@ -1434,6 +1587,7 @@ export type ChatCountOutputType = {
   PurchaseSession: number
   LimitNotice: number
   AiThreadContext: number
+  aliases: number
 }
 
 export type ChatCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1445,6 +1599,7 @@ export type ChatCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   PurchaseSession?: boolean | ChatCountOutputTypeCountPurchaseSessionArgs
   LimitNotice?: boolean | ChatCountOutputTypeCountLimitNoticeArgs
   AiThreadContext?: boolean | ChatCountOutputTypeCountAiThreadContextArgs
+  aliases?: boolean | ChatCountOutputTypeCountAliasesArgs
 }
 
 /**
@@ -1513,6 +1668,13 @@ export type ChatCountOutputTypeCountAiThreadContextArgs<ExtArgs extends runtime.
   where?: Prisma.AiThreadContextWhereInput
 }
 
+/**
+ * ChatCountOutputType without action
+ */
+export type ChatCountOutputTypeCountAliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserAliasWhereInput
+}
+
 
 export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1533,6 +1695,7 @@ export type ChatSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   PurchaseSession?: boolean | Prisma.Chat$PurchaseSessionArgs<ExtArgs>
   LimitNotice?: boolean | Prisma.Chat$LimitNoticeArgs<ExtArgs>
   AiThreadContext?: boolean | Prisma.Chat$AiThreadContextArgs<ExtArgs>
+  aliases?: boolean | Prisma.Chat$aliasesArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chat"]>
 
@@ -1585,6 +1748,7 @@ export type ChatInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   PurchaseSession?: boolean | Prisma.Chat$PurchaseSessionArgs<ExtArgs>
   LimitNotice?: boolean | Prisma.Chat$LimitNoticeArgs<ExtArgs>
   AiThreadContext?: boolean | Prisma.Chat$AiThreadContextArgs<ExtArgs>
+  aliases?: boolean | Prisma.Chat$aliasesArgs<ExtArgs>
   _count?: boolean | Prisma.ChatCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChatIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1601,6 +1765,7 @@ export type $ChatPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     PurchaseSession: Prisma.$PurchaseSessionPayload<ExtArgs>[]
     LimitNotice: Prisma.$LimitNoticePayload<ExtArgs>[]
     AiThreadContext: Prisma.$AiThreadContextPayload<ExtArgs>[]
+    aliases: Prisma.$UserAliasPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -2015,6 +2180,7 @@ export interface Prisma__ChatClient<T, Null = never, ExtArgs extends runtime.Typ
   PurchaseSession<T extends Prisma.Chat$PurchaseSessionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$PurchaseSessionArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PurchaseSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   LimitNotice<T extends Prisma.Chat$LimitNoticeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$LimitNoticeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LimitNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   AiThreadContext<T extends Prisma.Chat$AiThreadContextArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$AiThreadContextArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiThreadContextPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aliases<T extends Prisma.Chat$aliasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Chat$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserAliasPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2636,6 +2802,30 @@ export type Chat$AiThreadContextArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.AiThreadContextScalarFieldEnum | Prisma.AiThreadContextScalarFieldEnum[]
+}
+
+/**
+ * Chat.aliases
+ */
+export type Chat$aliasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserAlias
+   */
+  select?: Prisma.UserAliasSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserAlias
+   */
+  omit?: Prisma.UserAliasOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserAliasInclude<ExtArgs> | null
+  where?: Prisma.UserAliasWhereInput
+  orderBy?: Prisma.UserAliasOrderByWithRelationInput | Prisma.UserAliasOrderByWithRelationInput[]
+  cursor?: Prisma.UserAliasWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserAliasScalarFieldEnum | Prisma.UserAliasScalarFieldEnum[]
 }
 
 /**

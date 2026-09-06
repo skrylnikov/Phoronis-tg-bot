@@ -68,6 +68,9 @@ vi.mock('../repositories/user-repository', () => ({
   saveUserRepo: vi.fn(),
   findFirstUserRepo: vi.fn(),
 }));
+vi.mock('../repositories/user-alias-repository', () => ({
+  findUserAliasesRepo: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock('../db', () => ({
   prisma: {

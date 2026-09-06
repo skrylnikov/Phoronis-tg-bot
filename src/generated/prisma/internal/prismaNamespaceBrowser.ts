@@ -68,7 +68,9 @@ export const ModelName = {
   Memory: 'Memory',
   UserFact: 'UserFact',
   UserFactEvidence: 'UserFactEvidence',
-  FactHistory: 'FactHistory'
+  FactHistory: 'FactHistory',
+  UserAlias: 'UserAlias',
+  UserAliasEvidence: 'UserAliasEvidence'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -356,6 +358,38 @@ export const FactHistoryScalarFieldEnum = {
 } as const
 
 export type FactHistoryScalarFieldEnum = (typeof FactHistoryScalarFieldEnum)[keyof typeof FactHistoryScalarFieldEnum]
+
+
+export const UserAliasScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  userId: 'userId',
+  alias: 'alias',
+  normalizedAlias: 'normalizedAlias',
+  confidence: 'confidence',
+  confirmationCount: 'confirmationCount',
+  status: 'status',
+  ownerConfirmed: 'ownerConfirmed',
+  addressingBlocked: 'addressingBlocked',
+  preferred: 'preferred',
+  lastOwnerMessageId: 'lastOwnerMessageId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAliasScalarFieldEnum = (typeof UserAliasScalarFieldEnum)[keyof typeof UserAliasScalarFieldEnum]
+
+
+export const UserAliasEvidenceScalarFieldEnum = {
+  id: 'id',
+  aliasId: 'aliasId',
+  sourceChatId: 'sourceChatId',
+  sourceMessageId: 'sourceMessageId',
+  modelConfidence: 'modelConfidence',
+  neutralForAddressing: 'neutralForAddressing'
+} as const
+
+export type UserAliasEvidenceScalarFieldEnum = (typeof UserAliasEvidenceScalarFieldEnum)[keyof typeof UserAliasEvidenceScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -7,15 +7,23 @@ const {
   getChatMember,
   getUserPersonalMemories,
   loggerError,
+  aliases,
+  resolveChatUser,
 } = vi.hoisted(() => ({
   prisma: { user: { findUnique: vi.fn() } },
   getAllUserFacts: vi.fn(),
   getChatMember: vi.fn(),
   getUserPersonalMemories: vi.fn(),
   loggerError: vi.fn(),
+  aliases: vi.fn(),
+  resolveChatUser: vi.fn(),
 }));
 
 vi.mock('../db', () => ({ prisma }));
+vi.mock('../repositories/user-alias-repository', () => ({
+  findUserAliasesRepo: aliases,
+}));
+vi.mock('../domain/user/resolve-chat-user', () => ({ resolveChatUser }));
 vi.mock('../domain/memory', () => ({ getUserPersonalMemories }));
 vi.mock('../domain/user/fact-analyzer', () => ({ getAllUserFacts }));
 vi.mock('../logger', () => ({ logger: { error: loggerError } }));
@@ -49,6 +57,8 @@ const user = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  aliases.mockResolvedValue([]);
+  resolveChatUser.mockResolvedValue({ senderId: 456n });
   prisma.user.findUnique.mockResolvedValue(user);
   getChatMember.mockResolvedValue({ status: 'member' });
   getAllUserFacts.mockResolvedValue([
@@ -71,6 +81,51 @@ beforeEach(() => {
 });
 
 describe('get_user_info tool', () => {
+  it('authorizes query results and rejects combined or private lookup', async () => {
+    await runTool(createContext(), { query: 'Шурик' });
+    expect(resolveChatUser).toHaveBeenCalledWith(-100n, 'Шурик');
+    expect(getChatMember).toHaveBeenCalledWith(-100, 456);
+    expect(aliases).toHaveBeenCalledWith(-100n, 456n);
+    for (const input of [{ query: 'Шурик', userId: '456' }, { query: '' }])
+      expect(
+        JSON.parse(String(await runTool(createContext(), input))),
+      ).toHaveProperty('error');
+    const privateContext = {
+      ...createContext(),
+      chat: { id: 123, type: 'private' },
+    } as unknown as BotContext;
+    resolveChatUser.mockClear();
+    expect(
+      JSON.parse(String(await runTool(privateContext, { query: 'Шурик' }))),
+    ).toHaveProperty('error');
+    expect(resolveChatUser).not.toHaveBeenCalled();
+  });
+
+  it('checks every candidate before disclosing it and keeps clarification after filtering', async () => {
+    resolveChatUser.mockResolvedValue({
+      candidates: [
+        { id: '456', sender: 'Саша' },
+        { id: '789', sender: 'Другой' },
+      ],
+      truncated: false,
+      clarificationRequired: true,
+    });
+    getChatMember
+      .mockResolvedValueOnce({ status: 'kicked' })
+      .mockResolvedValueOnce({ status: 'member' });
+    expect(
+      JSON.parse(String(await runTool(createContext(), { query: 'Саша' }))),
+    ).toMatchObject({
+      candidates: [{ id: '789', sender: 'Другой' }],
+      clarificationRequired: true,
+    });
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(aliases).not.toHaveBeenCalled();
+    getChatMember.mockRejectedValue(new Error('unavailable'));
+    expect(
+      JSON.parse(String(await runTool(createContext(), { query: 'Саша' }))),
+    ).toEqual({ error: 'Не удалось получить информацию о пользователе' });
+  });
   it('returns all information for the current user', async () => {
     const result = await runTool(createContext(), {});
 

@@ -29,6 +29,7 @@ model User {
   PaymentOrder    PaymentOrder[]
   PurchaseSession PurchaseSession[]
   LimitNotice     LimitNotice[]
+  aliases         UserAlias[]
 }
 
 enum ChatType {
@@ -58,6 +59,7 @@ model Chat {
   PurchaseSession          PurchaseSession[]
   LimitNotice              LimitNotice[]
   AiThreadContext          AiThreadContext[]
+  aliases                  UserAlias[]
 }
 
 enum SubscriptionPlan {
@@ -282,6 +284,7 @@ model Message {
   Replies          Message[]                   @relation("replies")
   factEvidence     UserFactEvidence[]          @relation("UserFactEvidenceSourceMessage")
   aiThreadEvents   AiThreadContextEvent[]
+  aliasEvidence    UserAliasEvidence[]
 
   @@id([chatId, id])
   @@index([chatId, sentAt])
@@ -440,4 +443,47 @@ model FactHistory {
   reason          String
 
   @@index([factId])
+}
+
+enum UserAliasStatus {
+  CANDIDATE
+  CONFIRMED
+  REJECTED
+}
+
+model UserAlias {
+  id BigInt @id @default(autoincrement())
+  chatId BigInt
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId BigInt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alias String
+  normalizedAlias String
+  confidence Float @default(0)
+  confirmationCount Int @default(0)
+  status UserAliasStatus @default(CANDIDATE)
+  ownerConfirmed Boolean @default(false)
+  addressingBlocked Boolean @default(false)
+  preferred Boolean @default(false)
+  lastOwnerMessageId BigInt?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  evidence UserAliasEvidence[]
+
+  @@unique([chatId, userId, normalizedAlias])
+  @@index([chatId, normalizedAlias])
+}
+
+model UserAliasEvidence {
+  id BigInt @id @default(autoincrement())
+  aliasId BigInt
+  alias UserAlias @relation(fields: [aliasId], references: [id], onDelete: Cascade)
+  sourceChatId BigInt
+  sourceMessageId BigInt
+  sourceMessage Message @relation(fields: [sourceChatId, sourceMessageId], references: [chatId, id], onDelete: Cascade)
+  modelConfidence Float
+  neutralForAddressing Boolean
+
+  @@unique([aliasId, sourceChatId, sourceMessageId])
+  @@index([sourceChatId, sourceMessageId])
 }

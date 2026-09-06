@@ -23,9 +23,11 @@ const mocks = vi.hoisted(() => ({
   recordAiFailure: vi.fn(),
   recordAiSuccess: vi.fn(),
   releaseQuota: vi.fn(),
+  aliases: vi.fn(),
 }));
 
 vi.mock('../domain', () => ({
+  getRecentGuestInteractions: vi.fn().mockResolvedValue([]),
   createPurchaseSession: vi.fn(),
   releaseQuota: mocks.releaseQuota,
   reserveQuota: mocks.reserveQuota,
@@ -33,6 +35,9 @@ vi.mock('../domain', () => ({
   saveMessage: mocks.saveMessage,
   saveUser: mocks.saveUser,
   shouldSendLimitNotice: vi.fn(),
+}));
+vi.mock('../repositories/user-alias-repository', () => ({
+  findUserAliasesRepo: mocks.aliases,
 }));
 vi.mock('../domain/entities', () => ({
   extractMentionedUserIds: mocks.extractMentionedUserIds,
@@ -66,7 +71,10 @@ vi.mock('../analytics-runtime', () => ({
 vi.mock('../ai/chat-generation', () => ({
   chatGeneration: mocks.chatGeneration,
 }));
-vi.mock('../ai/embedding', () => ({ searchContext: mocks.searchContext }));
+vi.mock('../ai/embedding', () => ({
+  searchContext: mocks.searchContext,
+  searchAndIndexMessage: mocks.searchContext,
+}));
 vi.mock('../ai/langfuse', () => ({
   withAiObservation: vi.fn((_name, _options, callback) =>
     callback({ update: vi.fn() }),
@@ -89,11 +97,14 @@ vi.mock('../logger', () => ({
 }));
 
 import { aiController } from '../ai/controllet';
+import { generateGuestResponse } from '../ai/guest-generation';
 
 afterEach(() => vi.useRealTimers());
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.aliases.mockResolvedValue([]);
+  mocks.appendAiThreadAssistantEvent.mockResolvedValue(undefined);
   mocks.saveChat.mockResolvedValue(undefined);
   mocks.saveUser.mockResolvedValue(undefined);
   mocks.findFirstMessageRepo.mockResolvedValue(null);
@@ -377,6 +388,67 @@ describe('private AI context', () => {
 });
 
 describe('AI user data scope', () => {
+  it.each(['ordinary', 'fallback', 'guest', 'guest-fallback'])(
+    'supplies current scoped aliases in %s context',
+    async (mode) => {
+      mocks.findManyUsersRepo.mockResolvedValue([
+        { id: 42n, firstName: 'Александр', userName: null, lastName: null },
+      ]);
+      mocks.getTopUserFacts.mockResolvedValue([]);
+      mocks.aliases.mockImplementation(
+        async (chatId: bigint, userId: bigint) =>
+          chatId === 100n && userId === 42n
+            ? [
+                {
+                  alias: 'Саша',
+                  preferred: true,
+                  status: 'CONFIRMED',
+                  confidence: 1,
+                  addressingBlocked: false,
+                },
+              ]
+            : [{ alias: 'Чужое имя' }],
+      );
+      if (mode.includes('fallback'))
+        mocks.buildAiThreadContext.mockRejectedValueOnce(
+          new Error('context unavailable'),
+        );
+      const message = {
+        message_id: 41,
+        text: 'Привет',
+        guest_query_id: 'guest-1',
+        from: { id: 42 },
+        chat: { type: 'supergroup' },
+      };
+      const ctx = {
+        chat: { id: 100, type: 'supergroup' },
+        chatId: 100,
+        from: { id: 42, first_name: 'Александр' },
+        me: { id: 999 },
+        msg: message,
+        guestMessage: message,
+        replyWithChatAction: vi.fn().mockResolvedValue(true),
+      };
+      if (mode.startsWith('guest'))
+        await generateGuestResponse({
+          ctx: ctx as never,
+          text: 'Привет',
+          privateMode: true,
+          messagePersisted: false,
+        });
+      else await aiController(ctx as never);
+      expect(mocks.aliases).toHaveBeenCalledWith(100n, 42n);
+      const data = mode.includes('fallback')
+        ? mocks.chatGeneration.mock.calls[0]?.[0]
+        : mocks.buildAiThreadContext.mock.calls[0]?.[0].userContext;
+      expect(JSON.stringify(data)).toContain('Саша');
+      expect(JSON.stringify(data)).not.toContain('Чужое имя');
+      if (mode.startsWith('guest'))
+        expect(mocks.chatGeneration.mock.calls[0]?.[4]).toMatchObject({
+          readOnlyTools: true,
+        });
+    },
+  );
   it('keeps mentioned-user memory and facts from other chats out of context', async () => {
     mocks.extractMentionedUserIds.mockResolvedValue([84]);
     mocks.findManyUsersRepo.mockResolvedValue([

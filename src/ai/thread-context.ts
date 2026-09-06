@@ -121,7 +121,8 @@ function hasFactCorrection(previous: unknown, current: unknown): boolean {
     const prior = previousById.get(String(candidate.id));
     return (
       prior !== undefined &&
-      stableJson(prior.metaInfo) !== stableJson(candidate.metaInfo)
+      (stableJson(prior.metaInfo) !== stableJson(candidate.metaInfo) ||
+        stableJson(prior.aliasContext) !== stableJson(candidate.aliasContext))
     );
   });
 }

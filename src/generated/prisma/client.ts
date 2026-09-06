@@ -131,3 +131,13 @@ export type UserFactEvidence = Prisma.UserFactEvidenceModel
  * 
  */
 export type FactHistory = Prisma.FactHistoryModel
+/**
+ * Model UserAlias
+ *
+ */
+export type UserAlias = Prisma.UserAliasModel
+/**
+ * Model UserAliasEvidence
+ *
+ */
+export type UserAliasEvidence = Prisma.UserAliasEvidenceModel

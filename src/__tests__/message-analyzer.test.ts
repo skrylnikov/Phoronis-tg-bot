@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('../bot', () => ({ bot: { botInfo: { id: 999 } } }));
+
 const mocks = vi.hoisted(() => ({
   countMessagesRepo: vi.fn(),
   findMessagesRepo: vi.fn(),
@@ -47,6 +49,22 @@ beforeEach(() => {
 });
 
 describe('durable user message analysis', () => {
+  it('skips non-thirtieth messages and does not call the model without quota', async () => {
+    mocks.countMessagesRepo.mockResolvedValue(31);
+    await scheduleUserMessageAnalysis({
+      userId: 42,
+      chatId: -100,
+      isGroup: true,
+    });
+    expect(mocks.enqueueBackgroundJobRepo).not.toHaveBeenCalled();
+    mocks.reserveQuota.mockResolvedValue({ allowed: false });
+    await analyzeUserMessagesForUser({
+      userId: 42,
+      chatId: -100,
+      isGroup: true,
+    });
+    expect(mocks.analyzeUserMetaInfo).not.toHaveBeenCalled();
+  });
   it('enqueues only every thirtieth message with a stable dedupe key', async () => {
     await scheduleUserMessageAnalysis({
       userId: 42,

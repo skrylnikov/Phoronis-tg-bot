@@ -7,6 +7,7 @@ import { logger } from '../logger';
 import { updateChatRepo } from '../repositories/chat-repository';
 import { currentUpdateAbortSignal } from '../update-signal';
 import { chatModel } from './ai';
+import { aliasContextInstructions } from './alias-context';
 import { isChatHistorySearchIntent } from './history-intent';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
@@ -19,6 +20,7 @@ import {
   wikipediaTool,
 } from './tools';
 import { createClearMemoryTool, createMemoryTool } from './tools/memory';
+import { createMyAliasTool } from './tools/my-alias';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,
@@ -114,7 +116,9 @@ export const chatGeneration = async (
   const generationOptions = {
     abortSignal: currentUpdateAbortSignal(),
     model: options.model ?? chatModel,
-    instructions: prompt.instructions,
+    instructions: [prompt.instructions, aliasContextInstructions]
+      .filter(Boolean)
+      .join('\n\n'),
     messages: prompt.messages,
     maxOutputTokens: options.maxOutputTokens,
     stopWhen: stepCountIs(5),
@@ -127,6 +131,7 @@ export const chatGeneration = async (
     ...(webTools ?? {}),
   };
   const writableToolSet = {
+    set_my_alias: createMyAliasTool(ctx),
     get_weather: weatherTool,
     set_greeting: greetingTool,
     wikipedia: wikipediaTool,

@@ -55,9 +55,15 @@ export async function analyzeUserMessagesForUser(input: {
       senderId: BigInt(input.userId),
       private: false,
     });
-    await analyzeUserMetaInfo(BigInt(input.userId), lastMessages.reverse());
+    await analyzeUserMetaInfo(
+      BigInt(input.userId),
+      lastMessages.reverse(),
+      BigInt(bot.botInfo.id),
+    );
   } catch (error) {
     await releaseQuota(reservation);
     throw error;
   }
 }
+
+import { bot } from '../bot';

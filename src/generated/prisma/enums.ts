@@ -143,3 +143,12 @@ export const FactType = {
 } as const
 
 export type FactType = (typeof FactType)[keyof typeof FactType]
+
+
+export const UserAliasStatus = {
+  CANDIDATE: 'CANDIDATE',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type UserAliasStatus = (typeof UserAliasStatus)[keyof typeof UserAliasStatus]

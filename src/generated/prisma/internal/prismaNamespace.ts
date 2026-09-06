@@ -414,7 +414,9 @@ export const ModelName = {
   Memory: 'Memory',
   UserFact: 'UserFact',
   UserFactEvidence: 'UserFactEvidence',
-  FactHistory: 'FactHistory'
+  FactHistory: 'FactHistory',
+  UserAlias: 'UserAlias',
+  UserAliasEvidence: 'UserAliasEvidence'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -430,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "factHistory"
+    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "factHistory" | "userAlias" | "userAliasEvidence"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1766,6 +1768,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserAlias: {
+      payload: Prisma.$UserAliasPayload<ExtArgs>
+      fields: Prisma.UserAliasFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserAliasFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserAliasFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        findFirst: {
+          args: Prisma.UserAliasFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserAliasFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        findMany: {
+          args: Prisma.UserAliasFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>[]
+        }
+        create: {
+          args: Prisma.UserAliasCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        createMany: {
+          args: Prisma.UserAliasCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserAliasCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>[]
+        }
+        delete: {
+          args: Prisma.UserAliasDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        update: {
+          args: Prisma.UserAliasUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserAliasDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserAliasUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserAliasUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserAliasUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasPayload>
+        }
+        aggregate: {
+          args: Prisma.UserAliasAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserAlias>
+        }
+        groupBy: {
+          args: Prisma.UserAliasGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAliasGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserAliasCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAliasCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserAliasEvidence: {
+      payload: Prisma.$UserAliasEvidencePayload<ExtArgs>
+      fields: Prisma.UserAliasEvidenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserAliasEvidenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserAliasEvidenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        findFirst: {
+          args: Prisma.UserAliasEvidenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserAliasEvidenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        findMany: {
+          args: Prisma.UserAliasEvidenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>[]
+        }
+        create: {
+          args: Prisma.UserAliasEvidenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        createMany: {
+          args: Prisma.UserAliasEvidenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserAliasEvidenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>[]
+        }
+        delete: {
+          args: Prisma.UserAliasEvidenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        update: {
+          args: Prisma.UserAliasEvidenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        deleteMany: {
+          args: Prisma.UserAliasEvidenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserAliasEvidenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserAliasEvidenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>[]
+        }
+        upsert: {
+          args: Prisma.UserAliasEvidenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAliasEvidencePayload>
+        }
+        aggregate: {
+          args: Prisma.UserAliasEvidenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserAliasEvidence>
+        }
+        groupBy: {
+          args: Prisma.UserAliasEvidenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAliasEvidenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserAliasEvidenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAliasEvidenceCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2074,6 +2224,38 @@ export const FactHistoryScalarFieldEnum = {
 } as const
 
 export type FactHistoryScalarFieldEnum = (typeof FactHistoryScalarFieldEnum)[keyof typeof FactHistoryScalarFieldEnum]
+
+
+export const UserAliasScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  userId: 'userId',
+  alias: 'alias',
+  normalizedAlias: 'normalizedAlias',
+  confidence: 'confidence',
+  confirmationCount: 'confirmationCount',
+  status: 'status',
+  ownerConfirmed: 'ownerConfirmed',
+  addressingBlocked: 'addressingBlocked',
+  preferred: 'preferred',
+  lastOwnerMessageId: 'lastOwnerMessageId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAliasScalarFieldEnum = (typeof UserAliasScalarFieldEnum)[keyof typeof UserAliasScalarFieldEnum]
+
+
+export const UserAliasEvidenceScalarFieldEnum = {
+  id: 'id',
+  aliasId: 'aliasId',
+  sourceChatId: 'sourceChatId',
+  sourceMessageId: 'sourceMessageId',
+  modelConfidence: 'modelConfidence',
+  neutralForAddressing: 'neutralForAddressing'
+} as const
+
+export type UserAliasEvidenceScalarFieldEnum = (typeof UserAliasEvidenceScalarFieldEnum)[keyof typeof UserAliasEvidenceScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2416,6 +2598,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
+
+/**
+ * Reference to a field of type 'UserAliasStatus'
+ */
+export type EnumUserAliasStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAliasStatus'>
+
+
+
+/**
+ * Reference to a field of type 'UserAliasStatus[]'
+ */
+export type ListEnumUserAliasStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAliasStatus[]'>
+
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2585,6 +2781,8 @@ export type GlobalOmitConfig = {
   userFact?: Prisma.UserFactOmit
   userFactEvidence?: Prisma.UserFactEvidenceOmit
   factHistory?: Prisma.FactHistoryOmit
+  userAlias?: Prisma.UserAliasOmit
+  userAliasEvidence?: Prisma.UserAliasEvidenceOmit
 }
 
 /* Types for Logging */

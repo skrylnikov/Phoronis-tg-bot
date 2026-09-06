@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Message } from '../generated/prisma/client';
 
 const mocks = vi.hoisted(() => {
   const prisma = {
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => {
     prisma,
     generateObject: vi.fn(),
     generateText: vi.fn(),
+    saveAlias: vi.fn(),
     embedQueryAndPassage: vi.fn(),
     searchSimilarFacts: vi.fn(),
     updateFactEmbedding: vi.fn(),
@@ -50,6 +52,9 @@ vi.mock('../ai/embedding/store', () => ({
 }));
 
 vi.mock('../db', () => ({ prisma: mocks.prisma }));
+vi.mock('../repositories/user-alias-repository', () => ({
+  saveUserAliasEvidenceRepo: mocks.saveAlias,
+}));
 vi.mock('../logger', () => ({ logger: mocks.logger }));
 
 import {
@@ -57,7 +62,10 @@ import {
   getTopUserFacts,
 } from '../domain/user/fact-analyzer';
 
-function createMessage(id: bigint, text: string) {
+function createMessage(
+  id: bigint,
+  text: string,
+): Message & { replyToMessage: Message | null } {
   return {
     id,
     chatId: 7n,
@@ -68,10 +76,13 @@ function createMessage(id: bigint, text: string) {
     media: null,
     searchText: null,
     embeddingVersion: null,
+    sessionId: null,
+    modelId: null,
+    replyToMessageId: null,
     sentAt: new Date('2026-08-01T00:00:00.000Z'),
     private: false,
     replyToMessage: null,
-  } as never;
+  };
 }
 
 beforeEach(() => {
@@ -90,6 +101,105 @@ beforeEach(() => {
 });
 
 describe('analyzeUserMetaInfo source messages', () => {
+  it('learns only grounded public aliases in the same call while retaining valid facts', async () => {
+    const parent = { ...createMessage(90n, 'Я Александр'), senderId: 43n };
+    const messages = [
+      { ...createMessage(101n, 'Санёк, привет'), replyToMessage: parent },
+      {
+        ...createMessage(102n, 'Я люблю Rust'),
+        replyToMessage: { ...parent, private: true, text: 'PRIVATE SECRET' },
+      },
+      { ...createMessage(103n, 'Санёк'), senderId: 999n },
+      { ...createMessage(104n, 'Санёк'), private: true },
+    ];
+    const valid = {
+      userId: '43',
+      alias: 'Санёк',
+      confidence: 0.85,
+      sourceMessageId: '101',
+      neutralForAddressing: true,
+    };
+    mocks.generateObject.mockResolvedValue({
+      object: {
+        facts: [
+          { content: 'Любит Rust', type: 'INTEREST', sourceMessageId: '102' },
+          {
+            content: 'Факт о чужом авторе',
+            type: 'FACT',
+            sourceMessageId: '103',
+          },
+        ],
+        aliases: [
+          valid,
+          null,
+          { ...valid, confidence: 1.1 },
+          { ...valid, confidence: Number.NaN },
+          { ...valid, userId: '987' },
+          { ...valid, userId: '999' },
+          { ...valid, sourceMessageId: '999' },
+          { ...valid, alias: 'Шурик' },
+          { ...valid, sourceMessageId: '102' },
+          { ...valid, sourceMessageId: '103' },
+          { ...valid, sourceMessageId: '104' },
+        ],
+      },
+    });
+    await analyzeUserMetaInfo(42n, messages, 999n);
+    expect(mocks.generateObject).toHaveBeenCalledTimes(1);
+    const prompt = mocks.generateObject.mock.calls[0]?.[0].prompt;
+    const schema = mocks.generateObject.mock.calls[0]?.[0].schema;
+    expect(
+      schema.parse({ facts: [], aliases: [{ ...valid, userId: 123 }, valid] })
+        .aliases,
+    ).toEqual([null, valid]);
+    expect(prompt).toContain('[REPLY_AUTHOR_ID: 43]');
+    expect(prompt).not.toContain('PRIVATE SECRET');
+    expect(prompt).not.toContain('[MESSAGE_ID: 103]');
+    expect(prompt).toContain('передай Саше привет');
+    expect(mocks.saveAlias).toHaveBeenCalledTimes(1);
+    expect(mocks.saveAlias).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 43n,
+        alias: 'Санёк',
+        sourceMessageId: 101n,
+      }),
+    );
+    expect(mocks.prisma.userFact.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not invent an alias for a third person and retries failed alias storage', async () => {
+    mocks.generateObject.mockResolvedValue({
+      object: { facts: [], aliases: [] },
+    });
+    await analyzeUserMetaInfo(
+      42n,
+      [createMessage(101n, 'передай Саше привет')],
+      999n,
+    );
+    expect(mocks.saveAlias).not.toHaveBeenCalled();
+    mocks.generateObject.mockResolvedValue({
+      object: {
+        facts: [],
+        aliases: [
+          {
+            userId: '42',
+            alias: 'Саша',
+            confidence: 0.8,
+            sourceMessageId: '101',
+            neutralForAddressing: true,
+          },
+        ],
+      },
+    });
+    mocks.saveAlias
+      .mockRejectedValueOnce(new Error('alias storage unavailable'))
+      .mockResolvedValue(true);
+    await expect(
+      analyzeUserMetaInfo(42n, [createMessage(101n, 'Я Саша')], 999n),
+    ).rejects.toThrow('alias storage unavailable');
+    await analyzeUserMetaInfo(42n, [createMessage(101n, 'Я Саша')], 999n);
+    expect(mocks.saveAlias).toHaveBeenCalledTimes(2);
+  });
   it('propagates analysis failures to the durable job runner', async () => {
     const error = new Error('model unavailable');
     mocks.generateObject.mockRejectedValue(error);

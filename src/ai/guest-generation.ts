@@ -116,6 +116,10 @@ export async function generateGuestResponse(input: {
     const userFactsResults = await Promise.all(
       userList.map((user) => getTopUserFacts(user.id)),
     );
+    const aliasChatId = BigInt(ctx.chatId);
+    const aliasContexts = await Promise.all(
+      userList.map((user) => getAliasContext(aliasChatId, user)),
+    );
 
     const currentMessageId = message.message_id > 0 ? message.message_id : 0;
     const recentChatContext =
@@ -180,6 +184,17 @@ export async function generateGuestResponse(input: {
       ],
     );
     let contextResult: Awaited<ReturnType<typeof buildAiThreadContext>>;
+    const currentUserContext = {
+      users: userList.map((user, index) => ({
+        id: user.id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userName: user.userName,
+        metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
+        aliasContext: aliasContexts[index],
+      })),
+      memories: memoriesByUser,
+    };
     try {
       contextResult = await buildAiThreadContext({
         threadId: guestQueryId,
@@ -188,16 +203,7 @@ export async function generateGuestResponse(input: {
           message.message_id > 0 ? BigInt(message.message_id) : undefined,
         turnId: guestQueryId,
         rules: guestRules,
-        userContext: {
-          users: userList.map((user, index) => ({
-            id: user.id.toString(),
-            firstName: user.firstName,
-            lastName: user.lastName,
-            userName: user.userName,
-            metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
-          })),
-          memories: memoriesByUser,
-        },
+        userContext: currentUserContext,
         retrievalContext:
           userContext || chatContext || recentChatContext
             ? { userContext, chatContext, recentChatContext }
@@ -215,7 +221,18 @@ export async function generateGuestResponse(input: {
       );
       contextResult = {
         instructions: buildChatGenerationInstructions(guestRules),
-        messages: [...previousMessages, currentUserMessage],
+        messages: [
+          ...previousMessages,
+          {
+            role: 'user',
+            content: JSON.stringify({
+              type: 'ai-context',
+              event: 'CORRECTION',
+              data: currentUserContext,
+            }),
+          },
+          currentUserMessage,
+        ],
         telemetry: {
           promptVersion: 3,
           promptHash: 'unavailable',
@@ -278,3 +295,5 @@ export async function generateGuestResponse(input: {
     }
   }
 }
+
+import { getAliasContext } from './alias-context';

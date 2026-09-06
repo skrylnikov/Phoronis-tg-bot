@@ -200,6 +200,7 @@ describe('chat history tool selection', () => {
     };
     expect(writable.tools).toEqual(expect.objectContaining(webTools));
     expect(writable.tools).toHaveProperty('set_greeting');
+    expect(writable.tools).toHaveProperty('set_my_alias');
 
     await chatGeneration(
       [{ role: 'user', content: 'прочитай https://example.test' }],
@@ -213,6 +214,7 @@ describe('chat history tool selection', () => {
     };
     expect(readOnly.tools).toEqual(expect.objectContaining(webTools));
     expect(readOnly.tools).not.toHaveProperty('set_greeting');
+    expect(readOnly.tools).not.toHaveProperty('set_my_alias');
     expect(readOnly.tools).not.toHaveProperty('save_memory');
     expect(readOnly.tools).not.toHaveProperty('clear_memory');
   });

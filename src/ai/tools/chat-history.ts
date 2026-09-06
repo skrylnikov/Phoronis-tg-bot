@@ -1,6 +1,10 @@
 import { dynamicTool } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../../bot';
+import {
+  resolveChatUser,
+  type SenderMatch,
+} from '../../domain/user/resolve-chat-user';
 import type { Prisma } from '../../generated/prisma/client';
 import { logger } from '../../logger';
 import {
@@ -13,7 +17,6 @@ import {
   findFirstMessageRepo,
   findManyMessagesRepo,
 } from '../../repositories/message-repository';
-import { findManyUsersRepo } from '../../repositories/user-repository';
 import { embedQuery } from '../embedding/client';
 import {
   searchChatMessages,
@@ -106,10 +109,6 @@ type ReplyGraph = {
   branchCount: number;
   incomplete: boolean;
 };
-
-type SenderMatch =
-  | { senderId: bigint }
-  | { candidates: Array<{ id: string; sender: string }> };
 
 const messageSelect = {
   id: true,
@@ -402,45 +401,6 @@ async function ensureHistoryAccess(ctx: BotContext): Promise<string | null> {
   return null;
 }
 
-async function resolveSender(
-  chatId: bigint,
-  sender: string | undefined,
-): Promise<SenderMatch | undefined> {
-  if (!sender) return undefined;
-
-  const normalized = sender.trim().replace(/^@/, '');
-  if (/^\d+$/.test(normalized)) {
-    return { senderId: BigInt(normalized) };
-  }
-
-  const candidates = await findManyUsersRepo(
-    {
-      Message: {
-        some: { chatId, private: false },
-      },
-      OR: [
-        { userName: { equals: normalized, mode: 'insensitive' } },
-        { firstName: { contains: normalized, mode: 'insensitive' } },
-        { lastName: { contains: normalized, mode: 'insensitive' } },
-      ],
-    },
-    {
-      select: { id: true, firstName: true, lastName: true, userName: true },
-    },
-  ).then((users) => users.slice(0, 10));
-
-  if (candidates.length !== 1) {
-    return {
-      candidates: candidates.map((candidate) => ({
-        id: candidate.id.toString(),
-        sender: getSenderName(candidate),
-      })),
-    };
-  }
-
-  return { senderId: candidates[0].id };
-}
-
 function createBaseWhere(
   chatId: bigint,
   currentMessageId: bigint,
@@ -592,7 +552,7 @@ async function getUserStats(
     return { error: 'Для user_stats нужно указать sender' };
   }
   if ('candidates' in senderMatch) {
-    return { candidates: senderMatch.candidates };
+    return senderMatch;
   }
 
   const currentMessageId = BigInt(ctx.msg?.message_id ?? 0);
@@ -722,7 +682,7 @@ async function searchHistory(
     return { error: 'Для search нужно указать query' };
   }
   if (senderMatch && 'candidates' in senderMatch) {
-    return { candidates: senderMatch.candidates };
+    return senderMatch;
   }
 
   const searchQuery = await resolveSearchQuery(ctx, input.query);
@@ -956,10 +916,10 @@ export async function searchChatHistory(
     const accessError = await ensureHistoryAccess(ctx);
     if (accessError) return JSON.stringify({ error: accessError });
 
-    const senderMatch = await resolveSender(
-      BigInt(ctx.chatId),
-      input.data.sender,
-    );
+    const senderMatch =
+      input.data.sender === undefined
+        ? undefined
+        : await resolveChatUser(BigInt(ctx.chatId), input.data.sender);
     const result =
       input.data.mode === 'search'
         ? await searchHistory(ctx, input.data, senderMatch)

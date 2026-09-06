@@ -146,6 +146,84 @@ describe('AI thread context builder', () => {
     );
   });
 
+  it('keeps an explicit alias correction after compaction and a fresh builder call', async () => {
+    const initial = {
+      users: [
+        {
+          id: '42',
+          aliasContext: {
+            addressing: 'Шурик',
+            aliases: [{ alias: 'Шурик', status: 'CONFIRMED' }],
+          },
+        },
+      ],
+    };
+    const corrected = {
+      users: [
+        {
+          id: '42',
+          aliasContext: {
+            addressing: 'Саша',
+            aliases: [
+              { alias: 'Шурик', status: 'REJECTED', addressingBlocked: true },
+              { alias: 'Саша', preferred: true },
+            ],
+          },
+        },
+      ],
+    };
+    const input = {
+      threadId: 'thread-1',
+      chatId: 1n,
+      rules: 'unchanged',
+      time: 'now',
+      currentUserMessage: { role: 'user' as const, content: 'Привет' },
+    };
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'first',
+      userContext: initial,
+    });
+    const oldEvent = JSON.stringify(events[0]);
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'second',
+      userContext: corrected,
+    });
+    expect(JSON.stringify(events[0])).toBe(oldEvent);
+    expect(events).toContainEqual(
+      expect.objectContaining({ eventKind: 'CORRECTION', payload: corrected }),
+    );
+    mocks.generateText.mockResolvedValue({
+      text: 'Старое имя пользователя — Шурик',
+    });
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'compact',
+      userContext: corrected,
+      currentUserMessage: { role: 'user', content: 'x'.repeat(50_000) },
+    });
+    const boundary = events.find(
+      (event) => event.eventKind === 'CACHE_BOUNDARY',
+    );
+    expect(boundary?.payload).toMatchObject({
+      userContexts: expect.arrayContaining([
+        { event: 'CORRECTION', data: corrected },
+      ]),
+    });
+    const restarted = await buildAiThreadContext({
+      ...input,
+      turnId: 'restart',
+      userContext: corrected,
+    });
+    const serialized = JSON.stringify(restarted.messages);
+    expect(serialized).toContain('REJECTED');
+    expect(serialized.lastIndexOf('Саша')).toBeGreaterThan(
+      serialized.indexOf('Старое имя'),
+    );
+    expect(restarted.instructions).toContain('persisted rules');
+  });
+
   it('summarizes dialogue and preserves every user-context snapshot', async () => {
     await buildAiThreadContext({
       threadId: 'thread-1',

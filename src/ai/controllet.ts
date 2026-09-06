@@ -428,6 +428,9 @@ export const aiController = async (
       ),
     );
     const userFactsResults = await Promise.all(userFactsPromises);
+    const aliasContexts = await Promise.all(
+      userList.map((user) => getAliasContext(BigInt(currentChatId), user)),
+    );
 
     const recentChatContext =
       options.includeRecentChatContext &&
@@ -457,12 +460,35 @@ export const aiController = async (
       richMarkdownInstructions,
     ]);
     const currentUserMessage = rawMessages.at(-1) as ModelMessage;
+    const currentUserContext = {
+      users: userList.map((user, index) => ({
+        id: user.id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userName: user.userName,
+        metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
+        aliasContext: aliasContexts[index],
+      })),
+      memories: memoriesByUser,
+    };
+    const fallbackMessages = [
+      ...rawMessages.slice(0, -1),
+      {
+        role: 'user' as const,
+        content: JSON.stringify({
+          type: 'ai-context',
+          event: 'CORRECTION',
+          data: currentUserContext,
+        }),
+      },
+      currentUserMessage,
+    ];
     let contextResult: Awaited<ReturnType<typeof buildAiThreadContext>>;
     if (options.persistResponse === false) {
       const instructions = buildChatGenerationInstructions(threadRules);
       contextResult = {
         instructions,
-        messages: rawMessages as ModelMessage[],
+        messages: fallbackMessages as ModelMessage[],
         telemetry: {
           promptVersion: 3,
           promptHash: 'unavailable',
@@ -484,16 +510,7 @@ export const aiController = async (
           ),
           turnId: String(msg.message_id),
           rules: threadRules,
-          userContext: {
-            users: userList.map((user, index) => ({
-              id: user.id.toString(),
-              firstName: user.firstName,
-              lastName: user.lastName,
-              userName: user.userName,
-              metaInfo: convertFactsToMetaInfo(userFactsResults[index]),
-            })),
-            memories: memoriesByUser,
-          },
+          userContext: currentUserContext,
           retrievalContext:
             userContext || chatContext || recentChatContext
               ? { userContext, chatContext, recentChatContext }
@@ -512,7 +529,7 @@ export const aiController = async (
         const instructions = buildChatGenerationInstructions(threadRules);
         contextResult = {
           instructions,
-          messages: rawMessages as ModelMessage[],
+          messages: fallbackMessages as ModelMessage[],
           telemetry: {
             promptVersion: 3,
             promptHash: 'unavailable',
@@ -662,3 +679,5 @@ export const aiController = async (
     }
   }
 };
+
+import { getAliasContext } from './alias-context';
