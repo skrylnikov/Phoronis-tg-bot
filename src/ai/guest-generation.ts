@@ -52,10 +52,18 @@ export async function generateGuestResponse(input: {
   text: string;
   referenceText?: string;
   imageDescription?: string;
+  voiceTranscript?: string;
   privateMode: boolean;
   messagePersisted: boolean;
 }): Promise<string | null> {
-  const { ctx, text, referenceText, imageDescription, privateMode } = input;
+  const {
+    ctx,
+    text,
+    referenceText,
+    imageDescription,
+    voiceTranscript,
+    privateMode,
+  } = input;
   const message = ctx.guestMessage;
   if (!message?.guest_query_id || !ctx.from || !ctx.chatId || !ctx.chat) {
     return null;
@@ -164,6 +172,16 @@ export async function generateGuestResponse(input: {
                 image:
                   'Пользователь прислал фотографию, описание которой: ' +
                   imageDescription,
+              },
+            ]
+          : []),
+        ...(voiceTranscript
+          ? [
+              {
+                type: 'voice',
+                voice:
+                  'Пользователь прислал голосовое сообщение, расшифровка которого: ' +
+                  voiceTranscript,
               },
             ]
           : []),

@@ -1,4 +1,5 @@
 import type { Message, PhotoSize } from '@grammyjs/types';
+import ffmpeg from 'ffmpeg.js';
 import { Composer } from 'grammy';
 import { generateGuestResponse } from '../ai/guest-generation';
 import { describeTelegramPhoto } from '../ai/image-description';
@@ -14,18 +15,28 @@ import {
   saveChat,
   saveMessage,
   saveUser,
+  shouldSendLimitNotice,
 } from '../domain';
 import { logger } from '../logger';
 import {
   findChatByIdRepo,
   findMessageByIdRepo,
+  findMessageWithSelectRepo,
   updateMessageManyRepo,
 } from '../repositories';
+import {
+  downloadTelegramFile,
+  TelegramFileTooLargeError,
+} from '../telegram-file';
+import { yandex } from '../yandex';
 
 const guestAnswerId = 'phoronis-guest-answer';
 const guestAnswerTitle = 'Ответ Ио';
 const guestImageLimitMessage =
   'Лимит анализа изображений на сегодня закончился.';
+const guestVoiceLimitMessage =
+  'Лимит расшифровки голосовых на сегодня закончился.';
+const guestVoiceTooLargeMessage = 'Не могу обработать файл больше 20 МБ.';
 const maxTextMessageLength = 4096;
 
 export const guestController = new Composer<BotContext>();
@@ -54,6 +65,50 @@ function selectOptimalPhoto(photos: PhotoSize[]): PhotoSize | undefined {
 
 function truncateText(text: string, maxLength: number): string {
   return [...text].slice(0, maxLength).join('');
+}
+
+interface GuestAudioSource {
+  fileId: string;
+  fileSize?: number;
+  duration: number;
+  isVideoNote: boolean;
+}
+
+function findGuestPhoto(
+  message: Message,
+): { photo: PhotoSize; owner: Message } | undefined {
+  if (message.photo && message.photo.length > 0) {
+    const photo = selectOptimalPhoto(message.photo);
+    if (photo) return { photo, owner: message };
+  }
+  const reply = message.reply_to_message;
+  if (reply?.photo && reply.photo.length > 0) {
+    const photo = selectOptimalPhoto(reply.photo);
+    if (photo) return { photo, owner: reply };
+  }
+  return undefined;
+}
+
+function toAudioSource(
+  media: { file_id: string; file_size?: number; duration: number } | undefined,
+  isVideoNote: boolean,
+): GuestAudioSource | undefined {
+  if (!media) return undefined;
+  return {
+    fileId: media.file_id,
+    fileSize: media.file_size,
+    duration: media.duration,
+    isVideoNote,
+  };
+}
+
+function findGuestAudio(message: Message): GuestAudioSource | undefined {
+  return (
+    toAudioSource(message.voice, false) ??
+    toAudioSource(message.video_note, true) ??
+    toAudioSource(message.reply_to_message?.voice, false) ??
+    toAudioSource(message.reply_to_message?.video_note, true)
+  );
 }
 
 async function answerGuestMessage(ctx: BotContext, markdown: string) {
@@ -131,9 +186,17 @@ async function describeGuestPhoto(
   ctx: BotContext,
   message: Message,
 ): Promise<string | undefined> {
-  if (!message.photo) return undefined;
-  const photo = selectOptimalPhoto(message.photo);
-  if (!photo) return undefined;
+  const source = findGuestPhoto(message);
+  if (!source) return undefined;
+
+  if (source.owner.message_id > 0 && ctx.chatId) {
+    const saved = await findMessageWithSelectRepo(
+      BigInt(ctx.chatId),
+      BigInt(source.owner.message_id),
+      { summary: true },
+    );
+    if (saved?.summary) return saved.summary;
+  }
 
   const reservation = await reserveQuota({
     userId: ctx.from?.id ?? 0,
@@ -142,16 +205,21 @@ async function describeGuestPhoto(
     kind: 'IMAGE',
   });
   if (!reservation.allowed) {
-    return guestImageLimitMessage;
+    const shouldSend = await shouldSendLimitNotice({
+      userId: ctx.from?.id ?? 0,
+      chatId: ctx.chatId ?? 0,
+      kind: 'IMAGE_LIMIT',
+    });
+    return shouldSend ? guestImageLimitMessage : undefined;
   }
 
   try {
-    const description = await describeTelegramPhoto(ctx, photo);
-    if (message.message_id > 0 && ctx.chatId) {
+    const description = await describeTelegramPhoto(ctx, source.photo);
+    if (source.owner.message_id > 0 && ctx.chatId) {
       await updateMessageManyRepo(
         {
           chatId: BigInt(ctx.chatId),
-          id: BigInt(message.message_id),
+          id: BigInt(source.owner.message_id),
         },
         { summary: description },
       );
@@ -159,6 +227,67 @@ async function describeGuestPhoto(
     return description;
   } catch (error) {
     await releaseQuota(reservation);
+    throw error;
+  }
+}
+
+async function transcribeGuestVoice(
+  ctx: BotContext,
+  message: Message,
+): Promise<string | undefined> {
+  const source = findGuestAudio(message);
+  if (!source) return undefined;
+
+  const reservation = await reserveQuota({
+    userId: ctx.from?.id ?? 0,
+    chatId: ctx.chatId ?? 0,
+    isGroup: ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup',
+    kind: 'VOICE',
+  });
+  if (!reservation.allowed) {
+    const shouldSend = await shouldSendLimitNotice({
+      userId: ctx.from?.id ?? 0,
+      chatId: ctx.chatId ?? 0,
+      kind: 'VOICE_LIMIT',
+    });
+    return shouldSend ? guestVoiceLimitMessage : undefined;
+  }
+
+  try {
+    const rawFile = await downloadTelegramFile(ctx, source.fileId, {
+      declaredSize: source.fileSize,
+    });
+    let file = Buffer.from(rawFile);
+    if (source.isVideoNote) {
+      const result = ffmpeg({
+        MEMFS: [{ name: 'test.mp4', data: rawFile }],
+        arguments: [
+          '-i',
+          'test.mp4',
+          '-vn',
+          '-c:a',
+          'libopus',
+          '-b:a',
+          '128k',
+          'output.ogg',
+        ],
+      });
+      file = Buffer.from(result.MEMFS[0].data);
+    }
+    const transcript = await yandex.speechkit.recognize({
+      file,
+      duration: source.duration,
+    });
+    if (!transcript) {
+      await releaseQuota(reservation);
+      return undefined;
+    }
+    return transcript;
+  } catch (error) {
+    await releaseQuota(reservation);
+    if (error instanceof TelegramFileTooLargeError) {
+      return guestVoiceTooLargeMessage;
+    }
     throw error;
   }
 }
@@ -221,7 +350,23 @@ export async function handleGuestMessage(ctx: BotContext): Promise<void> {
   }
 
   try {
-    if (!query && !referenceText && !message.photo) {
+    logger.debug(
+      {
+        event: 'guest.media_observed',
+        hasPhoto: Boolean(message.photo),
+        hasVoice: Boolean(message.voice ?? message.video_note),
+        replyHasPhoto: Boolean(message.reply_to_message?.photo),
+        replyHasVoice: Boolean(
+          message.reply_to_message?.voice ??
+            message.reply_to_message?.video_note,
+        ),
+      },
+      'Guest message media fields observed',
+    );
+
+    const photoSource = findGuestPhoto(message);
+    const audioSource = findGuestAudio(message);
+    if (!query && !referenceText && !photoSource && !audioSource) {
       const answer =
         'Упомяни меня вместе с вопросом или ответь на сообщение, которое нужно разобрать.';
       await answerGuestMessage(ctx, answer);
@@ -235,11 +380,26 @@ export async function handleGuestMessage(ctx: BotContext): Promise<void> {
       await markGuestInteractionAnswered(claim.id, imageDescription);
       return;
     }
+
+    const voiceTranscript = await transcribeGuestVoice(ctx, message);
+    if (
+      voiceTranscript === guestVoiceLimitMessage ||
+      voiceTranscript === guestVoiceTooLargeMessage
+    ) {
+      await answerGuestMessage(ctx, voiceTranscript);
+      await markGuestInteractionAnswered(claim.id, voiceTranscript);
+      return;
+    }
     const result = await generateGuestResponse({
       ctx,
-      text: query || imageDescription || 'Ответь на сообщение из reference',
+      text:
+        query ||
+        imageDescription ||
+        voiceTranscript ||
+        'Ответь на сообщение из reference',
       referenceText: referenceText || undefined,
       imageDescription,
+      voiceTranscript,
       privateMode,
       messagePersisted,
     });
