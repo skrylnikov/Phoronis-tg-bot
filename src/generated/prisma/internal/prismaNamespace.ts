@@ -414,6 +414,7 @@ export const ModelName = {
   Memory: 'Memory',
   UserFact: 'UserFact',
   UserFactEvidence: 'UserFactEvidence',
+  DecisionReview: 'DecisionReview',
   FactHistory: 'FactHistory',
   UserAlias: 'UserAlias',
   UserAliasEvidence: 'UserAliasEvidence'
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "factHistory" | "userAlias" | "userAliasEvidence"
+    modelProps: "user" | "chat" | "subscription" | "paymentOrder" | "purchaseSession" | "quotaUsage" | "limitNotice" | "dailyAnalytics" | "telegramUpdate" | "backgroundJob" | "message" | "guestInteraction" | "aiThreadContext" | "aiThreadContextEvent" | "memory" | "userFact" | "userFactEvidence" | "decisionReview" | "factHistory" | "userAlias" | "userAliasEvidence"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1694,6 +1695,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DecisionReview: {
+      payload: Prisma.$DecisionReviewPayload<ExtArgs>
+      fields: Prisma.DecisionReviewFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DecisionReviewFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DecisionReviewFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        findFirst: {
+          args: Prisma.DecisionReviewFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DecisionReviewFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        findMany: {
+          args: Prisma.DecisionReviewFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>[]
+        }
+        create: {
+          args: Prisma.DecisionReviewCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        createMany: {
+          args: Prisma.DecisionReviewCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DecisionReviewCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>[]
+        }
+        delete: {
+          args: Prisma.DecisionReviewDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        update: {
+          args: Prisma.DecisionReviewUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        deleteMany: {
+          args: Prisma.DecisionReviewDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DecisionReviewUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DecisionReviewUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>[]
+        }
+        upsert: {
+          args: Prisma.DecisionReviewUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DecisionReviewPayload>
+        }
+        aggregate: {
+          args: Prisma.DecisionReviewAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDecisionReview>
+        }
+        groupBy: {
+          args: Prisma.DecisionReviewGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DecisionReviewGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DecisionReviewCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DecisionReviewCountAggregateOutputType> | number
+        }
+      }
+    }
     FactHistory: {
       payload: Prisma.$FactHistoryPayload<ExtArgs>
       fields: Prisma.FactHistoryFieldRefs
@@ -2213,6 +2288,31 @@ export const UserFactEvidenceScalarFieldEnum = {
 export type UserFactEvidenceScalarFieldEnum = (typeof UserFactEvidenceScalarFieldEnum)[keyof typeof UserFactEvidenceScalarFieldEnum]
 
 
+export const DecisionReviewScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  kind: 'kind',
+  userId: 'userId',
+  sourceChatId: 'sourceChatId',
+  sourceMessageId: 'sourceMessageId',
+  candidate: 'candidate',
+  candidateType: 'candidateType',
+  requestedModel: 'requestedModel',
+  actualModel: 'actualModel',
+  policyVersion: 'policyVersion',
+  scores: 'scores',
+  thresholds: 'thresholds',
+  comparison: 'comparison',
+  outcome: 'outcome',
+  action: 'action',
+  resultId: 'resultId',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type DecisionReviewScalarFieldEnum = (typeof DecisionReviewScalarFieldEnum)[keyof typeof DecisionReviewScalarFieldEnum]
+
+
 export const FactHistoryScalarFieldEnum = {
   id: 'id',
   factId: 'factId',
@@ -2603,14 +2703,14 @@ export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMode
  * Reference to a field of type 'UserAliasStatus'
  */
 export type EnumUserAliasStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAliasStatus'>
-
+    
 
 
 /**
  * Reference to a field of type 'UserAliasStatus[]'
  */
 export type ListEnumUserAliasStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserAliasStatus[]'>
-
+    
 
 /**
  * Batch Payload for updateMany & deleteMany & createMany
@@ -2780,6 +2880,7 @@ export type GlobalOmitConfig = {
   memory?: Prisma.MemoryOmit
   userFact?: Prisma.UserFactOmit
   userFactEvidence?: Prisma.UserFactEvidenceOmit
+  decisionReview?: Prisma.DecisionReviewOmit
   factHistory?: Prisma.FactHistoryOmit
   userAlias?: Prisma.UserAliasOmit
   userAliasEvidence?: Prisma.UserAliasEvidenceOmit

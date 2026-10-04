@@ -110,7 +110,7 @@ describe('privacy and runtime migration contracts', () => {
         sourceMessageId: secondMessageId,
         reason: 'duplicate',
       }),
-    ).toBe(true);
+    ).toBe('applied');
     expect(
       await applyUserFactEvidenceRepo({
         factId: fact.id,
@@ -119,7 +119,7 @@ describe('privacy and runtime migration contracts', () => {
         sourceMessageId: firstMessageId,
         reason: 'duplicate',
       }),
-    ).toBe(false);
+    ).toBe('already_applied');
     expect(
       await prisma.userFact.findUnique({ where: { id: fact.id } }),
     ).toMatchObject({ weight: 2 });

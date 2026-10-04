@@ -144,3 +144,28 @@ describe('alias normalization and evidence', () => {
     });
   });
 });
+
+it('does not fall back to a blocked or rejected profile name', () => {
+  const blocked = {
+    ...aggregateAlias([], true),
+    alias: 'Шурик',
+    normalizedAlias: 'шурик',
+    preferred: false,
+    addressingBlocked: true,
+  };
+  expect(selectAddressing([blocked], 'Шурик')).toBeNull();
+});
+
+it('uses permitted username or no name when all profile fallbacks are blocked', () => {
+  const blocked = {
+    ...aggregateAlias([], true),
+    alias: 'Шурик',
+    normalizedAlias: 'шурик',
+    preferred: false,
+    addressingBlocked: true,
+  };
+  expect(selectAddressing([blocked], 'ШУРИК', 'devasync')).toBe('devasync');
+  expect(
+    selectAddressing([{ ...blocked, status: 'REJECTED' }], 'Шурик', null),
+  ).toBeNull();
+});

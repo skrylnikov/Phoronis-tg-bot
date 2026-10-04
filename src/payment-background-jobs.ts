@@ -4,7 +4,9 @@ import { sendPurchaseNotification } from './analytics';
 import { analyzeUserMessagesForUser } from './application/user-message-analysis';
 import type { BackgroundJobHandler } from './background-job-runner';
 import { getPlanTitle } from './domain/subscriptions';
+import { AnalysisStageError } from './domain/user/analysis-stage';
 import type { SubscriptionPlan } from './generated/prisma/client';
+import { withUpdateAbortSignal } from './update-signal';
 
 interface PaymentJobPayload {
   orderId: string;
@@ -141,9 +143,14 @@ export function createPaymentBackgroundJobHandlers(
       return { externalDeliveryId: String(messageId) };
     },
     USER_MESSAGE_ANALYSIS: async (job, signal) => {
-      await abortable(
-        analyzeUserMessagesForUser(readAnalysisPayload(job.payload)),
-        signal,
+      let payload: ReturnType<typeof readAnalysisPayload>;
+      try {
+        payload = readAnalysisPayload(job.payload);
+      } catch {
+        throw new AnalysisStageError('window', 'invalid_input');
+      }
+      return withUpdateAbortSignal(signal, () =>
+        analyzeUserMessagesForUser(payload, job),
       );
     },
   };

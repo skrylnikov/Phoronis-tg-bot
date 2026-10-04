@@ -123,8 +123,8 @@ describe('saveMessage parent check', () => {
   });
 
   it.each([
-    ['primary', 'google/gemini-3.7-flash'],
-    ['fallback', 'deepseek/deepseek-v4-flash'],
+    ['primary', 'google/gemini-3.8-flash'],
+    ['fallback', 'openai/gpt-6-luna'],
   ])('persists the %s model ID for an AI response', async (_tier, modelId) => {
     prismaMessageCreate.mockResolvedValueOnce({});
 

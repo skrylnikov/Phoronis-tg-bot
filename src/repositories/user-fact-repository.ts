@@ -1,5 +1,6 @@
 import { prisma } from '../db';
-import type { FactType } from '../generated/prisma/client';
+import type { FactType, Prisma } from '../generated/prisma/client';
+import { throwIfUpdateAborted } from '../update-signal';
 
 export async function findUserFactRepo(id: bigint) {
   return prisma.userFact.findUnique({
@@ -14,20 +15,49 @@ export async function createUserFactRepo(data: {
   weight: number;
   sourceChatId: bigint;
   sourceMessageId: bigint;
+  embedding?: number[];
 }) {
-  return prisma.userFact.create({
-    data: {
-      userId: data.userId,
-      content: data.content,
-      type: data.type,
-      weight: data.weight,
-      evidence: {
-        create: {
-          sourceChatId: data.sourceChatId,
-          sourceMessageId: data.sourceMessageId,
+  return prisma.$transaction(async (tx) => {
+    await lockFactUser(tx, data.userId);
+    throwIfUpdateAborted();
+    const source = await tx.message.findUnique({
+      where: {
+        chatId_id: { chatId: data.sourceChatId, id: data.sourceMessageId },
+      },
+    });
+    if (source?.private !== false || source.senderId !== data.userId)
+      throw new Error('Fact source unavailable');
+    const existing = await tx.userFact.findFirst({
+      where: {
+        userId: data.userId,
+        content: data.content,
+        type: data.type,
+        evidence: {
+          some: {
+            sourceChatId: data.sourceChatId,
+            sourceMessageId: data.sourceMessageId,
+          },
         },
       },
-    },
+    });
+    if (existing) return existing;
+    throwIfUpdateAborted();
+    const fact = await tx.userFact.create({
+      data: {
+        userId: data.userId,
+        content: data.content,
+        type: data.type,
+        weight: data.weight,
+        evidence: {
+          create: {
+            sourceChatId: data.sourceChatId,
+            sourceMessageId: data.sourceMessageId,
+          },
+        },
+      },
+    });
+    if (data.embedding) await writeFactVector(tx, fact.id, data.embedding);
+    return fact;
   });
 }
 
@@ -37,8 +67,45 @@ export async function applyUserFactEvidenceRepo(input: {
   sourceChatId: bigint;
   sourceMessageId: bigint;
   reason: 'duplicate' | 'contradiction';
-}): Promise<boolean> {
+  embedding?: number[];
+}): Promise<
+  | 'applied'
+  | 'already_applied'
+  | 'skipped_stale_source'
+  | 'skipped_unknown_source_order'
+> {
   return prisma.$transaction(async (tx) => {
+    const owner = await tx.userFact.findUniqueOrThrow({
+      where: { id: input.factId },
+    });
+    await lockFactUser(tx, owner.userId);
+    const fact = await tx.userFact.findUniqueOrThrow({
+      where: { id: input.factId },
+    });
+    throwIfUpdateAborted();
+    const source = await tx.message.findUnique({
+      where: {
+        chatId_id: { chatId: input.sourceChatId, id: input.sourceMessageId },
+      },
+    });
+    if (source?.private !== false || source.senderId !== fact.userId)
+      return 'skipped_unknown_source_order';
+    if (input.reason === 'contradiction') {
+      const existing = await tx.userFactEvidence.findMany({
+        where: { factId: input.factId },
+        include: { sourceMessage: true },
+      });
+      if (source?.private !== false || !existing.length)
+        return 'skipped_unknown_source_order';
+      const newest = existing
+        .map((e) => e.sourceMessage)
+        .filter((m) => m.private === false)
+        .sort(compareSourceOrder)
+        .at(-1);
+      if (!newest) return 'skipped_unknown_source_order';
+      if (compareSourceOrder(source, newest) < 0) return 'skipped_stale_source';
+    }
+    throwIfUpdateAborted();
     const evidence = await tx.userFactEvidence.createMany({
       data: [
         {
@@ -49,11 +116,9 @@ export async function applyUserFactEvidenceRepo(input: {
       ],
       skipDuplicates: true,
     });
-    if (evidence.count === 0) return false;
+    if (evidence.count === 0) return 'already_applied';
 
-    const fact = await tx.userFact.findUniqueOrThrow({
-      where: { id: input.factId },
-    });
+    throwIfUpdateAborted();
     if (input.reason === 'duplicate') {
       await tx.userFact.update({
         where: { id: input.factId },
@@ -72,6 +137,7 @@ export async function applyUserFactEvidenceRepo(input: {
       `;
     }
 
+    throwIfUpdateAborted();
     await tx.factHistory.create({
       data: {
         factId: input.factId,
@@ -81,7 +147,9 @@ export async function applyUserFactEvidenceRepo(input: {
         reason: input.reason,
       },
     });
-    return true;
+    if (input.embedding && input.reason === 'contradiction')
+      await writeFactVector(tx, input.factId, input.embedding);
+    return 'applied';
   });
 }
 
@@ -139,4 +207,36 @@ export async function updateUserFactsWeightRepo(): Promise<number> {
     data: { weight: { decrement: 1 } },
   });
   return result.count;
+}
+
+export function compareSourceOrder(
+  a: { sentAt: Date; chatId: bigint; id: bigint },
+  b: { sentAt: Date; chatId: bigint; id: bigint },
+) {
+  return (
+    a.sentAt.getTime() - b.sentAt.getTime() ||
+    (a.chatId < b.chatId
+      ? -1
+      : a.chatId > b.chatId
+        ? 1
+        : a.id < b.id
+          ? -1
+          : a.id > b.id
+            ? 1
+            : 0)
+  );
+}
+async function lockFactUser(tx: Prisma.TransactionClient, userId: bigint) {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`user-fact:${userId}`}, 0))::text`;
+  throwIfUpdateAborted();
+}
+async function writeFactVector(
+  tx: Prisma.TransactionClient,
+  id: bigint,
+  embedding: number[],
+) {
+  throwIfUpdateAborted();
+  if (!embedding.length || !embedding.every(Number.isFinite))
+    throw new Error('Invalid fact embedding');
+  await tx.$executeRaw`UPDATE "UserFact" SET "embedding" = ${`[${embedding.join(',')}]`}::vector, "embeddingVersion" = ${Number(process.env.EMBEDDING_VERSION || '1')} WHERE "id" = ${id}`;
 }

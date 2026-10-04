@@ -279,6 +279,139 @@ describe('AI thread context builder', () => {
     );
   });
 
+  it('does not treat JSONB object key order as a changed user state', async () => {
+    const input = {
+      threadId: 'thread-1',
+      chatId: 1n,
+      rules: 'rules',
+      time: 'now',
+      currentUserMessage: { role: 'user' as const, content: 'Привет' },
+    };
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'first',
+      userContext: {
+        users: [
+          { id: '42', aliasContext: { addressing: 'Саша', userId: '42' } },
+        ],
+      },
+    });
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'reordered',
+      userContext: {
+        users: [
+          { aliasContext: { userId: '42', addressing: 'Саша' }, id: '42' },
+        ],
+      },
+    });
+    expect(
+      events.filter(
+        (e) => e.eventKind === 'CORRECTION' || e.eventKind === 'USER_CONTEXT',
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('appends a fresh projection after legacy alias context without rewriting it', async () => {
+    const input = {
+      threadId: 'thread-1',
+      chatId: 1n,
+      rules: 'rules',
+      time: 'now',
+      currentUserMessage: { role: 'user' as const, content: 'Привет' },
+    };
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'legacy',
+      userContext: {
+        users: [
+          {
+            id: '42',
+            aliasContext: {
+              addressing: 'Шурик',
+              aliases: [{ alias: 'Шурик', confidence: 1, status: 'CONFIRMED' }],
+            },
+          },
+        ],
+      },
+    });
+    const old = JSON.stringify(events[0]);
+    const current = {
+      users: [
+        {
+          id: '42',
+          aliasContext: {
+            chatId: '1',
+            userId: '42',
+            addressing: null,
+            identityAliases: ['Шурик'],
+            blockedAddressingAliases: ['Шурик'],
+            rejectedIdentityAliases: [],
+          },
+        },
+      ],
+    };
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'new',
+      userContext: current,
+    });
+    expect(JSON.stringify(events[0])).toBe(old);
+    expect(events).toContainEqual(
+      expect.objectContaining({ eventKind: 'CORRECTION', payload: current }),
+    );
+  });
+
+  it('preserves A → B → A → B across compaction and restart', async () => {
+    const input = {
+      threadId: 'thread-1',
+      chatId: 1n,
+      rules: 'rules',
+      time: 'now',
+      currentUserMessage: { role: 'user' as const, content: 'Привет' },
+    };
+    for (const [index, name] of ['Саша', 'Шурик', 'Саша', 'Шурик'].entries()) {
+      await buildAiThreadContext({
+        ...input,
+        turnId: String(index),
+        userContext: {
+          users: [{ id: '42', aliasContext: { addressing: name } }],
+        },
+      });
+    }
+    await buildAiThreadContext({
+      ...input,
+      turnId: 'compact',
+      currentUserMessage: { role: 'user', content: 'x'.repeat(50_000) },
+      userContext: {
+        users: [{ id: '42', aliasContext: { addressing: 'Шурик' } }],
+      },
+    });
+    const boundary = events.find(
+      (event) => event.eventKind === 'CACHE_BOUNDARY',
+    );
+    const payload = boundary?.payload as {
+      userContexts: Array<{
+        data: { users: Array<{ aliasContext: { addressing: string } }> };
+      }>;
+    };
+    expect(
+      payload.userContexts.map(
+        (item) => item.data.users[0]?.aliasContext.addressing,
+      ),
+    ).toEqual(['Саша', 'Шурик', 'Саша', 'Шурик']);
+    const restarted = await buildAiThreadContext({
+      ...input,
+      turnId: 'restart',
+      userContext: {
+        users: [{ id: '42', aliasContext: { addressing: 'Шурик' } }],
+      },
+    });
+    expect(
+      JSON.stringify(restarted.messages).lastIndexOf('Шурик'),
+    ).toBeGreaterThan(JSON.stringify(restarted.messages).lastIndexOf('Саша'));
+  });
+
   it('keeps the full context when LLM compaction fails', async () => {
     mocks.generateText.mockRejectedValueOnce(new Error('temporary failure'));
 

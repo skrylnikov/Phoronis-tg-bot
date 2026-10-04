@@ -1,2 +1,7 @@
-export const chatModelId = 'google/gemini-3.7-flash';
-export const liteChatModelId = 'deepseek/deepseek-v4-flash';
+export const chatModelId = 'google/gemini-3.8-flash';
+export const liteChatModelId = 'openai/gpt-6-luna';
+export const utilityModelId = 'openai/gpt-6-luna';
+export const decisionModelId = 'typesafe/jev-1.13';
+
+export const liteChatReasoningEffort = 'medium';
+export const utilityReasoningEffort = 'low';

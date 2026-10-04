@@ -187,3 +187,27 @@ describe('get_user_info tool', () => {
     );
   });
 });
+
+it('projects confirmed identity separately from addressing blocks after membership checks', async () => {
+  aliases.mockResolvedValue([
+    {
+      alias: 'Шурик',
+      normalizedAlias: 'шурик',
+      status: 'CONFIRMED',
+      preferred: false,
+      addressingBlocked: true,
+      confidence: 1,
+    },
+  ]);
+  const result = JSON.parse(
+    String(await runTool(createContext(), { userId: '123' })),
+  );
+  expect(result.aliasContext).toMatchObject({
+    identityAliases: ['Шурик'],
+    blockedAddressingAliases: ['Шурик'],
+    addressing: 'Иван',
+  });
+  expect(JSON.stringify(result.aliasContext)).not.toMatch(
+    /confidence|preferred|CONFIRMED/,
+  );
+});

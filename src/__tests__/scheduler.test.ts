@@ -8,12 +8,14 @@ const mocks = vi.hoisted(() => ({
     inktober: 104,
     factDecay: 105,
     privateMessageCleanup: 107,
+    decisionReviewCleanup: 108,
   },
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   reactivateInactiveGroupChatsRepo: vi.fn(),
   schedule: vi.fn(),
   updateUserFactsWeightRepo: vi.fn(),
+  cleanDecisionReviewsRepo: vi.fn(),
   withAdvisoryLock: vi.fn(),
 }));
 
@@ -40,6 +42,10 @@ vi.mock('../logger', () => ({
     warn: vi.fn(),
   },
 }));
+vi.mock('../repositories/decision-review-repository', () => ({
+  cleanDecisionReviewsRepo: mocks.cleanDecisionReviewsRepo,
+}));
+
 vi.mock('../repositories', () => ({
   findManyChatsRepo: vi.fn().mockResolvedValue([]),
   reactivateInactiveGroupChatsRepo: mocks.reactivateInactiveGroupChatsRepo,
@@ -57,6 +63,7 @@ beforeEach(async () => {
   );
   mocks.reactivateInactiveGroupChatsRepo.mockResolvedValue(2);
   mocks.updateUserFactsWeightRepo.mockResolvedValue(3);
+  mocks.cleanDecisionReviewsRepo.mockResolvedValue(2);
 });
 
 afterEach(async () => {
@@ -68,20 +75,25 @@ describe('scheduler', () => {
     startScheduler();
     startScheduler();
 
-    expect(mocks.schedule).toHaveBeenCalledTimes(6);
+    expect(mocks.schedule).toHaveBeenCalledTimes(7);
     const recovery = mocks.schedule.mock.calls.find(
       ([expression]) => expression === '0 1 * * *',
     );
     const decay = mocks.schedule.mock.calls.find(
       ([expression]) => expression === '0 3 * * 0',
     );
+    const reviewCleanup = mocks.schedule.mock.calls.find(
+      ([expression]) => expression === '0 * * * *',
+    );
     expect(recovery?.[2]).toEqual({ timezone: 'Europe/Moscow' });
 
     recovery?.[1]();
     decay?.[1]();
+    reviewCleanup?.[1]();
     await vi.waitFor(() => {
       expect(mocks.reactivateInactiveGroupChatsRepo).toHaveBeenCalledOnce();
       expect(mocks.updateUserFactsWeightRepo).toHaveBeenCalledOnce();
+      expect(mocks.cleanDecisionReviewsRepo).toHaveBeenCalledOnce();
     });
 
     expect(mocks.withAdvisoryLock).toHaveBeenCalledWith(
@@ -90,6 +102,10 @@ describe('scheduler', () => {
     );
     expect(mocks.withAdvisoryLock).toHaveBeenCalledWith(
       mocks.lockKeys.factDecay,
+      expect.any(Function),
+    );
+    expect(mocks.withAdvisoryLock).toHaveBeenCalledWith(
+      mocks.lockKeys.decisionReviewCleanup,
       expect.any(Function),
     );
   });

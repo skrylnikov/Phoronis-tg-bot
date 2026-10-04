@@ -11,6 +11,7 @@ import { splitSystemMessages } from '../ai/prompt';
 
 interface RequestBody {
   model?: string;
+  reasoning_effort?: string;
   messages?: Array<{
     role?: string;
     content?: string | Array<{ type?: string; image_url?: { url?: string } }>;
@@ -76,7 +77,7 @@ afterEach(() => {
 });
 
 describe('RouterAI models', () => {
-  it('uses DeepSeek v4 Flash for the paid-quota fallback', async () => {
+  it('uses GPT-6 Luna with medium reasoning for the paid-quota fallback', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -88,7 +89,55 @@ describe('RouterAI models', () => {
 
     await generateText({ model: liteChatModel, prompt: 'fallback' });
 
-    expect(requestBody.model).toBe('deepseek/deepseek-v4-flash');
+    expect(requestBody.model).toBe('openai/gpt-6-luna');
+    expect(requestBody.reasoning_effort).toBe('medium');
+  });
+
+  it('keeps medium reasoning when GPT-6 Luna calls a tool', async () => {
+    const requestBodies: RequestBody[] = [];
+    const responses = [
+      jsonResponse(
+        chatResponse(null, 'tool_calls', [
+          {
+            id: 'call-medium',
+            type: 'function',
+            function: { name: 'lookup', arguments: '{"value":"test"}' },
+          },
+        ]),
+      ),
+      jsonResponse(chatResponse('done', 'stop')),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        requestBodies.push(JSON.parse(String(init?.body)) as RequestBody);
+        const response = responses.shift();
+        if (!response) throw new Error('Unexpected RouterAI request');
+        return response;
+      }),
+    );
+
+    const result = await generateText({
+      model: liteChatModel,
+      prompt: 'Use the lookup tool',
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => value,
+        }),
+      },
+      stopWhen: stepCountIs(5),
+    });
+
+    expect(result.text).toBe('done');
+    expect(requestBodies).toHaveLength(2);
+    expect(
+      requestBodies.every(
+        (body) =>
+          body.model === 'openai/gpt-6-luna' &&
+          body.reasoning_effort === 'medium',
+      ),
+    ).toBe(true);
   });
 
   it('streams text after completing a tool call', async () => {
@@ -155,7 +204,7 @@ describe('RouterAI models', () => {
     expect(requestBodies).toHaveLength(2);
   });
 
-  it('runs sequential tool calls through Gemini 3.7 Flash', async () => {
+  it('runs sequential tool calls through Gemini 3.8 Flash', async () => {
     const requestBodies: RequestBody[] = [];
     const responses = [
       chatResponse(null, 'tool_calls', [
@@ -212,11 +261,11 @@ describe('RouterAI models', () => {
     });
     expect(requestBodies).toHaveLength(3);
     expect(
-      requestBodies.every((body) => body.model === 'google/gemini-3.7-flash'),
+      requestBodies.every((body) => body.model === 'google/gemini-3.8-flash'),
     ).toBe(true);
   });
 
-  it('requests JSON Schema structured output through Qwen 3.7 Flash', async () => {
+  it('requests JSON Schema structured output through GPT-6 Luna with low reasoning', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -233,11 +282,12 @@ describe('RouterAI models', () => {
     });
 
     expect(result.output).toEqual({ answer: 'ok' });
-    expect(requestBody.model).toBe('qwen/qwen3.7-flash');
+    expect(requestBody.model).toBe('openai/gpt-6-luna');
+    expect(requestBody.reasoning_effort).toBe('low');
     expect(requestBody.response_format?.type).toBe('json_schema');
   });
 
-  it('sends image input through Qwen 3.7 Flash', async () => {
+  it('sends image input through GPT-6 Luna with low reasoning', async () => {
     let requestBody: RequestBody = {};
     vi.stubGlobal(
       'fetch',
@@ -266,7 +316,8 @@ describe('RouterAI models', () => {
       ],
     });
 
-    expect(requestBody.model).toBe('qwen/qwen3.7-flash');
+    expect(requestBody.model).toBe('openai/gpt-6-luna');
+    expect(requestBody.reasoning_effort).toBe('low');
     const content = requestBody.messages?.[0]?.content;
     expect(Array.isArray(content) && content[0]?.type).toBe('image_url');
     expect(Array.isArray(content) && content[0]?.image_url?.url).toMatch(

@@ -7,6 +7,7 @@ import { getAllUserFacts } from '../../domain/user/fact-analyzer';
 import { resolveChatUser } from '../../domain/user/resolve-chat-user';
 import { logger } from '../../logger';
 import { findUserAliasesRepo } from '../../repositories/user-alias-repository';
+import { projectAliasContext } from '../alias-context';
 
 const userInfoInputSchema = z
   .object({
@@ -152,23 +153,7 @@ export const createUserInfoTool = (ctx?: BotContext) =>
             updatedAt: memory.updatedAt.toISOString(),
           })),
           memoryScope: isCurrentUser ? 'all_chats' : 'none',
-          aliases: aliases
-            .filter((alias) => alias.status !== 'REJECTED')
-            .map(
-              ({
-                alias,
-                confidence,
-                status,
-                preferred,
-                addressingBlocked,
-              }) => ({
-                alias,
-                confidence,
-                status,
-                preferred,
-                addressingBlocked,
-              }),
-            ),
+          aliasContext: projectAliasContext(chatId, user, aliases),
         });
       } catch (error) {
         logger.error(

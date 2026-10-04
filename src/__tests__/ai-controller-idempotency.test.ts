@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   recordAiSuccess: vi.fn(),
   releaseQuota: vi.fn(),
   aliases: vi.fn(),
+  ownerWrite: vi.fn(),
 }));
 
 vi.mock('../domain', () => ({
@@ -38,6 +39,7 @@ vi.mock('../domain', () => ({
 }));
 vi.mock('../repositories/user-alias-repository', () => ({
   findUserAliasesRepo: mocks.aliases,
+  setMyAliasRepo: mocks.ownerWrite,
 }));
 vi.mock('../domain/entities', () => ({
   extractMentionedUserIds: mocks.extractMentionedUserIds,
@@ -60,8 +62,8 @@ vi.mock('../repositories/user-repository', () => ({
   findManyUsersRepo: mocks.findManyUsersRepo,
 }));
 vi.mock('../ai/ai', () => ({
-  chatModel: { modelId: 'google/gemini-3.7-flash' },
-  liteChatModel: { modelId: 'deepseek/deepseek-v4-flash' },
+  chatModel: { modelId: 'google/gemini-3.8-flash' },
+  liteChatModel: { modelId: 'openai/gpt-6-luna' },
 }));
 vi.mock('../analytics-runtime', () => ({
   recordAiAttempt: mocks.recordAiAttempt,
@@ -132,6 +134,60 @@ beforeEach(() => {
 });
 
 describe('AI response idempotency', () => {
+  it('applies and confirms an owner command before model selection or generation', async () => {
+    mocks.ownerWrite.mockResolvedValue('applied');
+    const reply = vi.fn().mockResolvedValue({ message_id: 900, date: 1 });
+    await aiController({
+      chat: { id: -100, type: 'supergroup' },
+      chatId: -100,
+      from: { id: 42, first_name: 'User' },
+      me: { id: 999, username: 'phoronis_bot' },
+      msg: { message_id: 41, text: 'Ио, называй меня Саша' },
+      reply,
+    } as never);
+    expect(mocks.ownerWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alias: 'Саша',
+        action: 'prefer',
+        userId: 42n,
+        chatId: -100n,
+      }),
+    );
+    expect(reply).toHaveBeenCalledWith(
+      'Буду называть тебя Саша.',
+      expect.any(Object),
+    );
+    expect(mocks.reserveQuota).not.toHaveBeenCalled();
+    expect(mocks.chatGeneration).not.toHaveBeenCalled();
+    expect(mocks.saveMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'Буду называть тебя Саша.',
+        replyToMessageId: 41n,
+      }),
+    );
+  });
+
+  it('keeps readonly requests from applying owner commands', async () => {
+    await aiController(
+      {
+        chat: { id: -100, type: 'supergroup' },
+        chatId: -100,
+        from: { id: 42, first_name: 'User' },
+        me: { id: 999, username: 'phoronis_bot' },
+        msg: { message_id: 41, text: 'Ио, называй меня Саша' },
+        replyWithChatAction: vi.fn().mockResolvedValue(true),
+      } as never,
+      undefined,
+      undefined,
+      undefined,
+      { readOnlyTools: true },
+    );
+    expect(mocks.ownerWrite).not.toHaveBeenCalled();
+    expect(mocks.chatGeneration.mock.calls[0]?.[4]).toMatchObject({
+      readOnlyTools: true,
+    });
+  });
+
   it('releases quota and does not record success when final delivery is rejected', async () => {
     const reservation = { allowed: true };
     const deliveryError = new Error('Telegram rejected final payload');
@@ -236,7 +292,7 @@ describe('AI response idempotency', () => {
     expect(mocks.chatGeneration).toHaveBeenCalled();
     expect(streamSink.finish).toHaveBeenCalledWith('Ответ');
     expect(mocks.saveMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ modelId: 'google/gemini-3.7-flash' }),
+      expect.objectContaining({ modelId: 'google/gemini-3.8-flash' }),
     );
     expect(mocks.loggerError).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -244,6 +300,26 @@ describe('AI response idempotency', () => {
         err: typingError,
       }),
       'Failed to update Telegram typing status',
+    );
+  });
+
+  it('persists GPT-6 Luna when the quota selects the lite response tier', async () => {
+    mocks.reserveQuota.mockResolvedValue({ allowed: false });
+
+    await aiController({
+      chat: { id: 100, type: 'private' },
+      chatId: 100,
+      from: { id: 42, is_bot: false, first_name: 'User' },
+      me: { id: 999, is_bot: true, first_name: 'Bot' },
+      msg: { message_id: 41, text: 'hello' },
+      replyWithChatAction: vi.fn().mockResolvedValue(true),
+    } as never);
+
+    expect(mocks.chatGeneration.mock.calls[0]?.[4]).toEqual(
+      expect.objectContaining({ model: { modelId: 'openai/gpt-6-luna' } }),
+    );
+    expect(mocks.saveMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ modelId: 'openai/gpt-6-luna' }),
     );
   });
 

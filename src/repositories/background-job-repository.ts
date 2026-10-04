@@ -1,4 +1,5 @@
 import { prisma } from '../db';
+import { analysisErrorCategory } from '../domain/user/analysis-stage';
 import {
   BackgroundJobStatus,
   type BackgroundJobType,
@@ -14,6 +15,8 @@ export interface ClaimedBackgroundJob {
   payload: BackgroundJobPayload;
   attempts: number;
   externalDeliveryId: string | null;
+  createdAt: Date;
+  workerId: string;
 }
 
 const MAX_BACKOFF_MS = 30 * 60 * 1000;
@@ -27,6 +30,7 @@ export async function enqueueBackgroundJobRepo(input: {
   dedupeKey: string;
   payload: BackgroundJobPayload;
   availableAt?: Date;
+  createdAt?: Date;
 }): Promise<void> {
   await prisma.backgroundJob.upsert({
     where: { dedupeKey: input.dedupeKey },
@@ -34,6 +38,7 @@ export async function enqueueBackgroundJobRepo(input: {
       type: input.type,
       dedupeKey: input.dedupeKey,
       payload: input.payload,
+      ...(input.createdAt ? { createdAt: input.createdAt } : {}),
       ...(input.availableAt ? { availableAt: input.availableAt } : {}),
     },
     update: {},
@@ -71,7 +76,7 @@ export async function claimNextBackgroundJobRepo(
         "lastError" = NULL
     FROM candidate
     WHERE item."id" = candidate."id"
-      RETURNING item."id", item."type", item."dedupeKey", item."payload", item."attempts", item."externalDeliveryId"
+      RETURNING item."id", item."type", item."dedupeKey", item."payload", item."attempts", item."externalDeliveryId", item."createdAt", item."workerId"
   `);
   return rows[0];
 }
@@ -173,4 +178,123 @@ export async function countBackgroundJobBacklogRepo(): Promise<{
     }),
   ]);
   return { pending, processing, failed };
+}
+
+export async function freezeAnalysisWindowRepo(
+  id: string,
+  workerId: string,
+  payload: BackgroundJobPayload,
+) {
+  const result = await prisma.backgroundJob.updateMany({
+    where: {
+      id,
+      workerId,
+      type: 'USER_MESSAGE_ANALYSIS',
+      status: 'PROCESSING',
+      leaseUntil: { gt: new Date() },
+    },
+    data: { payload },
+  });
+  if (result.count !== 1) throw new Error('Analysis window lease lost');
+}
+export async function deferAnalysisJobRepo(
+  id: string,
+  workerId: string,
+  availableAt: Date,
+) {
+  const result = await prisma.backgroundJob.updateMany({
+    where: {
+      id,
+      workerId,
+      type: 'USER_MESSAGE_ANALYSIS',
+      status: 'PROCESSING',
+    },
+    data: {
+      status: 'PENDING',
+      availableAt,
+      attempts: { decrement: 1 },
+      workerId: null,
+      leaseUntil: null,
+      lastError: 'analysis:quota_deferred',
+    },
+  });
+  return result.count === 1;
+}
+
+export async function findFailedAnalysisJobsRepo(input: {
+  chatId: bigint;
+  userId?: bigint;
+  from?: Date;
+  to?: Date;
+  limit: number;
+}) {
+  return prisma.backgroundJob.findMany({
+    where: {
+      type: 'USER_MESSAGE_ANALYSIS',
+      status: 'FAILED',
+      AND: [
+        { payload: { path: ['chatId'], equals: String(input.chatId) } },
+        ...(input.userId === undefined
+          ? []
+          : [{ payload: { path: ['userId'], equals: String(input.userId) } }]),
+      ],
+      createdAt: { gte: input.from, lte: input.to },
+    },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    take: input.limit,
+  });
+}
+export async function replayFailedAnalysisJobRepo(job: {
+  id: string;
+  payload: unknown;
+  attempts: number;
+  lastError: string | null;
+  updatedAt: Date;
+}) {
+  if (
+    !job.payload ||
+    typeof job.payload !== 'object' ||
+    Array.isArray(job.payload)
+  )
+    throw new Error('Invalid analysis replay payload');
+  const payload = job.payload as Prisma.InputJsonObject;
+  const previous = payload.replay;
+  const count =
+    previous &&
+    typeof previous === 'object' &&
+    !Array.isArray(previous) &&
+    'count' in previous &&
+    typeof previous.count === 'number'
+      ? previous.count
+      : 0;
+  const result = await prisma.backgroundJob.updateMany({
+    where: {
+      id: job.id,
+      type: 'USER_MESSAGE_ANALYSIS',
+      status: 'FAILED',
+      updatedAt: job.updatedAt,
+    },
+    data: {
+      status: 'PENDING',
+      attempts: 0,
+      workerId: null,
+      leaseUntil: null,
+      startedAt: null,
+      completedAt: null,
+      availableAt: new Date(),
+      lastError: null,
+      payload: {
+        ...payload,
+        replay: {
+          count: count + 1,
+          previousAttempts: job.attempts,
+          previousErrorCategory: analysisErrorCategory(
+            new Error(job.lastError ?? ''),
+          ),
+          requestedAt: new Date().toISOString(),
+        },
+      },
+    },
+  });
+  return result.count === 1;
 }

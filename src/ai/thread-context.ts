@@ -90,7 +90,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function stableJson(value: unknown): string {
-  return JSON.stringify(value) ?? 'null';
+  return (
+    JSON.stringify(value, (_key, item) =>
+      isRecord(item) && !Array.isArray(item)
+        ? Object.fromEntries(
+            Object.keys(item)
+              .sort()
+              .map((key) => [key, item[key]]),
+          )
+        : item,
+    ) ?? 'null'
+  );
 }
 
 function asJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -230,13 +240,7 @@ function getCompactionUserContexts(value: unknown): CompactionUserContext[] {
 
 function collectUserContexts(events: ContextEvent[]): CompactionUserContext[] {
   const result: CompactionUserContext[] = [];
-  const seen = new Set<string>();
-  const append = (context: CompactionUserContext) => {
-    const key = stableJson(context);
-    if (seen.has(key)) return;
-    seen.add(key);
-    result.push(context);
-  };
+  const append = (context: CompactionUserContext) => result.push(context);
 
   for (const event of events) {
     if (event.eventKind === 'CACHE_BOUNDARY') {

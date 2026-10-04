@@ -30,6 +30,7 @@ model User {
   PurchaseSession PurchaseSession[]
   LimitNotice     LimitNotice[]
   aliases         UserAlias[]
+  decisionReviews DecisionReview[]
 }
 
 enum ChatType {
@@ -285,6 +286,7 @@ model Message {
   factEvidence     UserFactEvidence[]          @relation("UserFactEvidenceSourceMessage")
   aiThreadEvents   AiThreadContextEvent[]
   aliasEvidence    UserAliasEvidence[]
+  decisionReviews  DecisionReview[]
 
   @@id([chatId, id])
   @@index([chatId, sentAt])
@@ -429,6 +431,34 @@ model UserFactEvidence {
 
   @@unique([factId, sourceChatId, sourceMessageId])
   @@index([sourceChatId, sourceMessageId])
+}
+
+model DecisionReview {
+  id              String   @id @default(cuid())
+  runId           String
+  kind            String
+  userId          BigInt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceChatId    BigInt
+  sourceMessageId BigInt
+  sourceMessage   Message  @relation(fields: [sourceChatId, sourceMessageId], references: [chatId, id], onDelete: Cascade)
+  candidate       String
+  candidateType   String?
+  requestedModel  String
+  actualModel     String?
+  policyVersion   Int
+  scores          Json
+  thresholds      Json
+  comparison      Json?
+  outcome         String
+  action          String
+  resultId        String?
+  durationMs      Int
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sourceChatId, createdAt])
+  @@index([runId])
 }
 
 model FactHistory {

@@ -6,6 +6,7 @@ import {
   validateAlias,
 } from '../domain/user/aliases';
 import type { Prisma } from '../generated/prisma/client';
+import { throwIfUpdateAborted } from '../update-signal';
 
 const evidenceInclude = {
   evidence: { include: { sourceMessage: true } },
@@ -17,11 +18,13 @@ async function lockOwner(
   userId: bigint,
 ) {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`user-alias:${chatId}:${userId}`}, 0))::text`;
+  throwIfUpdateAborted();
 }
 
 export async function findUserAliasesRepo(chatId: bigint, userId?: bigint) {
   const rows = await prisma.userAlias.findMany({
     where: { chatId, userId },
+    orderBy: { normalizedAlias: 'asc' },
     include: evidenceInclude,
   });
   // ponytail: recalculate the small chat dictionary on read; batch aggregates if it grows large.
@@ -69,6 +72,7 @@ export async function saveUserAliasEvidenceRepo(input: {
       )
     )
       return false;
+    throwIfUpdateAborted();
     const row = await tx.userAlias.upsert({
       where: {
         chatId_userId_normalizedAlias: {
@@ -80,6 +84,7 @@ export async function saveUserAliasEvidenceRepo(input: {
       create: { chatId: input.chatId, userId: input.userId, ...name },
       update: {},
     });
+    throwIfUpdateAborted();
     await tx.userAliasEvidence.createMany({
       data: {
         aliasId: row.id,
@@ -99,6 +104,7 @@ export async function saveUserAliasEvidenceRepo(input: {
       row.ownerConfirmed,
       row.status === 'REJECTED',
     );
+    throwIfUpdateAborted();
     await tx.userAlias.update({
       where: { id: row.id },
       data: { confidence, confirmationCount, status },
@@ -131,7 +137,10 @@ export async function setMyAliasRepo(input: {
       latest?.lastOwnerMessageId !== undefined &&
       latest.lastOwnerMessageId >= input.messageId
     )
-      return false;
+      return latest.lastOwnerMessageId === input.messageId
+        ? ('already_applied' as const)
+        : ('superseded' as const);
+    throwIfUpdateAborted();
     if (input.action === 'prefer')
       await tx.userAlias.updateMany({
         where: { chatId: input.chatId, userId: input.userId, preferred: true },
@@ -155,6 +164,7 @@ export async function setMyAliasRepo(input: {
               confidence: 0,
             }
           : { preferred: false, addressingBlocked: true };
+    throwIfUpdateAborted();
     await tx.userAlias.upsert({
       where: {
         chatId_userId_normalizedAlias: {
@@ -172,6 +182,6 @@ export async function setMyAliasRepo(input: {
       },
       update: { ...name, ...overrides, lastOwnerMessageId: input.messageId },
     });
-    return true;
+    return 'applied' as const;
   });
 }

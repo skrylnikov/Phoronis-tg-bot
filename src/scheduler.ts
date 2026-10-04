@@ -11,6 +11,7 @@ import {
   reactivateInactiveGroupChatsRepo,
   updateUserFactsWeightRepo,
 } from './repositories';
+import { cleanDecisionReviewsRepo } from './repositories/decision-review-repository';
 
 const scheduledTasks = new Set<ScheduledTask>();
 const activeRuns = new Set<Promise<void>>();
@@ -369,6 +370,20 @@ export function startScheduler() {
         );
         throw err;
       }
+    },
+    { timezone: 'UTC' },
+  );
+
+  scheduleTask(
+    '0 * * * *',
+    'decision review cleanup',
+    SCHEDULER_LOCK_KEYS.decisionReviewCleanup,
+    async () => {
+      const deletedCount = await cleanDecisionReviewsRepo();
+      logger.info(
+        { event: 'jev.review_cleanup_completed', deletedCount },
+        'Decision review cleanup completed',
+      );
     },
     { timezone: 'UTC' },
   );

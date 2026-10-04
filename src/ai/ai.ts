@@ -1,6 +1,13 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { wrapLanguageModel } from 'ai';
 import { routerAIToken } from '../config';
-import { chatModelId, liteChatModelId } from './model-ids';
+import {
+  chatModelId,
+  liteChatModelId,
+  liteChatReasoningEffort,
+  utilityModelId,
+  utilityReasoningEffort,
+} from './model-ids';
 
 export const routerAI = createOpenAICompatible({
   name: 'routerAI',
@@ -9,6 +16,30 @@ export const routerAI = createOpenAICompatible({
   supportsStructuredOutputs: true,
 });
 
+function modelWithReasoning(modelId: string, reasoningEffort: string) {
+  return wrapLanguageModel({
+    model: routerAI(modelId),
+    middleware: {
+      transformParams: async ({ params }) => ({
+        ...params,
+        providerOptions: {
+          ...params.providerOptions,
+          routerAI: {
+            ...params.providerOptions?.routerAI,
+            reasoningEffort,
+          },
+        },
+      }),
+    },
+  });
+}
+
 export const chatModel = routerAI(chatModelId);
-export const liteChatModel = routerAI(liteChatModelId);
-export const utilityModel = routerAI('qwen/qwen3.7-flash');
+export const liteChatModel = modelWithReasoning(
+  liteChatModelId,
+  liteChatReasoningEffort,
+);
+export const utilityModel = modelWithReasoning(
+  utilityModelId,
+  utilityReasoningEffort,
+);

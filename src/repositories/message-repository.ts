@@ -1,7 +1,7 @@
 import { LRUCache } from 'lru-cache';
 
 import { prisma } from '../db';
-import type { MessageType, Prisma } from '../generated/prisma/client';
+import type { Message, MessageType, Prisma } from '../generated/prisma/client';
 import { handleError } from '../utils/error-handler';
 
 const cache = new LRUCache<string, true>({
@@ -113,11 +113,12 @@ export async function findMessagesRepo(where: {
   chatId: bigint;
   senderId: bigint;
   private: boolean;
+  sentAt?: { lte: Date };
 }) {
   return prisma.message.findMany({
     where,
     include: { replyToMessage: true },
-    orderBy: { sentAt: 'desc' },
+    orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
     take: 30,
   });
 }
@@ -256,4 +257,55 @@ export async function deleteOldPrivateMessagesRepo(): Promise<number> {
     where: { private: true, sentAt: { lt: sevenDaysAgo } },
   });
   return result.count;
+}
+
+export async function findAnalysisSourcesRepo(input: {
+  chatId: bigint;
+  cutoffAt: Date;
+  botId: bigint;
+  ids?: bigint[];
+  senderId?: bigint;
+  replyToIds?: bigint[];
+  parentIds?: bigint[];
+}): Promise<Message[]> {
+  if (input.senderId === input.botId) return [];
+  if (input.replyToIds) {
+    const [parents, incoming] = await Promise.all([
+      findAnalysisSourcesRepo({
+        ...input,
+        replyToIds: undefined,
+        ids: input.parentIds ?? [],
+      }),
+      prisma.message.findMany({
+        where: {
+          chatId: input.chatId,
+          private: false,
+          sentAt: { lte: input.cutoffAt },
+          senderId: { not: input.botId },
+          replyToMessageId: { in: input.replyToIds },
+        },
+        orderBy: [{ sentAt: 'asc' }, { id: 'asc' }],
+        take: 61,
+      }),
+    ]);
+    return [...parents, ...incoming];
+  }
+  return prisma.message.findMany({
+    where: {
+      chatId: input.chatId,
+      private: false,
+      sentAt: { lte: input.cutoffAt },
+      senderId: input.senderId ?? { not: input.botId },
+      ...(input.ids ? { id: { in: input.ids } } : {}),
+      ...(input.replyToIds
+        ? {
+            OR: [
+              { replyToMessageId: { in: input.replyToIds } },
+              { id: { in: input.parentIds ?? [] } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ sentAt: 'asc' }, { id: 'asc' }],
+  });
 }

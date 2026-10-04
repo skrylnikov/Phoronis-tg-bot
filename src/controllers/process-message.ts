@@ -198,6 +198,10 @@ processMessageController.on(':text', async (ctx) => {
       : messageText;
     const shouldRespond =
       ctx.msg.text.toLowerCase().startsWith('ио') ||
+      (ctx.me.username !== undefined &&
+        new RegExp(`^@${ctx.me.username}(?:[\\s,:]|$)`, 'iu').test(
+          ctx.msg.text,
+        )) ||
       ctx.msg.reply_to_message?.from?.id === ctx.me.id ||
       ctx.chat.type === 'private';
 

@@ -20,6 +20,10 @@ import {
 import { extractMentionedUserIds } from '../domain/entities';
 import { getRecentMemoriesForUsers } from '../domain/memory';
 import { getTopUserFacts } from '../domain/user/fact-analyzer';
+import {
+  applyOwnerAliasCommand,
+  parseOwnerAliasCommand,
+} from '../domain/user/owner-alias';
 import type { Message, User } from '../generated/prisma/client';
 import { logger } from '../logger';
 import {
@@ -186,6 +190,29 @@ export const aiController = async (
       },
       'Skipped duplicate AI response after persisted delivery',
     );
+    return;
+  }
+  if (
+    !options.readOnlyTools &&
+    !options.ephemeralReceiverUserId &&
+    parseOwnerAliasCommand(ctx)
+  ) {
+    const result = await applyOwnerAliasCommand(ctx);
+    const confirmation = 'error' in result ? result.error : result.confirmation;
+    const reply = await ctx.reply(confirmation ?? 'Изменение не сохранено.', {
+      reply_parameters: { message_id: msg.message_id },
+    });
+    if (options.persistResponse !== false)
+      await saveMessage({
+        id: BigInt(reply.message_id),
+        chatId: BigInt(ctx.chatId),
+        senderId: BigInt(ctx.me.id),
+        replyToMessageId: BigInt(msg.message_id),
+        sentAt: new Date(reply.date * 1000),
+        text: confirmation,
+        messageType: 'TEXT',
+        private: options.privateMode ?? false,
+      });
     return;
   }
   const isGroup = chat.type === 'group' || chat.type === 'supergroup';

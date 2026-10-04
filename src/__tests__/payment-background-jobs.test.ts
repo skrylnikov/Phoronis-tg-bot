@@ -23,6 +23,8 @@ function paymentJob(
 ): ClaimedBackgroundJob {
   return {
     id: 'job-1',
+    createdAt: new Date('2026-10-01T00:00:00Z'),
+    workerId: 'worker-1',
     type,
     dedupeKey: 'payment-order:order-1:buyer',
     payload: {

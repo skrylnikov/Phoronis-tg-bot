@@ -12,6 +12,18 @@ mock.module('ai', () => ({
   Output: { object: (schema: unknown) => schema },
 }));
 mock.module('../ai/ai', () => ({ utilityModel: { modelId: 'controlled' } }));
+mock.module('../ai/jev', () => ({
+  evaluateJev: async (_state: unknown, questions: Record<string, unknown>) => ({
+    model: 'controlled-jev',
+    durationMs: 0,
+    answers: Object.fromEntries(
+      Object.keys(questions).map((key) => [
+        key,
+        { type: 'noul', noul: key.endsWith('_addressing') ? 0.95 : 0.8 },
+      ]),
+    ),
+  }),
+}));
 mock.module('../ai/embedding/client', () => ({
   embedQueryAndPassage: () => {
     throw new Error('Unexpected embedding call');
@@ -151,7 +163,7 @@ test('controlled model → PostgreSQL → history/profile → addressing → pre
       JSON.parse(String(await tool.execute({ query: 'Шурик' }, {} as never))),
     ).toMatchObject({
       user: { id: String(userId) },
-      aliases: [{ alias: 'Шурик' }],
+      aliasContext: { identityAliases: ['Шурик'] },
     });
     expect((await getAliasContext(chatId, profile)).addressing).toBe('Шурик');
     expect(
@@ -170,7 +182,9 @@ test('controlled model → PostgreSQL → history/profile → addressing → pre
     expect(await resolveChatUser(chatId, 'Шурик')).toMatchObject({
       candidates: [],
     });
-    expect((await getAliasContext(otherChatId, profile)).aliases).toEqual([]);
+    expect(
+      (await getAliasContext(otherChatId, profile)).identityAliases,
+    ).toEqual([]);
   } finally {
     await prisma.message.deleteMany({ where: { chatId } });
     await prisma.chat.deleteMany({

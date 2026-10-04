@@ -1,146 +1,192 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Message } from '../generated/prisma/client';
+import type { ClaimedBackgroundJob } from '../repositories/background-job-repository';
+import { withUpdateAbortSignal } from '../update-signal';
 
 vi.mock('../bot', () => ({ bot: { botInfo: { id: 999 } } }));
-
 const mocks = vi.hoisted(() => ({
-  countMessagesRepo: vi.fn(),
-  findMessagesRepo: vi.fn(),
-  enqueueBackgroundJobRepo: vi.fn(),
-  reserveQuota: vi.fn(),
-  releaseQuota: vi.fn(),
-  analyzeUserMetaInfo: vi.fn(),
+  count: vi.fn(),
+  recent: vi.fn(),
+  sources: vi.fn(),
+  enqueue: vi.fn(),
+  freeze: vi.fn(),
+  reserve: vi.fn(),
+  release: vi.fn(),
+  analyze: vi.fn(),
 }));
-
 vi.mock('../repositories/message-repository', () => ({
-  countMessagesRepo: mocks.countMessagesRepo,
-  findMessagesRepo: mocks.findMessagesRepo,
+  countMessagesRepo: mocks.count,
+  findMessagesRepo: mocks.recent,
+  findAnalysisSourcesRepo: mocks.sources,
 }));
 vi.mock('../repositories/background-job-repository', () => ({
-  enqueueBackgroundJobRepo: mocks.enqueueBackgroundJobRepo,
+  enqueueBackgroundJobRepo: mocks.enqueue,
+  freezeAnalysisWindowRepo: mocks.freeze,
 }));
 vi.mock('../domain/quota-service', () => ({
-  reserveQuota: mocks.reserveQuota,
-  releaseQuota: mocks.releaseQuota,
+  reserveQuota: mocks.reserve,
+  releaseQuota: mocks.release,
 }));
 vi.mock('../domain/user/fact-analyzer', () => ({
-  analyzeUserMetaInfo: mocks.analyzeUserMetaInfo,
+  analyzeUserMetaInfo: mocks.analyze,
 }));
-vi.mock('../logger', () => ({
-  logger: { debug: vi.fn() },
-}));
+vi.mock('../logger', () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
 
 import {
   analyzeUserMessagesForUser,
+  nextAnalysisQuotaDay,
   scheduleUserMessageAnalysis,
 } from '../application/user-message-analysis';
 
+const input = { userId: 42, chatId: -100, isGroup: true };
+const base = {
+  id: 1n,
+  senderId: 42n,
+  chatId: -100n,
+  sentAt: new Date('2026-09-01T00:00:00Z'),
+  private: false,
+  text: 'Привет',
+  replyToMessageId: null,
+} as Message;
+function job(
+  payload: ClaimedBackgroundJob['payload'] = {
+    userId: '42',
+    chatId: '-100',
+    isGroup: true,
+  },
+): ClaimedBackgroundJob {
+  return {
+    id: 'analysis-1',
+    type: 'USER_MESSAGE_ANALYSIS',
+    dedupeKey: 'key',
+    createdAt: new Date('2026-10-01T00:00:00Z'),
+    workerId: 'worker-1',
+    payload,
+    attempts: 1,
+    externalDeliveryId: null,
+  };
+}
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.countMessagesRepo.mockResolvedValue(30);
-  mocks.enqueueBackgroundJobRepo.mockResolvedValue(undefined);
-  mocks.reserveQuota.mockResolvedValue({
-    allowed: true,
-    kind: 'ANALYSIS',
-    day: new Date('2026-08-23T00:00:00.000Z'),
-  });
-  mocks.findMessagesRepo.mockResolvedValue([]);
-  mocks.analyzeUserMetaInfo.mockResolvedValue(undefined);
-  mocks.releaseQuota.mockResolvedValue(undefined);
+  mocks.count.mockResolvedValue(30);
+  mocks.recent.mockResolvedValue([base]);
+  mocks.sources.mockImplementation(async (options) =>
+    options.senderId ? [base] : [],
+  );
+  mocks.reserve.mockResolvedValue({ allowed: true });
+  mocks.freeze.mockResolvedValue(undefined);
+  mocks.analyze.mockResolvedValue([]);
 });
-
-describe('durable user message analysis', () => {
-  it('skips non-thirtieth messages and does not call the model without quota', async () => {
-    mocks.countMessagesRepo.mockResolvedValue(31);
-    await scheduleUserMessageAnalysis({
-      userId: 42,
-      chatId: -100,
-      isGroup: true,
+describe('durable analysis windows', () => {
+  it('anchors new jobs before another 60 messages arrive', async () => {
+    await scheduleUserMessageAnalysis(input);
+    const queued = mocks.enqueue.mock.calls[0][0];
+    expect(queued.payload).toMatchObject({
+      windowVersion: 1,
+      baseMessageIds: ['1'],
+      cutoffAt: queued.createdAt.toISOString(),
     });
-    expect(mocks.enqueueBackgroundJobRepo).not.toHaveBeenCalled();
-    mocks.reserveQuota.mockResolvedValue({ allowed: false });
-    await analyzeUserMessagesForUser({
-      userId: 42,
-      chatId: -100,
-      isGroup: true,
-    });
-    expect(mocks.analyzeUserMetaInfo).not.toHaveBeenCalled();
+    mocks.recent.mockResolvedValue([{ ...base, id: 61n }]);
+    await analyzeUserMessagesForUser(input, job(queued.payload));
+    expect(mocks.analyze.mock.calls[0][1].map((m: Message) => m.id)).toEqual([
+      1n,
+    ]);
+    expect(mocks.recent).toHaveBeenCalledTimes(1);
   });
-  it('enqueues only every thirtieth message with a stable dedupe key', async () => {
-    await scheduleUserMessageAnalysis({
-      userId: 42,
-      chatId: -100,
-      isGroup: true,
-    });
-
-    expect(mocks.enqueueBackgroundJobRepo).toHaveBeenCalledWith({
-      type: 'USER_MESSAGE_ANALYSIS',
-      dedupeKey: 'user-analysis:-100:42:30',
-      payload: { userId: '42', chatId: '-100', isGroup: true },
-    });
-  });
-
-  it('returns the quota reservation when analysis fails', async () => {
-    const reservation = {
-      allowed: true,
-      kind: 'ANALYSIS' as const,
-      day: new Date('2026-08-23T00:00:00.000Z'),
-    };
-    mocks.reserveQuota.mockResolvedValueOnce(reservation);
-    mocks.findMessagesRepo.mockRejectedValueOnce(
-      new Error('database unavailable'),
+  it('freezes legacy sources at original creation before AI under lease', async () => {
+    await analyzeUserMessagesForUser(input, job());
+    expect(mocks.recent).toHaveBeenCalledWith(
+      expect.objectContaining({ sentAt: { lte: job().createdAt } }),
     );
-
-    await expect(
-      analyzeUserMessagesForUser({ userId: 42, chatId: -100, isGroup: true }),
-    ).rejects.toThrow('database unavailable');
-
-    expect(mocks.releaseQuota).toHaveBeenCalledWith(reservation);
+    expect(mocks.freeze).toHaveBeenCalledWith(
+      'analysis-1',
+      'worker-1',
+      expect.objectContaining({
+        baseMessageIds: ['1'],
+        replyMessageIds: [],
+        cutoffAt: job().createdAt.toISOString(),
+      }),
+    );
+    expect(mocks.freeze.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.analyze.mock.invocationCallOrder[0],
+    );
   });
-
-  it('returns the quota reservation when fact analysis fails', async () => {
-    const reservation = {
-      allowed: true,
-      kind: 'ANALYSIS' as const,
-      day: new Date('2026-08-23T00:00:00.000Z'),
+  it('keeps incoming source identity and links parent in both source sets', async () => {
+    const incoming = {
+      ...base,
+      id: 2n,
+      senderId: 43n,
+      text: 'Дима, привет',
+      replyToMessageId: 1n,
     };
-    const error = new Error('fact analyzer unavailable');
-    mocks.reserveQuota.mockResolvedValueOnce(reservation);
-    mocks.findMessagesRepo.mockResolvedValueOnce([]);
-    mocks.analyzeUserMetaInfo.mockRejectedValueOnce(error);
-
-    await expect(
-      analyzeUserMessagesForUser({ userId: 42, chatId: -100, isGroup: true }),
-    ).rejects.toThrow('fact analyzer unavailable');
-
-    expect(mocks.releaseQuota).toHaveBeenCalledWith(reservation);
-  });
-
-  it('returns quota on a failed attempt and spends it once on retry success', async () => {
-    const firstReservation = {
-      allowed: true,
-      kind: 'ANALYSIS' as const,
-      day: new Date('2026-08-23T00:00:00.000Z'),
-    };
-    const secondReservation = { ...firstReservation };
-    mocks.reserveQuota
-      .mockResolvedValueOnce(firstReservation)
-      .mockResolvedValueOnce(secondReservation);
-    mocks.findMessagesRepo.mockResolvedValue([]);
-    mocks.analyzeUserMetaInfo
-      .mockRejectedValueOnce(new Error('temporary failure'))
-      .mockResolvedValueOnce([101n]);
-
-    await expect(
-      analyzeUserMessagesForUser({ userId: 42, chatId: -100, isGroup: true }),
-    ).rejects.toThrow('temporary failure');
-    await analyzeUserMessagesForUser({
-      userId: 42,
-      chatId: -100,
-      isGroup: true,
+    mocks.sources.mockImplementation(async (options) =>
+      options.senderId ? [base] : [incoming],
+    );
+    await analyzeUserMessagesForUser(input, job());
+    const sources = mocks.analyze.mock.calls[0][3];
+    expect(sources.find((m: Message) => m.id === 2n)).toMatchObject({
+      senderId: 43n,
+      replyToMessage: { id: 1n, senderId: 42n },
     });
-
-    expect(mocks.analyzeUserMetaInfo).toHaveBeenCalledTimes(2);
-    expect(mocks.releaseQuota).toHaveBeenCalledTimes(1);
-    expect(mocks.releaseQuota).toHaveBeenCalledWith(firstReservation);
+    expect(mocks.analyze.mock.calls[0][1]).toHaveLength(1);
+  });
+  it('skips missing/private sources without quota or replacing them', async () => {
+    mocks.sources.mockResolvedValue([]);
+    await expect(
+      analyzeUserMessagesForUser(
+        input,
+        job({
+          windowVersion: 1,
+          cutoffAt: job().createdAt.toISOString(),
+          baseMessageIds: ['1'],
+          replyMessageIds: [],
+        }),
+      ),
+    ).resolves.toEqual({ outcome: 'skipped_no_sources' });
+    expect(mocks.recent).not.toHaveBeenCalled();
+    expect(mocks.reserve).not.toHaveBeenCalled();
+    expect(mocks.analyze).not.toHaveBeenCalled();
+  });
+  it('defers unavailable quota without AI and returns reservation on errors', async () => {
+    mocks.reserve.mockResolvedValueOnce({ allowed: false });
+    await expect(
+      analyzeUserMessagesForUser(input, job()),
+    ).resolves.toMatchObject({
+      outcome: 'quota_deferred',
+      deferUntil: expect.any(Date),
+    });
+    expect(mocks.analyze).not.toHaveBeenCalled();
+    mocks.analyze.mockRejectedValueOnce(new Error('temporary failure'));
+    await expect(analyzeUserMessagesForUser(input, job())).rejects.toThrow(
+      'temporary failure',
+    );
+    expect(mocks.release).toHaveBeenCalledOnce();
+    await analyzeUserMessagesForUser(input, job());
+    expect(mocks.release).toHaveBeenCalledOnce();
+  });
+  it('stops writes after lease loss while sources are loading', async () => {
+    const controller = new AbortController();
+    mocks.recent.mockImplementation(async () => {
+      controller.abort();
+      return [base];
+    });
+    await expect(
+      withUpdateAbortSignal(controller.signal, () =>
+        analyzeUserMessagesForUser(input, job()),
+      ),
+    ).rejects.toThrow();
+    expect(mocks.freeze).not.toHaveBeenCalled();
+    expect(mocks.reserve).not.toHaveBeenCalled();
+  });
+  it('skips non-thirtieth messages and resets on Moscow midnight', async () => {
+    mocks.count.mockResolvedValue(31);
+    await scheduleUserMessageAnalysis(input);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(
+      nextAnalysisQuotaDay(new Date('2026-10-04T20:59:59Z')).toISOString(),
+    ).toBe('2026-10-04T21:00:00.000Z');
+    expect(
+      nextAnalysisQuotaDay(new Date('2026-10-04T21:00:00Z')).toISOString(),
+    ).toBe('2026-10-05T21:00:00.000Z');
   });
 });

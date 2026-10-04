@@ -9,6 +9,7 @@ export const SCHEDULER_LOCK_KEYS = {
   inktober: 0x5048_0104,
   factDecay: 0x5048_0105,
   privateMessageCleanup: 0x5048_0107,
+  decisionReviewCleanup: 0x5048_0108,
 } as const;
 
 type AdvisoryLockKey = number | bigint;

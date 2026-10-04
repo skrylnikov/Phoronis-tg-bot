@@ -108,7 +108,18 @@ type AddressAlias = ReturnType<typeof aggregateAlias> & {
   addressingBlocked: boolean;
 };
 
-export function selectAddressing(aliases: AddressAlias[], profileName: string) {
+export function selectAddressing(
+  aliases: AddressAlias[],
+  ...profileNames: Array<string | null>
+) {
+  const forbidden = new Set(
+    aliases
+      .filter((alias) => alias.addressingBlocked || alias.status === 'REJECTED')
+      .map((alias) => alias.normalizedAlias),
+  );
+  const fallback =
+    profileNames.find((name) => name && !forbidden.has(normalizeAlias(name))) ??
+    null;
   const available = aliases.filter(
     (alias) => alias.status === 'CONFIRMED' && !alias.addressingBlocked,
   );
@@ -132,6 +143,6 @@ export function selectAddressing(aliases: AddressAlias[], profileName: string) {
             : a.normalizedAlias > b.normalizedAlias
               ? 1
               : 0),
-      )[0]?.alias ?? profileName
+      )[0]?.alias ?? fallback
   );
 }

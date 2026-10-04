@@ -1,3 +1,4 @@
+import { AnalysisStageError } from './domain/user/analysis-stage';
 import { jobConfig } from './job-config';
 import { logger } from './logger';
 import {
@@ -9,10 +10,13 @@ import {
   heartbeatBackgroundJobRepo,
   releaseBackgroundJobLeaseRepo,
 } from './repositories';
+import { deferAnalysisJobRepo } from './repositories/background-job-repository';
 import { runtimeState } from './runtime-state';
 
 export interface BackgroundJobHandlerResult {
   externalDeliveryId?: string;
+  deferUntil?: Date;
+  outcome?: string;
 }
 
 export type BackgroundJobHandler = (
@@ -131,6 +135,27 @@ export function createBackgroundJobRunner(
           result && typeof result === 'object'
             ? result.externalDeliveryId
             : undefined;
+        if (
+          !controller.signal.aborted &&
+          result?.deferUntil &&
+          job.type === 'USER_MESSAGE_ANALYSIS'
+        ) {
+          const deferred = await deferAnalysisJobRepo(
+            job.id,
+            workerId,
+            result.deferUntil,
+          );
+          logger.info(
+            {
+              event: 'job.quota_deferred',
+              ...attemptContext,
+              deferred,
+              availableAt: result.deferUntil,
+            },
+            'Analysis deferred until quota reset',
+          );
+          continue;
+        }
         if (!controller.signal.aborted) {
           const completed = await completeBackgroundJobRepo(
             job.id,
@@ -143,6 +168,7 @@ export function createBackgroundJobRunner(
                 event: 'job.completed',
                 ...attemptContext,
                 externalDeliveryId: externalDeliveryId ?? null,
+                outcome: result?.outcome,
                 durationMs: Date.now() - startedAt,
               },
               'Background job completed',
@@ -164,7 +190,12 @@ export function createBackgroundJobRunner(
             id: job.id,
             workerId,
             attempts: job.attempts,
-            maxAttempts: jobConfig.maxAttempts,
+            maxAttempts:
+              job.type === 'USER_MESSAGE_ANALYSIS' &&
+              error instanceof AnalysisStageError &&
+              !error.retryable
+                ? job.attempts
+                : jobConfig.maxAttempts,
             error: errorMessage(error),
           });
           logger.warn(

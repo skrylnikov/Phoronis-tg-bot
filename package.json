@@ -11,6 +11,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:benchmark:vector": "bun run ./src/scripts/vector-search-benchmark.ts",
     "db:wait-vector": "bun run ./src/scripts/wait-for-vector.ts",
+    "analysis:retry": "bun run ./src/scripts/analysis-retry.ts",
+    "jev:report": "bun run ./src/scripts/jev-report.ts",
     "postinstall": "prisma generate",
     "dev": "bun --watch ./src/index.ts",
     "typecheck": "tsc --noEmit",

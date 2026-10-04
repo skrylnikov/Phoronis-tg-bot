@@ -103,17 +103,22 @@ export type UserFact = Prisma.UserFactModel
  */
 export type UserFactEvidence = Prisma.UserFactEvidenceModel
 /**
+ * Model DecisionReview
+ * 
+ */
+export type DecisionReview = Prisma.DecisionReviewModel
+/**
  * Model FactHistory
  * 
  */
 export type FactHistory = Prisma.FactHistoryModel
 /**
  * Model UserAlias
- *
+ * 
  */
 export type UserAlias = Prisma.UserAliasModel
 /**
  * Model UserAliasEvidence
- *
+ * 
  */
 export type UserAliasEvidence = Prisma.UserAliasEvidenceModel

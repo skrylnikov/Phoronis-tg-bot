@@ -1,3 +1,9 @@
+import { AnalysisStageError } from '../domain/user/analysis-stage';
+
+vi.mock('../repositories/background-job-repository', () => ({
+  deferAnalysisJobRepo: mocks.defer,
+}));
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimedBackgroundJob } from '../repositories/background-job-repository';
 
@@ -13,6 +19,7 @@ const mocks = vi.hoisted(() => {
     releaseBackgroundJobLeaseRepo: vi.fn(),
     logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
     setReady: vi.fn(),
+    defer: vi.fn(),
   };
 });
 
@@ -34,6 +41,8 @@ import { createBackgroundJobRunner } from '../background-job-runner';
 function paymentJob(): ClaimedBackgroundJob {
   return {
     id: 'job-1',
+    createdAt: new Date('2026-10-01T00:00:00Z'),
+    workerId: 'worker-1',
     type: 'PAYMENT_BUYER_NOTIFICATION',
     dedupeKey: 'payment-order:order-1:buyer',
     payload: { orderId: 'order-1' },
@@ -133,6 +142,123 @@ describe('background job runner delivery lifecycle', () => {
       correlationId: 'job-1',
       retryAfterUnknownDelivery: true,
     });
+  });
+
+  it('defers analysis without completing or consuming an error retry', async () => {
+    mocks.defer.mockResolvedValue(true);
+    mocks.claimNextBackgroundJobRepo
+      .mockResolvedValueOnce({ ...paymentJob(), type: 'USER_MESSAGE_ANALYSIS' })
+      .mockResolvedValue(undefined);
+    const date = new Date('2026-10-05T21:00:00Z');
+    const runner = createBackgroundJobRunner({
+      USER_MESSAGE_ANALYSIS: async () => ({
+        deferUntil: date,
+        outcome: 'quota_deferred',
+      }),
+    });
+    await runner.start();
+    await vi.waitFor(() => expect(mocks.defer).toHaveBeenCalled());
+    await runner.stop();
+    expect(mocks.defer).toHaveBeenCalledWith(
+      'job-1',
+      expect.stringMatching(/^job-/),
+      date,
+    );
+    expect(mocks.completeBackgroundJobRepo).not.toHaveBeenCalled();
+    expect(mocks.failBackgroundJobRepo).not.toHaveBeenCalled();
+  });
+  it('terminates invalid analysis input while retaining the usual payment retry budget', async () => {
+    mocks.claimNextBackgroundJobRepo
+      .mockResolvedValueOnce({
+        ...paymentJob(),
+        type: 'USER_MESSAGE_ANALYSIS',
+        attempts: 1,
+      })
+      .mockResolvedValue(undefined);
+    const runner = createBackgroundJobRunner({
+      USER_MESSAGE_ANALYSIS: async () => {
+        throw new AnalysisStageError('window', 'invalid_input');
+      },
+    });
+    await runner.start();
+    await vi.waitFor(() =>
+      expect(mocks.failBackgroundJobRepo).toHaveBeenCalled(),
+    );
+    await runner.stop();
+    expect(mocks.failBackgroundJobRepo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attempts: 1,
+        maxAttempts: 1,
+        error: 'analysis:window:invalid_input',
+      }),
+    );
+  });
+
+  it('lease loss aborts the handler before another persistence step', async () => {
+    mocks.claimNextBackgroundJobRepo
+      .mockResolvedValueOnce({ ...paymentJob(), type: 'USER_MESSAGE_ANALYSIS' })
+      .mockResolvedValue(undefined);
+    mocks.heartbeatBackgroundJobRepo.mockResolvedValue(false);
+    let ready!: () => void;
+    let aborted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const lost = new Promise<void>((resolve) => {
+      aborted = resolve;
+    });
+    let writes = 0;
+    const runner = createBackgroundJobRunner({
+      USER_MESSAGE_ANALYSIS: async (_job, signal) => {
+        ready();
+        await new Promise<void>((resolve) =>
+          signal.addEventListener(
+            'abort',
+            () => {
+              aborted();
+              resolve();
+            },
+            { once: true },
+          ),
+        );
+        signal.throwIfAborted();
+        writes++;
+      },
+    });
+    await runner.start();
+    await started;
+    await lost;
+    await runner.stop();
+    expect(writes).toBe(0);
+    expect(mocks.completeBackgroundJobRepo).not.toHaveBeenCalled();
+    expect(mocks.failBackgroundJobRepo).not.toHaveBeenCalled();
+  });
+
+  it('shutdown aborts the inner operation and does not complete it', async () => {
+    mocks.claimNextBackgroundJobRepo
+      .mockResolvedValueOnce({ ...paymentJob(), type: 'USER_MESSAGE_ANALYSIS' })
+      .mockResolvedValue(undefined);
+    let ready!: () => void;
+    const started = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    let writes = 0;
+    const runner = createBackgroundJobRunner({
+      USER_MESSAGE_ANALYSIS: async (_job, signal) => {
+        ready();
+        await new Promise<void>((resolve) =>
+          signal.addEventListener('abort', () => resolve(), { once: true }),
+        );
+        signal.throwIfAborted();
+        writes++;
+      },
+    });
+    await runner.start();
+    await started;
+    await runner.stop();
+    expect(writes).toBe(0);
+    expect(mocks.completeBackgroundJobRepo).not.toHaveBeenCalled();
+    expect(mocks.failBackgroundJobRepo).not.toHaveBeenCalled();
   });
 
   it('allows an at-least-once retry after the completion crash window', async () => {

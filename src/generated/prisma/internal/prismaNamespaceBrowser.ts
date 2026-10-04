@@ -68,6 +68,7 @@ export const ModelName = {
   Memory: 'Memory',
   UserFact: 'UserFact',
   UserFactEvidence: 'UserFactEvidence',
+  DecisionReview: 'DecisionReview',
   FactHistory: 'FactHistory',
   UserAlias: 'UserAlias',
   UserAliasEvidence: 'UserAliasEvidence'
@@ -345,6 +346,31 @@ export const UserFactEvidenceScalarFieldEnum = {
 } as const
 
 export type UserFactEvidenceScalarFieldEnum = (typeof UserFactEvidenceScalarFieldEnum)[keyof typeof UserFactEvidenceScalarFieldEnum]
+
+
+export const DecisionReviewScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  kind: 'kind',
+  userId: 'userId',
+  sourceChatId: 'sourceChatId',
+  sourceMessageId: 'sourceMessageId',
+  candidate: 'candidate',
+  candidateType: 'candidateType',
+  requestedModel: 'requestedModel',
+  actualModel: 'actualModel',
+  policyVersion: 'policyVersion',
+  scores: 'scores',
+  thresholds: 'thresholds',
+  comparison: 'comparison',
+  outcome: 'outcome',
+  action: 'action',
+  resultId: 'resultId',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type DecisionReviewScalarFieldEnum = (typeof DecisionReviewScalarFieldEnum)[keyof typeof DecisionReviewScalarFieldEnum]
 
 
 export const FactHistoryScalarFieldEnum = {
