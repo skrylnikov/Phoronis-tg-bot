@@ -10,6 +10,9 @@ import type { ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
 import { logger } from '../logger';
 import { sanitizeTraceData, tracePolicy } from './trace-data';
 
+const resourceSafeKey =
+  /^(?:service\.(?:name|version|namespace)|deployment\.environment(?:\.name)?|telemetry\.sdk\.(?:name|version|language))$/;
+
 const privateSafeKey =
   /^(?:user\.id|session\.id|phoronis\.private_mode|ai\.usage\..*|gen_ai\.(?:operation\.name|provider\.name|request\.(?:model|temperature|max_tokens|top_p|top_k|frequency_penalty|presence_penalty)|response\.(?:model|id|finish_reasons)|usage\..*|client\.operation\..*|tool\.(?:name|type|call\.id)|execute_tool\.duration)|langfuse\.(?:environment|release|internal\..*|observation\.(?:type|model|usage_details|model_parameters)|(?:trace|observation)\.metadata\.(?:threadId|promptHash|promptVersion|cacheBoundary|chatType|chatId|messageId|updateId|inputCharacters|inputMessageCount|outputCharacters|stablePrefixCharacters|dynamicCharacters|latencyMs|ttftMs|finishReason|partial|providerCacheRead|providerCacheWrite|contentExcludedReason)))$/;
 
@@ -196,7 +199,14 @@ export class AiTraceProcessor extends LangfuseSpanProcessor {
               attributes: cleanAttributes(event.attributes ?? {}, false),
             })),
         resource: resourceFromAttributes(
-          cleanAttributes(span.resource.attributes, false),
+          cleanAttributes(
+            Object.fromEntries(
+              Object.entries(span.resource.attributes).filter(([key]) =>
+                resourceSafeKey.test(key),
+              ),
+            ),
+            false,
+          ),
         ),
       };
       super.onEnd(cleaned);

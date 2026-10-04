@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { configureGlobalLogger } from '@langfuse/core';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { stepCountIs, streamText, tool, wrapLanguageModel } from 'ai';
 import { z } from 'zod';
@@ -84,6 +85,12 @@ export async function runLangfuseSmoke(): Promise<
   const sdk = new NodeSDK({
     spanProcessors: [processor],
     autoDetectResources: false,
+    resource: resourceFromAttributes({
+      'service.name': 'phoronis-smoke',
+      'process.command_args': ['bun', 'RESOURCE-CONTENT-SENTINEL'],
+      'process.command_line': 'bun RESOURCE-CONTENT-SENTINEL',
+      'custom.runtime.content': 'RESOURCE-CONTENT-SENTINEL',
+    }),
   });
   sdk.start();
   const allSpans = () =>
@@ -407,6 +414,8 @@ export async function runLangfuseSmoke(): Promise<
     await processor.forceFlush();
     assert(allSpans().length > countBeforeUntraced);
     assert(!JSON.stringify(batches).includes(privateText));
+    assert(!JSON.stringify(batches).includes('RESOURCE-CONTENT-SENTINEL'));
+    assert(JSON.stringify(batches).includes('phoronis-smoke'));
     const privateSpans = allSpans().filter(
       (span) => attributes(span)['phoronis.private_mode'] === true,
     );
