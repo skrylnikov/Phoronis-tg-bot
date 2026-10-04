@@ -26,15 +26,16 @@
   },
   "packageManager": "bun@1.4.0",
   "overrides": {
+    "@grpc/grpc-js": "1.14.5",
     "@playwright/test": "1.50.0",
     "deepmerge-ts": "8.0.0",
-    "fast-uri": "4.1.3",
+    "fast-uri": "4.1.4",
     "form-data": "4.0.6",
     "js-yaml": "4.3.1",
     "langsmith": "0.9.0",
     "lodash": "4.18.1",
     "mysql2": "3.22.0",
-    "undici": "8.10.0"
+    "undici": "8.10.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
