@@ -49,6 +49,7 @@
     "@grammyjs/parse-mode": "^2.3.0",
     "@langfuse/otel": "^5.10.1",
     "@langfuse/tracing": "^5.10.1",
+    "@langfuse/vercel-ai-sdk": "5.10.1",
     "@opentelemetry/sdk-node": "^0.221.0",
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",

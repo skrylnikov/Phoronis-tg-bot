@@ -275,11 +275,18 @@ export async function generateGuestResponse(input: {
     const result = await withAiObservation(
       'guest-generation',
       {
+        privateMode,
         sessionId: guestQueryId,
         userId: message.from?.id.toString(),
-        metadata: { chatType: message.chat.type, ...contextResult.telemetry },
+        metadata: {
+          chatType: message.chat.type,
+          ...contextResult.telemetry,
+          chatId: String(message.chat.id),
+          messageId: String(message.message_id),
+          updateId: ctx.update?.update_id?.toString(),
+        },
       },
-      (observation: LangfuseSpan) =>
+      (observation: LangfuseSpan | undefined) =>
         chatGeneration(messages, observation, ctx, undefined, {
           readOnlyTools: true,
           allowChatHistory: !privateMode && isGroup,

@@ -9,6 +9,7 @@
         "@grammyjs/parse-mode": "^2.3.0",
         "@langfuse/otel": "^5.10.1",
         "@langfuse/tracing": "^5.10.1",
+        "@langfuse/vercel-ai-sdk": "5.10.1",
         "@opentelemetry/sdk-node": "^0.221.0",
         "@prisma/adapter-pg": "7.9.1",
         "@prisma/client": "7.9.1",
@@ -52,6 +53,8 @@
     "@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.62", "", { "dependencies": { "@ai-sdk/provider": "4.0.7", "@ai-sdk/provider-utils": "5.0.29", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-zR3pustGWhw5eUZHG+fJZx/V/PBe+LxdDpc5hDFWxozG/3MB/+eY62jn+YiR+9uOH+Hx63e5zJoeKLfZfPktWQ=="],
 
     "@ai-sdk/openai-compatible": ["@ai-sdk/openai-compatible@3.0.35", "", { "dependencies": { "@ai-sdk/provider": "4.0.7", "@ai-sdk/provider-utils": "5.0.29" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-zXN7FtaUALqE677kLjUf+CwvXCrLdGP+1MnZZVmHEHTmcAAcovescUF0Iy8APds7+aZOT29rMS90ClXvBf8PGA=="],
+
+    "@ai-sdk/otel": ["@ai-sdk/otel@1.0.127", "", { "dependencies": { "@ai-sdk/provider": "4.0.21", "@opentelemetry/api": "1.9.1", "ai": "7.0.127" } }, "sha512-hJY4V5E2LJeJxM1Eb6g+mkhdLHCRI/zcqDFE76diAOmHu/x+5Sj7q/0Tl1wDJGL/qZOGz3Fe+e549zFsvoxAOw=="],
 
     "@ai-sdk/provider": ["@ai-sdk/provider@4.0.7", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-6or44XprPzKbr8zkmzosowSE0pxkvJcoojBL+mCZvPUt3kvXp3XSNqeVun9golb1acEfSo6yaEBRT18h2VU+1Q=="],
 
@@ -98,6 +101,8 @@
     "@langfuse/otel": ["@langfuse/otel@5.10.1", "", { "dependencies": { "@langfuse/core": "^5.10.1" }, "peerDependencies": { "@opentelemetry/api": "^1.9.0", "@opentelemetry/core": "^2.0.1", "@opentelemetry/exporter-trace-otlp-http": ">=0.202.0 <1.0.0", "@opentelemetry/sdk-trace-base": "^2.0.1" } }, "sha512-F2153e4PoJ1cN+5tM/xnsS44aQCQwK3p0nPk4NEpITV5pMTqiQVyvpkAvly8GKQ5Qjjr7heJ1dFtghW43ysyPQ=="],
 
     "@langfuse/tracing": ["@langfuse/tracing@5.10.1", "", { "dependencies": { "@langfuse/core": "^5.10.1" }, "peerDependencies": { "@opentelemetry/api": "^1.9.0" } }, "sha512-m2kK4D0MsH8g4Og6KpnlYk8NLdQTYe0JR5M4KKpfNj99XXLlbdpXE/g3uJSqkcrWFhpiIb+3cyS9+uV6wQ6WtA=="],
+
+    "@langfuse/vercel-ai-sdk": ["@langfuse/vercel-ai-sdk@5.10.1", "", { "dependencies": { "@ai-sdk/otel": "^1.0.44", "@langfuse/core": "^5.10.1" }, "peerDependencies": { "@opentelemetry/api": "^1.9.0", "ai": ">=7.0.0 <8" } }, "sha512-F+y5sLpeOEEO0uCLcZUHS5qvt0vF07SCnOu4oD7c1N5y9NwMADx0dbNh4804HGnEqqDDQAABtP9p9w+HHE6REQ=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
@@ -891,6 +896,10 @@
 
     "zwitch": ["zwitch@1.0.5", "", {}, "sha512-V50KMwwzqJV0NpZIZFwfOD5/lyny3WlSzRiXgA0G7VUnRlqttta1L6UQIHzd6EuBY/cHGfwTIck7w1yH6Q5zUw=="],
 
+    "@ai-sdk/otel/@ai-sdk/provider": ["@ai-sdk/provider@4.0.21", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-UpbC9C1oht8dhfKPbVXSLRZS3DI8uk8n5v2uMjBPNIYGsC2kL045ywq7D8Hh9KgnH9rP5W/GxQdYtWScRouqlA=="],
+
+    "@ai-sdk/otel/ai": ["ai@7.0.127", "", { "dependencies": { "@ai-sdk/gateway": "4.0.103", "@ai-sdk/provider": "4.0.21", "@ai-sdk/provider-utils": "5.0.53" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-JNsNPk4ZvRGEJuqdVo2lYFkm7uAuf3p/RwKFWn1Wh/+IK3U1RyFWw2GXoFnhzqNfxEuj7XJB4WpIUhl1sHToWg=="],
+
     "@prisma/dev/std-env": ["std-env@3.10.0", "", {}, "sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg=="],
 
     "@prisma/engines/@prisma/get-platform": ["@prisma/get-platform@7.9.1", "", { "dependencies": { "@prisma/debug": "7.9.1" } }, "sha512-PK8R60YZRQvYxBrGG9i7l2/rFyzy+2MuI1dKtmtrCqPH8YpiJx/MfiC7LRzX5786rZDEv7BngcjfIJW4/9ADuw=="],
@@ -908,5 +917,9 @@
     "proper-lockfile/signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
 
     "thread-stream/real-require": ["real-require@1.0.0", "", {}, "sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g=="],
+
+    "@ai-sdk/otel/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.103", "", { "dependencies": { "@ai-sdk/provider": "4.0.21", "@ai-sdk/provider-utils": "5.0.53", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-nnGTUHzPRQ14jhv9CL4OQrzcRBIFTBMIPKGIi9Z9u/4GtwSRxa/nxUX6np2Iwp5phOzO0a0njj/j9Jolf5AEaA=="],
+
+    "@ai-sdk/otel/ai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@5.0.53", "", { "dependencies": { "@ai-sdk/provider": "4.0.21", "@standard-schema/spec": "^1.1.0", "@workflow/serde": "4.1.0", "eventsource-parser": "^3.0.8", "undici": "^7.29.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-VVe6UDd0y0/B4TfauuKKzcppqvhTmSluwwUVT4WG2/8h7gFbyFm7PM4UGM+ZXe3/RI6bv+Vl1cw/7aiBoQqdxg=="],
   }
 }

@@ -1,14 +1,16 @@
 import type { LangfuseSpan } from '@langfuse/tracing';
-import type { ModelMessage } from 'ai';
+import type { ModelMessage, StreamTextOnChunkCallback, ToolSet } from 'ai';
 import { dynamicTool, stepCountIs, streamText } from 'ai';
 import { z } from 'zod';
 import type { BotContext } from '../bot';
 import { logger } from '../logger';
 import { updateChatRepo } from '../repositories/chat-repository';
 import { currentUpdateAbortSignal } from '../update-signal';
-import { chatModel } from './ai';
+import { chatModel, liteChatModel } from './ai';
 import { aliasContextInstructions } from './alias-context';
 import { isChatHistorySearchIntent } from './history-intent';
+import { updateAiObservation } from './langfuse';
+import * as modelIds from './model-ids';
 import { splitSystemMessages } from './prompt';
 import { collectStreamedText } from './stream-text';
 import {
@@ -21,6 +23,8 @@ import {
 } from './tools';
 import { createClearMemoryTool, createMemoryTool } from './tools/memory';
 import { createMyAliasTool } from './tools/my-alias';
+import { tracePolicy } from './trace-data';
+import { chatTelemetry } from './trace-integration';
 
 export const chatGeneration = async (
   messages: Array<ModelMessage>,
@@ -113,12 +117,53 @@ export const chatGeneration = async (
 
   const generationStartedAt = performance.now();
   let firstTextAt: number | null = null;
+  let partialText = '';
+  const policy = tracePolicy.getStore();
+  const tracing = Boolean(observation || policy);
+  if (policy)
+    policy.modelParameters = {
+      temperature: 1,
+      ...(options.maxOutputTokens !== undefined
+        ? { maxOutputTokens: options.maxOutputTokens }
+        : {}),
+      ...(options.model === liteChatModel &&
+      'liteChatReasoningEffort' in modelIds &&
+      typeof modelIds.liteChatReasoningEffort === 'string'
+        ? { reasoningEffort: modelIds.liteChatReasoningEffort }
+        : {}),
+    };
+  const recordChunk: StreamTextOnChunkCallback<ToolSet> = ({ chunk }) => {
+    if (policy && chunk.type === 'text-delta')
+      policy.partialText = (policy.partialText ?? '') + chunk.text;
+  };
   const generationOptions = {
+    ...(tracing
+      ? {
+          telemetry: {
+            integrations: [chatTelemetry],
+            recordInputs: !policy?.privateMode,
+            recordOutputs: !policy?.privateMode,
+            includeRuntimeContext: {},
+            includeToolsContext: {},
+          },
+        }
+      : { telemetry: { isEnabled: false } }),
+    ...(tracing
+      ? {
+          onChunk: recordChunk,
+          onError: () =>
+            logger.warn(
+              { event: 'ai.generation_stream_failed' },
+              'Chat generation stream failed',
+            ),
+        }
+      : {}),
     abortSignal: currentUpdateAbortSignal(),
     model: options.model ?? chatModel,
-    instructions: [prompt.instructions, aliasContextInstructions]
-      .filter(Boolean)
-      .join('\n\n'),
+    instructions: [
+      ...(prompt.instructions ?? []),
+      { role: 'system' as const, content: aliasContextInstructions },
+    ],
     messages: prompt.messages,
     maxOutputTokens: options.maxOutputTokens,
     stopWhen: stepCountIs(5),
@@ -143,63 +188,111 @@ export const chatGeneration = async (
       ? { search_chat_history: createChatHistoryTool(ctx) }
       : {}),
   };
-  const response = requireChatHistorySearch
-    ? streamText({
-        ...generationOptions,
-        tools: writableToolSet,
-        prepareStep: ({ stepNumber }) =>
-          stepNumber === 0
-            ? {
-                toolChoice: {
-                  type: 'tool' as const,
-                  toolName: 'search_chat_history' as const,
-                },
-              }
-            : { toolChoice: 'none' as const },
-      })
-    : streamText({
-        ...generationOptions,
-        tools: options.readOnlyTools ? readOnlyToolSet : writableToolSet,
-      });
-
-  async function* measuredTextStream() {
-    for await (const delta of response.textStream) {
-      if (delta && firstTextAt === null) {
-        firstTextAt = performance.now();
-      }
-      yield delta;
-    }
-  }
-
-  const text = await collectStreamedText(
-    measuredTextStream(),
-    response.text,
-    onTextUpdate,
-  );
-
-  const completedAt = performance.now();
-  logger.info(
-    {
-      event: 'ai.generation_completed',
-      ttftMs:
-        firstTextAt === null
-          ? null
-          : Math.round(firstTextAt - generationStartedAt),
-      totalMs: Math.round(completedAt - generationStartedAt),
+  updateAiObservation(observation, {
+    input: {
+      instructions: generationOptions.instructions,
+      messages: generationOptions.messages,
     },
-    'Chat generation completed',
-  );
-
-  observation?.update({
     metadata: {
-      inputMessageCount: messages.length,
-      inputCharacters: JSON.stringify(messages).length,
-      outputCharacters: text.length,
-      latencyMs: Math.round(completedAt - generationStartedAt),
-      providerCacheRead: 'unavailable',
-      providerCacheWrite: 'unavailable',
+      ...(policy?.privateMode ? { contentExcludedReason: 'private-mode' } : {}),
     },
   });
 
-  return text;
+  try {
+    const response = requireChatHistorySearch
+      ? streamText({
+          ...generationOptions,
+          tools: writableToolSet,
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0
+              ? {
+                  toolChoice: {
+                    type: 'tool' as const,
+                    toolName: 'search_chat_history' as const,
+                  },
+                }
+              : { toolChoice: 'none' as const },
+        })
+      : streamText({
+          ...generationOptions,
+          tools: options.readOnlyTools ? readOnlyToolSet : writableToolSet,
+        });
+
+    async function* measuredTextStream() {
+      for await (const delta of response.textStream) {
+        if (delta && firstTextAt === null) {
+          firstTextAt = performance.now();
+        }
+        partialText += delta;
+        yield delta;
+      }
+    }
+
+    const text = await collectStreamedText(
+      measuredTextStream(),
+      response.text,
+      onTextUpdate,
+    );
+
+    if (generationOptions.abortSignal?.aborted || policy?.cancelled) {
+      throw (
+        generationOptions.abortSignal?.reason ??
+        new Error('AI generation cancelled')
+      );
+    }
+    const [usage, finishReason] = await Promise.all([
+      response.totalUsage,
+      response.finishReason,
+    ]);
+    const completedAt = performance.now();
+    logger.info(
+      {
+        event: 'ai.generation_completed',
+        ttftMs:
+          firstTextAt === null
+            ? null
+            : Math.round(firstTextAt - generationStartedAt),
+        totalMs: Math.round(completedAt - generationStartedAt),
+      },
+      'Chat generation completed',
+    );
+
+    updateAiObservation(observation, {
+      output: text,
+      metadata: {
+        inputMessageCount: messages.length,
+        inputCharacters: JSON.stringify(messages).length,
+        outputCharacters: text.length,
+        latencyMs: Math.round(completedAt - generationStartedAt),
+        ttftMs:
+          firstTextAt === null
+            ? 'unavailable'
+            : Math.round(firstTextAt - generationStartedAt),
+        finishReason: finishReason ?? 'unavailable',
+        providerCacheRead:
+          usage?.inputTokenDetails?.cacheReadTokens ?? 'unavailable',
+        providerCacheWrite:
+          usage?.inputTokenDetails?.cacheWriteTokens ?? 'unavailable',
+      },
+    });
+
+    return text;
+  } catch (error) {
+    const cancelled =
+      generationOptions.abortSignal?.aborted || policy?.cancelled;
+    updateAiObservation(observation, {
+      ...(partialText ? { output: partialText } : {}),
+      level: 'ERROR',
+      statusMessage: cancelled
+        ? 'AI generation cancelled'
+        : 'AI generation failed',
+      metadata: {
+        partial: Boolean(partialText),
+        finishReason: cancelled ? 'cancelled' : 'error',
+        outputCharacters: partialText.length,
+        latencyMs: Math.round(performance.now() - generationStartedAt),
+      },
+    });
+    throw error;
+  }
 };

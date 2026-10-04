@@ -6,8 +6,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@langfuse/tracing', () => mocks);
+vi.mock('../logger', () => ({ logger: { warn: vi.fn() } }));
 
 import { withAiObservation } from '../ai/langfuse';
+import { tracePolicy } from '../ai/trace-data';
 
 describe('AI Langfuse observation helper', () => {
   it('propagates correlation and only safe bounded metadata', async () => {
@@ -38,7 +40,7 @@ describe('AI Langfuse observation helper', () => {
         },
       },
       async (activeObservation) => {
-        activeObservation.update({ metadata: { latencyMs: 12 } });
+        activeObservation?.update({ metadata: { latencyMs: 12 } });
         return 'ok';
       },
     );
@@ -58,5 +60,46 @@ describe('AI Langfuse observation helper', () => {
     expect(observation.update).toHaveBeenCalledWith({
       metadata: { latencyMs: 12 },
     });
+  });
+});
+
+describe('observation failure isolation', () => {
+  it('continues once when creation fails', async () => {
+    mocks.startActiveObservation.mockImplementation(() => {
+      throw new Error('creation failed');
+    });
+    const run = vi.fn(async () => 'answer');
+    expect(await withAiObservation('chat-generation', {}, run)).toBe('answer');
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+  it('preserves the original AI error without repeating work', async () => {
+    mocks.startActiveObservation.mockImplementation(async (_name, callback) =>
+      callback({}),
+    );
+    const error = new Error('provider failure');
+    const run = vi.fn(async () => {
+      throw error;
+    });
+    await expect(withAiObservation('chat-generation', {}, run)).rejects.toBe(
+      error,
+    );
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+  it('isolates concurrent public and private policies', async () => {
+    mocks.startActiveObservation.mockImplementation(async (_name, callback) =>
+      callback({}),
+    );
+    const results = await Promise.all(
+      [false, true].map((privateMode) =>
+        withAiObservation('guest-generation', { privateMode }, async () => {
+          await new Promise((resolve) =>
+            setTimeout(resolve, privateMode ? 1 : 5),
+          );
+          return tracePolicy.getStore()?.privateMode;
+        }),
+      ),
+    );
+    expect(results).toEqual([false, true]);
+    expect(tracePolicy.getStore()).toBeUndefined();
   });
 });

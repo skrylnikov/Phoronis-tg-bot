@@ -569,9 +569,16 @@ export const aiController = async (
         : await withAiObservation(
             'chat-generation',
             {
+              privateMode: options.privateMode,
               sessionId,
               userId: ctx.from?.id?.toString(),
-              metadata: contextResult.telemetry,
+              metadata: {
+                ...contextResult.telemetry,
+                chatId: String(ctx.chatId),
+                messageId: String(msg.message_id),
+                updateId: ctx.update?.update_id?.toString(),
+                chatType: chat.type,
+              },
             },
             generate,
           );

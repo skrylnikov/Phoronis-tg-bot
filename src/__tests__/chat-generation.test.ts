@@ -16,9 +16,9 @@ vi.mock('ai', () => ({
 }));
 vi.mock('../db', () => ({ prisma: {} }));
 vi.mock('../logger', () => ({
-  logger: { info: vi.fn(), error: vi.fn() },
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
-vi.mock('../ai/ai', () => ({ chatModel: {} }));
+vi.mock('../ai/ai', () => ({ chatModel: {}, liteChatModel: {} }));
 vi.mock('../repositories/chat-repository', () => ({ updateChatRepo }));
 vi.mock('../ai/tools', () => ({
   canUseChatHistoryTool: vi.fn(
@@ -39,6 +39,7 @@ vi.mock('../ai/tools/memory', () => ({
 }));
 
 import { chatGeneration } from '../ai/chat-generation';
+import { tracePolicy } from '../ai/trace-data';
 
 function createContext(
   text: string,
@@ -102,8 +103,8 @@ describe('chat history tool selection', () => {
     );
   });
 
-  it('records safe generation metrics without raw prompt telemetry', async () => {
-    const trace = { update: vi.fn() };
+  it('records actual model input and final unformatted output', async () => {
+    const trace = { update: vi.fn(), setTraceIO: vi.fn() };
 
     await chatGeneration(
       [
@@ -113,15 +114,77 @@ describe('chat history tool selection', () => {
       trace as never,
     );
 
-    expect(trace.update).toHaveBeenCalledWith({
-      metadata: expect.objectContaining({
-        inputMessageCount: 2,
-        providerCacheRead: 'unavailable',
-        providerCacheWrite: 'unavailable',
+    expect(trace.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: 'Готово',
+        metadata: expect.objectContaining({
+          inputMessageCount: 2,
+          providerCacheRead: 'unavailable',
+          providerCacheWrite: 'unavailable',
+        }),
       }),
+    );
+    const call = streamText.mock.calls[0][0];
+    expect(trace.setTraceIO).toHaveBeenCalledWith({
+      input: { instructions: call.instructions, messages: call.messages },
     });
-    expect(trace.update.mock.calls[0]?.[0]).not.toHaveProperty('input');
-    expect(trace.update.mock.calls[0]?.[0]).not.toHaveProperty('output');
+    expect(call.instructions[0]).toMatchObject({
+      role: 'system',
+      content: 'PRIVATE PROMPT',
+    });
+    expect(call.instructions[1].content).toContain('aliasContext');
+    expect(trace.setTraceIO).toHaveBeenCalledWith({ output: 'Готово' });
+  });
+
+  it('excludes private content and enables native content guards', async () => {
+    const trace = { update: vi.fn(), setTraceIO: vi.fn() };
+    await tracePolicy.run({ privateMode: true }, () =>
+      chatGeneration(
+        [{ role: 'user', content: 'PRIVATE SENTINEL' }],
+        trace as never,
+      ),
+    );
+    expect(JSON.stringify(trace.update.mock.calls)).not.toContain(
+      'PRIVATE SENTINEL',
+    );
+    expect(JSON.stringify(trace.update.mock.calls)).not.toContain('Готово');
+    expect(streamText.mock.calls[0][0].telemetry).toMatchObject({
+      recordInputs: false,
+      recordOutputs: false,
+    });
+  });
+
+  it('keeps generation outside the observation scope uninstrumented', async () => {
+    await chatGeneration([{ role: 'user', content: '/ask' }], undefined);
+    expect(streamText.mock.calls[0][0].telemetry).toEqual({ isEnabled: false });
+  });
+
+  it('records output only after stream completion and tolerates telemetry failure', async () => {
+    const trace = {
+      update: vi.fn(),
+      setTraceIO: vi.fn(() => {
+        throw new Error('telemetry');
+      }),
+    };
+    streamText.mockReturnValue({
+      textStream: (async function* () {
+        yield 'Го';
+        yield 'тово';
+      })(),
+      text: Promise.resolve('Готово'),
+    });
+    const result = await chatGeneration(
+      [{ role: 'user', content: 'question' }],
+      trace as never,
+      undefined,
+      () => {
+        expect(trace.update.mock.calls.some(([data]) => 'output' in data)).toBe(
+          false,
+        );
+      },
+    );
+    expect(result).toBe('Готово');
+    expect(streamText).toHaveBeenCalledTimes(1);
   });
 
   it('requires history search before answering a history question', async () => {

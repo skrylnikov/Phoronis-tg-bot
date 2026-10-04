@@ -98,6 +98,7 @@ vi.mock('../logger', () => ({
 
 import { aiController } from '../ai/controllet';
 import { generateGuestResponse } from '../ai/guest-generation';
+import { withAiObservation } from '../ai/langfuse';
 
 afterEach(() => vi.useRealTimers());
 
@@ -514,5 +515,86 @@ describe('AI user data scope', () => {
     expect(JSON.stringify(context)).toContain('личная память');
     expect(JSON.stringify(context)).not.toContain('факт из другого чата');
     expect(JSON.stringify(context)).not.toContain('чужая личная память');
+  });
+});
+
+describe('chat and guest trace policies', () => {
+  it.each(['chat', 'guest'] as const)(
+    'passes private mode and correlation from %s',
+    async (kind) => {
+      mocks.buildAiThreadContext.mockResolvedValue({
+        instructions: 'rules',
+        messages: [],
+        telemetry: {
+          promptHash: 'hash',
+          promptVersion: 3,
+          cacheBoundary: 1,
+          threadId: 'thread',
+        },
+      });
+      const message = {
+        message_id: 41,
+        text: 'question',
+        guest_query_id: 'guest-trace',
+        from: { id: 42 },
+        chat: { id: 100, type: 'supergroup' },
+      };
+      const ctx = {
+        update: { update_id: 77 },
+        chat: message.chat,
+        chatId: 100,
+        from: message.from,
+        me: { id: 999 },
+        msg: message,
+        guestMessage: message,
+        replyWithChatAction: vi.fn().mockResolvedValue(true),
+      };
+      if (kind === 'chat')
+        await aiController(ctx as never, undefined, undefined, undefined, {
+          privateMode: true,
+        });
+      else
+        await generateGuestResponse({
+          ctx: ctx as never,
+          text: 'question',
+          privateMode: true,
+          messagePersisted: false,
+        });
+      expect(withAiObservation).toHaveBeenCalledWith(
+        kind === 'chat' ? 'chat-generation' : 'guest-generation',
+        expect.objectContaining({
+          privateMode: true,
+          sessionId: kind === 'chat' ? 'session' : 'guest-trace',
+          userId: '42',
+          metadata: expect.objectContaining({
+            chatId: '100',
+            messageId: '41',
+            updateId: '77',
+            promptHash: 'hash',
+            promptVersion: 3,
+            cacheBoundary: 1,
+            threadId: 'thread',
+          }),
+        }),
+        expect.any(Function),
+      );
+    },
+  );
+  it('keeps /ask outside the trace policy', async () => {
+    await aiController(
+      {
+        chat: { id: 100, type: 'private' },
+        chatId: 100,
+        from: { id: 42 },
+        me: { id: 999 },
+        msg: { message_id: 41, text: 'question' },
+        replyWithChatAction: vi.fn().mockResolvedValue(true),
+      } as never,
+      undefined,
+      undefined,
+      undefined,
+      { persistResponse: false, privateMode: true },
+    );
+    expect(withAiObservation).not.toHaveBeenCalled();
   });
 });

@@ -120,3 +120,11 @@ uses `BOT_MODE=webhook`, `WEBHOOK_URL`, and `WEBHOOK_SECRET`.
 - Media handling (photos, videos)
 
 Guest Mode must also be enabled in the bot settings through BotFather's MiniApp.
+
+### Трейсы AI в Langfuse
+
+Ответы chat/guest содержат root `chat-generation`/`guest-generation` с фактическими instructions и упорядоченными messages, итоговым текстом до Telegram-форматирования и correlation metadata. Вложенные LLM-вызовы записываются как `GENERATION`, tools — как `TOOL`; model/provider, параметры, finish reason, TTFT и доступный provider usage видны на соответствующем вызове. Usage учитывается только на реальных model calls; недоступный cache usage обозначается `unavailable`, стоимость определяется Langfuse только при наличии достоверного pricing.
+
+Для private mode содержимое исключается из root, trace и всех children, включая tool arguments/results и exception events; остаются технические метрики. В обычных запросах диагностические копии очищаются от credentials, известных runtime secrets, signed URLs и бинарных вложений. Input/output ограничены 128 KiB UTF-8 с `truncated`, `originalBytes` и preview. Media upload отключён. Отмена/ошибка отмечается в trace, уже полученный обычный partial output сохраняется.
+
+Интеграция применяется только к traced chat/guest: `/ask`, vision, voice, compaction и фоновые AI-вызовы сохраняют прежний tracing scope. Экспорт пакетный; shutdown пытается выгрузить spans в существующий drain budget. Исторические пустые traces автоматически не восстанавливаются.
