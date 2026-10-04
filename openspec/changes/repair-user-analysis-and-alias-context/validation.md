@@ -1,6 +1,6 @@
 # Validation
 
-Проверки выполнены 4–5 октября 2026 года. Это отчёт о локальном apply; deployment и production replay не выполнялись.
+Проверки выполнены 4–5 октября 2026 года. Ниже сохранена история локального apply и provider-проверок; актуальная production-приёмка описана в последнем разделе.
 
 ## Baseline и границы change
 
@@ -16,7 +16,7 @@
 | Проверка | Команда | Результат |
 | --- | --- | --- |
 | TypeScript | `rtk proxy bun run typecheck` | PASS |
-| Unit/regression | `rtk proxy bun run test` | 73 suites, 390 tests PASS (policy v2) |
+| Unit/regression | `rtk proxy bun run test` | 73 suites, 392 tests PASS (итоговый релиз, policy v2) |
 | PostgreSQL | `rtk proxy env DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55435/phoronis_alias_test RUN_ANALYSIS_DB_TESTS=1 bun test src/__tests__/analysis-recovery.integration.test.ts src/__tests__/user-alias.integration.test.ts` | 4 tests, 47 assertions PASS |
 | CLI help | `rtk proxy bun run analysis:retry --help` | PASS |
 | OpenSpec | `rtk proxy openspec validate repair-user-analysis-and-alias-context --strict` | PASS |
@@ -85,10 +85,23 @@ rtk proxy bun openspec/changes/repair-user-analysis-and-alias-context/fixtures/l
 
 - **1.4:** исходная причина production `The operation timed out.` не локализована. Новый bounded synthetic flow работает, но прежняя ошибка не содержит stage. Model change и новые budgets сами по себе не доказывают исправление старой причины.
 - **7.2 выполнен в релизном checkout:** полный реальный smoke с utility/Jev и изолированной БД дополнен падением worker после сохранения до COMPLETED. После истечения lease новый worker сохранил original createdAt/окно, получил quota_deferred без provider calls и условно вернул PENDING без расхода error-attempt. После восстановления квоты retry сохранил число фактов/evidence; второе evidence подтвердило alias (2 автора, confidence 0.9681). Отрицательный пример, owner и compaction/restart прошли. Лог: `/private/tmp/phoronis-release-live.log`, exit code 0.
-- **7.3:** необходим отдельный запрос на deployment и ограниченное production-восстановление. До него нельзя подтвердить image/health нового worker, исходную timeout-причину или восстановленные aliases конкретного пользователя. Runbook dry-run → одно окно → evidence/quota/stage latency находится в README.
+- **7.3 частично проверен в production:** deployment, health и одно FAILED-окно проверены после явного запроса пользователя; подробности ниже. В этом окне alias support 0.74 ниже порога 0.8, поэтому конкретные aliases пользователя не восстановлены. Полный пункт остаётся открытым; остальная историческая очередь не запускалась. Runbook находится в README.
 
-Change не архивирован. Локально реализованные и проверенные пункты отмечены отдельно от этих трёх gates.
+Change не архивирован. Проверенные пункты отмечены отдельно от оставшихся открытых gates 1.4 и 7.3.
 
 ## Подготовка релиза
 
 По запросу пользователя на commit/push/deployment создан отдельный checkout от origin/master 4837f80. Telemetry-файлы из master сохранены без отката; основной dirty checkout не сбрасывался. В релиз включены необходимые подготовленные model/Jev изменения и DecisionReview-миграция. Интеграционный fixture теперь контролирует Jev вместо использования credentials; найденная форма Сашей сопоставляется с сохранённой Саша без зависимости от модели.
+
+
+## Production deployment и один replay, 5 октября 2026 года
+
+Пользователь явно разрешил commit, push и проверку deployment. Код опубликован в master коммитом `af7abfe6a1ef426426e9ea2dacfae6eb9b1fd969`. [GitHub Actions 37237171190](https://github.com/skrylnikov/Phoronis-tg-bot/actions/runs/37237171190) завершился success: lint, typecheck, unit, integration, Docker build/publish и Trivy HIGH/CRITICAL. Release checkout прошёл также все 212 файлов Biome, 73 unit suites / 392 tests и integration 30 passed / 3 skipped; дополнительные четыре SQL fixtures ранее проверены отдельно.
+
+Flux штатно обновил deployment `phoronis/phoronis` на image `ghcr.io/skrylnikov/phoronis-tg-bot:master-1791150210-af7abfe6a1ef@sha256:27b0b890b8b3ca78ede290155d302405d0e4b036cc0206263e2d0190c5a1b171`. Kustomizations apps/infrastructure/flux-system Ready, infra revision `26a11e5c353374fccc8d8d2ca75f442c6dc0346c`. Rollout успешно завершился; новый pod `phoronis-6f68b4c497-jm59v` Running 1/1, restartCount 0. Миграция DecisionReview применена init-контейнером, таблица и сохранённые решения проверены. `/readyz` HTTP 200: database, embeddings, transport, updateWorkers и jobWorker готовы. Telegram `getMe` вернул `PhoronisBot`; публичный TLS webhook доступен и ожидаемо возвращает 405 на GET. Тестовые сообщения пользователям не отправлялись.
+
+После удаления старого pod выполнен dry-run и применён только один replay: chat `-1001005702961`, user `6919991193`, job `cmtixvwm301b201sy6wi7g8tx`, точный фильтр from/to `2026-09-01T17:26:44.955Z`, limit 1. Original createdAt и job identity сохранены; legacy окно закреплено как windowVersion 1 с 30 base IDs и 28 reply IDs, missing 0, без усечения. Replay metadata: count 1, previousAttempts 5, previousErrorCategory timeout. Итог — COMPLETED, attempts 1, lastError null, duration 11672 мс.
+
+Run ID `e09facbb-86d9-430d-9ee9-5189797795ce`: extraction 6815 мс, verification 765 мс; нативные embeddings 27–142 мс, relation stages 335–916 мс, persistence 52–73 мс. Реальная policyVersion 2 использовала accept 0.8 / reject 0.1. Четыре fact_source решения сохранены с action created и support 0.95, 0.93, 0.84, 0.81. Alias-кандидат получил support 0.74 / addressing 0.36, outcome uncertain, action skipped; aliases пользователя остаются пустыми. Это ожидаемое соблюдение порога, но не приёмка восстановления конкретного имени. Штатная CHAT ANALYSIS квота за 5 октября увеличилась с 0 до 1, обхода/сброса квот не было. Остальные FAILED-задачи не переводились в очередь.
+
+Исторический timeout из старого image не содержит stage; успешный replay не доказывает его точную первоначальную причину. Поэтому 1.4 и полная alias-приёмка 7.3 остаются открытыми. Изолированный live smoke доказал отдельный путь подтверждения имени по двум авторам, retry без повторного усиления и сохранение owner override, но он не заменяет недостающие production evidence.
